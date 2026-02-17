@@ -16,9 +16,10 @@ export const USDT_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
 interface SwapButtonProps {
     amount: string;
     direction: 'from' | 'to';
+    providerId?: string;
 }
 
-export const SwapButton: FC<SwapButtonProps> = ({ amount, direction }) => {
+export const SwapButton: FC<SwapButtonProps> = ({ amount, direction, providerId }) => {
     const network = useNetwork();
     const address = useAddress();
     const decimals = direction === 'from' ? 9 : 6;
@@ -33,6 +34,7 @@ export const SwapButton: FC<SwapButtonProps> = ({ amount, direction }) => {
         toToken: direction === 'to' ? { type: 'ton' } : { type: 'jetton', value: USDT_ADDRESS },
         network,
         slippageBps: 100,
+        providerId,
     });
 
     const { mutateAsync: buildSwapTransaction } = useBuildSwapTransaction();
