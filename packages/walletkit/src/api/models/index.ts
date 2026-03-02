@@ -94,5 +94,3 @@ export type {
 
 // RPC models
 export type { GetMethodResult } from './rpc/GetMethodResult';
-
-export type { SignatureDomain, SignatureDomainL2, SignatureDomainEmpty } from './core/SignatureDomain';

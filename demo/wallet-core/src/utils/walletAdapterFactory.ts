@@ -6,7 +6,7 @@
  *
  */
 
-import type { SignatureDomain, WalletAdapter, WalletSigner } from '@ton/walletkit';
+import type { WalletAdapter, WalletSigner, SignatureDomain } from '@ton/walletkit';
 import {
     WalletV5R1Adapter,
     WalletV4R2Adapter,
