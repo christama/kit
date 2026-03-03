@@ -62,9 +62,8 @@ describe('map-methods', () => {
         });
 
         it('should reject unknown type', () => {
-            expect(() => mapTonApiGetMethodArgs([{ type: 'unknown' } as any])).toThrow(
-                'Unsupported stack item type: unknown',
-            );
+            // @ts-expect-error testing unknown type
+            expect(() => mapTonApiGetMethodArgs([{ type: 'unknown' }])).toThrow('Unsupported stack item type: unknown');
         });
 
         it('should handle undefined stack', () => {
@@ -129,7 +128,8 @@ describe('map-methods', () => {
         });
 
         it('should reject unknown type', () => {
-            const item = { type: 'unknown' } as any;
+            const item = { type: 'unknown' };
+            // @ts-expect-error testing unknown type
             expect(() => mapTonApiTvmStackRecord(item)).toThrow('Unsupported TonApi stack item type: unknown');
         });
     });
