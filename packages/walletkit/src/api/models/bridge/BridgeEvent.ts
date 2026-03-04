@@ -19,6 +19,7 @@ export interface BridgeEvent {
     id: string;
 
     from?: string;
+    originEvent?: any;
     /**
      * Wallet address associated with the event
      */

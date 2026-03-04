@@ -56,19 +56,24 @@ export class BridgeIntentHandler
             clientId: event.from ?? '',
             origin,
             traceId: event.traceId,
+            tabId: event.tabId?.toString(),
+            originEvent: event,
+            isJsBridge: event.isJsBridge ?? true,
         });
         const base = (intentEvent as Exclude<IntentRequestEvent, { type: 'connect' }>).value as IntentRequestBase;
         if (!connectRequest) {
-            return {
+            const final = {
                 ...event,
                 isJsBridge: true,
                 id: base.id,
                 origin: base.origin,
                 clientId: base.clientId,
+                originEvent: event,
                 traceId: base.traceId,
                 returnStrategy: base.returnStrategy,
                 ...intentEvent,
             };
+            return final;
         }
 
         const connectionEvent = await this.resolveConnectRequest(connectRequest, event);
@@ -82,6 +87,7 @@ export class BridgeIntentHandler
             clientId: base.clientId,
             traceId: base.traceId,
             returnStrategy: base.returnStrategy,
+            originEvent: event,
             ...intentEvent,
             //intents: [/*connectItem*/ intentEvent],
         };

@@ -90,6 +90,9 @@ export interface ParsedIntentUrl {
     request: WireIntentRequest;
     origin: IntentOrigin;
     traceId?: string;
+    tabId?: string;
+    isJsBridge?: boolean;
+    originEvent?: any;
 }
 
 /**
@@ -531,7 +534,14 @@ export class IntentParser {
      */
     fromWireRequest(
         wire: WireIntentRequest,
-        context: { clientId: string; origin: IntentOrigin; traceId?: string },
+        context: {
+            clientId: string;
+            origin: IntentOrigin;
+            traceId?: string;
+            tabId?: string;
+            isJsBridge?: boolean;
+            originEvent: any;
+        },
     ): { event: IntentRequestEvent; connectRequest?: ConnectRequest } {
         this.validateRequest(wire);
         const parsed: ParsedIntentUrl = {
@@ -539,6 +549,9 @@ export class IntentParser {
             request: wire,
             origin: context.origin,
             traceId: context.traceId,
+            tabId: context.tabId,
+            isJsBridge: context.isJsBridge,
+            originEvent: context.originEvent,
         };
         return this.toIntentEvent(parsed);
     }
@@ -546,13 +559,16 @@ export class IntentParser {
     // -- Wire → Model mapping -------------------------------------------------
 
     private toIntentEvent(parsed: ParsedIntentUrl): { event: IntentRequestEvent; connectRequest?: ConnectRequest } {
-        const { clientId, request, origin, traceId } = parsed;
+        const { clientId, request, origin, traceId, tabId, isJsBridge, originEvent } = parsed;
 
         const base: IntentRequestBase = {
             id: request.id,
             origin,
             clientId,
             traceId,
+            tabId,
+            isJsBridge,
+            originEvent,
             returnStrategy: undefined,
         };
 

@@ -105,7 +105,10 @@ export class ExtensionTransport implements Transport {
      */
     private handleResponse(data: { messageId: string; success: boolean; payload?: unknown; error?: unknown }): void {
         const pendingRequest = this.pendingRequests.get(data.messageId);
-        if (!pendingRequest) return;
+        if (!pendingRequest) {
+            log.warn(`Received message id ${data.messageId}, but no pending request`);
+            return;
+        }
 
         const { resolve, reject, timeoutId } = pendingRequest;
         this.pendingRequests.delete(data.messageId);

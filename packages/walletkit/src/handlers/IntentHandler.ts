@@ -454,30 +454,21 @@ export class IntentHandler {
     private async sendResponse(event: IntentRequestBase, result: IntentResponseResult): Promise<void> {
         const wireResponse = this.toWireResponse(event.id, result);
         if (event.isJsBridge) {
-            log.info('SEND JS EVENT', { intentResponse: wireResponse, event });
+            const originEvent = event.originEvent;
+            log.info('SEND JS EVENT', { intentResponse: wireResponse, event, originEvent });
             await this.bridgeManager
                 .sendJsBridgeResponse(
-                    event?.tabId?.toString() || '',
+                    originEvent?.tabId?.toString() || '',
                     true,
-                    event?.id ?? event?.messageId,
+                    originEvent?.messageId ?? originEvent?.id,
                     { intentResponse: wireResponse }, // TODO: connect?
                 )
                 .catch(() => log.error('Failed to send js bridge intent response'));
             return;
         }
         if (!event.clientId) {
-            log.info('SEND JS EVENT', { intentResponse: wireResponse, event });
-            await this.bridgeManager
-                .sendJsBridgeResponse(
-                    event?.tabId?.toString() || '',
-                    true,
-                    event?.id ?? event?.messageId,
-                    { intentResponse: wireResponse }, // TODO: connect?
-                )
-                .catch(() => log.error('Failed to send js bridge intent response'));
+            log.debug('No clientId on intent event, skipping response send');
             return;
-            // log.debug('No clientId on intent event, skipping response send');
-            // return;
         }
 
         try {
