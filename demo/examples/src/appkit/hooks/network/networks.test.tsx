@@ -54,6 +54,7 @@ describe('Network Hooks Examples', () => {
         };
 
         mockAppKit = {
+            getDefaultNetwork: vi.fn(),
             connectors: [],
             networkManager: {
                 getConfiguredNetworks: vi.fn().mockReturnValue([mockNetworkMainnet, mockNetworkTestnet]),

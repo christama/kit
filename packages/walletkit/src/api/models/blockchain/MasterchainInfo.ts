@@ -6,10 +6,34 @@
  *
  */
 
+/**
+ * Information about the latest masterchain block.
+ */
 export interface MasterchainInfo {
+    /**
+     * Sequence number of the masterchain block
+     * @format int
+     */
     seqno: number;
+
+    /**
+     * Shard identifier of the block
+     */
     shard: string;
+
+    /**
+     * Workchain ID of the block
+     * @format int
+     */
     workchain: number;
+
+    /**
+     * File hash of the block
+     */
     fileHash: string;
+
+    /**
+     * Root hash of the block
+     */
     rootHash: string;
 }
