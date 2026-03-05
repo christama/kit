@@ -290,6 +290,22 @@ const { data: blockNumber } = useBlockNumber();
 return <div>Current block number: {blockNumber}</div>;
 ```
 
+### `useDefaultNetwork`
+
+Hook to get and set the default network for wallet connections. Returns a tuple `[defaultNetwork, setDefaultNetwork]`.
+
+```tsx
+const [defaultNetwork, setDefaultNetwork] = useDefaultNetwork();
+
+return (
+    <div>
+        <p>Default network: {defaultNetwork?.chainId ?? 'Any'}</p>
+        <button onClick={() => setDefaultNetwork(Network.testnet())}>Use Testnet</button>
+        <button onClick={() => setDefaultNetwork(undefined)}>Any Network</button>
+    </div>
+);
+```
+
 ## NFT
 
 ### `useNft`
