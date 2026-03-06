@@ -6,8 +6,8 @@
  *
  */
 
-import { MinterPage } from '@/core/pages/minter-page';
+// Common components
+export { Button, Card } from './common';
 
-export default function Home() {
-    return <MinterPage />;
-}
+// Layout components
+export { Layout, ThemeProvider } from './layout';

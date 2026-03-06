@@ -6,8 +6,6 @@
  *
  */
 
-import { MinterPage } from '@/core/pages/minter-page';
-
-export default function Home() {
-    return <MinterPage />;
-}
+// Components
+export { TokensCard } from './components/tokens-card';
+export { TokenTransferModal } from './components/token-transfer-modal';

@@ -6,8 +6,6 @@
  *
  */
 
-import { MinterPage } from '@/core/pages/minter-page';
-
-export default function Home() {
-    return <MinterPage />;
-}
+// Components
+export { NftsCard } from './components/nfts-card';
+export { NftTransferModal } from './components/nft-transfer-modal';

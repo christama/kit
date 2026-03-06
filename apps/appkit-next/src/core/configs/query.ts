@@ -6,8 +6,6 @@
  *
  */
 
-import { MinterPage } from '@/core/pages/minter-page';
+import { QueryClient } from '@tanstack/react-query';
 
-export default function Home() {
-    return <MinterPage />;
-}
+export const queryClient = new QueryClient();

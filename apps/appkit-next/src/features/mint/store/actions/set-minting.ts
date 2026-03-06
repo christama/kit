@@ -6,8 +6,8 @@
  *
  */
 
-import { MinterPage } from '@/core/pages/minter-page';
+import { useMinterStore } from '../minter-store';
 
-export default function Home() {
-    return <MinterPage />;
-}
+export const setMinting = (isMinting: boolean): void => {
+    useMinterStore.setState({ isMinting });
+};

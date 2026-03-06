@@ -6,8 +6,4 @@
  *
  */
 
-import { MinterPage } from '@/core/pages/minter-page';
-
-export default function Home() {
-    return <MinterPage />;
-}
+export { useTheme } from './use-theme';
