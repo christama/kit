@@ -74,7 +74,7 @@ describe('IntentParser', () => {
             expect(event.type).toBe('transaction');
 
             if (event.type !== 'transaction') throw new Error('unexpected');
-            const tx = event.value;
+            const tx = event;
 
             expect(tx.id).toBe('tx-1');
             expect(tx.origin).toBe('deepLink');
@@ -86,13 +86,13 @@ describe('IntentParser', () => {
 
             expect(tx.items[0].type).toBe('sendTon');
             if (tx.items[0].type === 'sendTon') {
-                expect(tx.items[0].value.address).toBe('EQAddr1');
-                expect(tx.items[0].value.amount).toBe('1000000000');
+                expect(tx.items[0].address).toBe('EQAddr1');
+                expect(tx.items[0].amount).toBe('1000000000');
             }
 
             expect(tx.items[1].type).toBe('sendTon');
             if (tx.items[1].type === 'sendTon') {
-                expect(tx.items[1].value.payload).toBe('payload-b64');
+                expect(tx.items[1].payload).toBe('payload-b64');
             }
         });
 
@@ -106,7 +106,7 @@ describe('IntentParser', () => {
             const { event } = await parser.parse(url);
             expect(event.type).toBe('transaction');
             if (event.type === 'transaction') {
-                expect(event.value.deliveryMode).toBe('signOnly');
+                expect(event.deliveryMode).toBe('signOnly');
             }
         });
 
@@ -130,15 +130,15 @@ describe('IntentParser', () => {
             const { event } = await parser.parse(url);
             expect(event.type).toBe('transaction');
             if (event.type === 'transaction') {
-                const item = event.value.items[0];
+                const item = event.items[0];
                 expect(item.type).toBe('sendJetton');
                 if (item.type === 'sendJetton') {
-                    expect(item.value.jettonMasterAddress).toBe('EQJettonMaster');
-                    expect(item.value.jettonAmount).toBe('5000000');
-                    expect(item.value.destination).toBe('EQDest');
-                    expect(item.value.responseDestination).toBe('EQResp');
-                    expect(item.value.forwardTonAmount).toBe('10000');
-                    expect(item.value.queryId).toBe(42);
+                    expect(item.jettonMasterAddress).toBe('EQJettonMaster');
+                    expect(item.jettonAmount).toBe('5000000');
+                    expect(item.destination).toBe('EQDest');
+                    expect(item.responseDestination).toBe('EQResp');
+                    expect(item.forwardTonAmount).toBe('10000');
+                    expect(item.queryId).toBe(42);
                 }
             }
         });
@@ -160,12 +160,12 @@ describe('IntentParser', () => {
             const { event } = await parser.parse(url);
             expect(event.type).toBe('transaction');
             if (event.type === 'transaction') {
-                const item = event.value.items[0];
+                const item = event.items[0];
                 expect(item.type).toBe('sendNft');
                 if (item.type === 'sendNft') {
-                    expect(item.value.nftAddress).toBe('EQNftAddr');
-                    expect(item.value.newOwnerAddress).toBe('EQNewOwner');
-                    expect(item.value.responseDestination).toBe('EQResp');
+                    expect(item.nftAddress).toBe('EQNftAddr');
+                    expect(item.newOwnerAddress).toBe('EQNewOwner');
+                    expect(item.responseDestination).toBe('EQResp');
                 }
             }
         });
@@ -186,11 +186,11 @@ describe('IntentParser', () => {
 
             expect(event.type).toBe('signData');
             if (event.type === 'signData') {
-                expect(event.value.id).toBe('si-1');
-                expect(event.value.manifestUrl).toBe('https://example.com/manifest.json');
-                expect(event.value.payload.data.type).toBe('text');
-                if (event.value.payload.data.type === 'text') {
-                    expect(event.value.payload.data.value.content).toBe('Hello world');
+                expect(event.id).toBe('si-1');
+                expect(event.manifestUrl).toBe('https://example.com/manifest.json');
+                expect(event.payload.data.type).toBe('text');
+                if (event.payload.data.type === 'text') {
+                    expect(event.payload.data.value.content).toBe('Hello world');
                 }
             }
         });
@@ -205,9 +205,9 @@ describe('IntentParser', () => {
 
             const { event } = await parser.parse(url);
             if (event.type === 'signData') {
-                expect(event.value.payload.data.type).toBe('binary');
-                if (event.value.payload.data.type === 'binary') {
-                    expect(event.value.payload.data.value.content).toBe('AQID');
+                expect(event.payload.data.type).toBe('binary');
+                if (event.payload.data.type === 'binary') {
+                    expect(event.payload.data.value.content).toBe('AQID');
                 }
             }
         });
@@ -222,10 +222,10 @@ describe('IntentParser', () => {
 
             const { event } = await parser.parse(url);
             if (event.type === 'signData') {
-                expect(event.value.payload.data.type).toBe('cell');
-                if (event.value.payload.data.type === 'cell') {
-                    expect(event.value.payload.data.value.content).toBe('te6cckEBAQEA');
-                    expect(event.value.payload.data.value.schema).toBe('MySchema');
+                expect(event.payload.data.type).toBe('cell');
+                if (event.payload.data.type === 'cell') {
+                    expect(event.payload.data.value.content).toBe('te6cckEBAQEA');
+                    expect(event.payload.data.value.schema).toBe('MySchema');
                 }
             }
         });
@@ -244,7 +244,7 @@ describe('IntentParser', () => {
             const { event, connectRequest } = await parser.parse(url);
             expect(connectRequest).toBeDefined();
             if (event.type === 'signData') {
-                expect(event.value.manifestUrl).toBe('https://dapp.com/manifest.json');
+                expect(event.manifestUrl).toBe('https://dapp.com/manifest.json');
             }
         });
     });
@@ -262,8 +262,8 @@ describe('IntentParser', () => {
             const { event } = await parser.parse(url);
             expect(event.type).toBe('action');
             if (event.type === 'action') {
-                expect(event.value.id).toBe('a-1');
-                expect(event.value.actionUrl).toBe('https://api.example.com/action');
+                expect(event.id).toBe('a-1');
+                expect(event.actionUrl).toBe('https://api.example.com/action');
             }
         });
     });
@@ -278,7 +278,7 @@ describe('IntentParser', () => {
 
             const { event } = await parser.parse(url);
             expect(event.type).toBe('transaction');
-            expect(event.value.clientId).toBeUndefined();
+            expect(event.clientId).toBeUndefined();
         });
 
         it('rejects object storage URL without client ID', async () => {
@@ -404,6 +404,7 @@ describe('IntentParser', () => {
 
     describe('parseActionResponse', () => {
         const baseActionEvent = {
+            type: 'action' as const,
             id: 'a-1',
             origin: 'deepLink' as const,
             clientId: 'c1',
@@ -423,11 +424,11 @@ describe('IntentParser', () => {
             const event = parser.parseActionResponse(payload, baseActionEvent);
             expect(event.type).toBe('transaction');
             if (event.type === 'transaction') {
-                expect(event.value.resolvedTransaction).toBeDefined();
-                expect(event.value.resolvedTransaction!.messages).toHaveLength(1);
-                expect(event.value.resolvedTransaction!.messages[0].address).toBe('EQAddr');
-                expect(event.value.resolvedTransaction!.messages[0].amount).toBe('500');
-                expect(event.value.resolvedTransaction!.network).toEqual({ chainId: '-239' });
+                expect(event.resolvedTransaction).toBeDefined();
+                expect(event.resolvedTransaction!.messages).toHaveLength(1);
+                expect(event.resolvedTransaction!.messages[0].address).toBe('EQAddr');
+                expect(event.resolvedTransaction!.messages[0].amount).toBe('500');
+                expect(event.resolvedTransaction!.network).toEqual({ chainId: '-239' });
             }
         });
 
@@ -443,8 +444,8 @@ describe('IntentParser', () => {
             const event = parser.parseActionResponse(payload, baseActionEvent);
             expect(event.type).toBe('signData');
             if (event.type === 'signData') {
-                expect(event.value.manifestUrl).toBe('https://api.example.com/action');
-                expect(event.value.payload.data.type).toBe('text');
+                expect(event.manifestUrl).toBe('https://api.example.com/action');
+                expect(event.payload.data.type).toBe('text');
             }
         });
 

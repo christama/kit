@@ -13,6 +13,7 @@ import type { SignDataPayload } from '../core/PreparedSignData';
  * Successful response for transaction intent.
  */
 export interface IntentTransactionResponse {
+    type: 'transaction';
     /** Signed BoC (base64) */
     boc: Base64String;
 }
@@ -21,6 +22,7 @@ export interface IntentTransactionResponse {
  * Successful response for sign data intent.
  */
 export interface IntentSignDataResponse {
+    type: 'signData';
     /** Signature (base64) */
     signature: Base64String;
     /** Signer address */
@@ -40,6 +42,7 @@ export interface IntentSignDataResponse {
  * Error response for any intent.
  */
 export interface IntentErrorResponse {
+    type: 'error';
     /** Error details */
     error: IntentError;
 }
@@ -59,8 +62,6 @@ export interface IntentError {
 
 /**
  * Union of all intent responses, discriminated by `type`.
+ * @discriminator type
  */
-export type IntentResponseResult =
-    | { type: 'transaction'; value: IntentTransactionResponse }
-    | { type: 'signData'; value: IntentSignDataResponse }
-    | { type: 'error'; value: IntentErrorResponse };
+export type IntentResponseResult = IntentTransactionResponse | IntentSignDataResponse | IntentErrorResponse;

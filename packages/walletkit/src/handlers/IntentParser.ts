@@ -485,15 +485,13 @@ export class IntentParser {
         };
 
         return {
-            type: 'transaction',
-            value: {
-                ...base,
-                deliveryMode: 'send' as IntentDeliveryMode,
-                network,
-                validUntil: resolvedTransaction.validUntil,
-                items: [],
-                resolvedTransaction,
-            },
+            type: 'transaction' as const,
+            ...base,
+            deliveryMode: 'send' as IntentDeliveryMode,
+            network,
+            validUntil: resolvedTransaction.validUntil,
+            items: [],
+            resolvedTransaction,
         };
     }
 
@@ -515,13 +513,11 @@ export class IntentParser {
         }
 
         return {
-            type: 'signData',
-            value: {
-                ...base,
-                network: action.network ? { chainId: action.network as string } : undefined,
-                manifestUrl: actionUrl,
-                payload: this.wirePayloadToSignDataPayload(wirePayload),
-            },
+            type: 'signData' as const,
+            ...base,
+            network: action.network ? { chainId: action.network as string } : undefined,
+            manifestUrl: actionUrl,
+            payload: this.wirePayloadToSignDataPayload(wirePayload),
         };
     }
 
@@ -545,37 +541,31 @@ export class IntentParser {
             case 'signMsg': {
                 const deliveryMode: IntentDeliveryMode = request.m === 'txIntent' ? 'send' : 'signOnly';
                 event = {
-                    type: 'transaction',
-                    value: {
-                        ...base,
-                        deliveryMode,
-                        network: request.n ? { chainId: request.n } : undefined,
-                        validUntil: request.vu,
-                        items: this.mapItems(request.i!),
-                    },
+                    type: 'transaction' as const,
+                    ...base,
+                    deliveryMode,
+                    network: request.n ? { chainId: request.n } : undefined,
+                    validUntil: request.vu,
+                    items: this.mapItems(request.i!),
                 };
                 break;
             }
             case 'signIntent': {
                 const manifestUrl = request.mu || request.c?.manifestUrl || '';
                 event = {
-                    type: 'signData',
-                    value: {
-                        ...base,
-                        network: request.n ? { chainId: request.n } : undefined,
-                        manifestUrl,
-                        payload: this.wirePayloadToSignDataPayload(request.p!),
-                    },
+                    type: 'signData' as const,
+                    ...base,
+                    network: request.n ? { chainId: request.n } : undefined,
+                    manifestUrl,
+                    payload: this.wirePayloadToSignDataPayload(request.p!),
                 };
                 break;
             }
             case 'actionIntent': {
                 event = {
-                    type: 'action',
-                    value: {
-                        ...base,
-                        actionUrl: request.a!,
-                    },
+                    type: 'action' as const,
+                    ...base,
+                    actionUrl: request.a!,
                 };
                 break;
             }
@@ -592,41 +582,35 @@ export class IntentParser {
         switch (item.t) {
             case 'ton':
                 return {
-                    type: 'sendTon',
-                    value: {
-                        address: item.a!,
-                        amount: item.am!,
-                        payload: item.p as Base64String | undefined,
-                        stateInit: item.si as Base64String | undefined,
-                        extraCurrency: item.ec,
-                    },
+                    type: 'sendTon' as const,
+                    address: item.a!,
+                    amount: item.am!,
+                    payload: item.p as Base64String | undefined,
+                    stateInit: item.si as Base64String | undefined,
+                    extraCurrency: item.ec,
                 };
             case 'jetton':
                 return {
-                    type: 'sendJetton',
-                    value: {
-                        jettonMasterAddress: item.ma!,
-                        jettonAmount: item.ja!,
-                        destination: item.d!,
-                        responseDestination: item.rd,
-                        customPayload: item.cp as Base64String | undefined,
-                        forwardTonAmount: item.fta,
-                        forwardPayload: item.fp as Base64String | undefined,
-                        queryId: item.qi,
-                    },
+                    type: 'sendJetton' as const,
+                    jettonMasterAddress: item.ma!,
+                    jettonAmount: item.ja!,
+                    destination: item.d!,
+                    responseDestination: item.rd,
+                    customPayload: item.cp as Base64String | undefined,
+                    forwardTonAmount: item.fta,
+                    forwardPayload: item.fp as Base64String | undefined,
+                    queryId: item.qi,
                 };
             case 'nft':
                 return {
-                    type: 'sendNft',
-                    value: {
-                        nftAddress: item.na!,
-                        newOwnerAddress: item.no!,
-                        responseDestination: item.rd,
-                        customPayload: item.cp as Base64String | undefined,
-                        forwardTonAmount: item.fta,
-                        forwardPayload: item.fp as Base64String | undefined,
-                        queryId: item.qi,
-                    },
+                    type: 'sendNft' as const,
+                    nftAddress: item.na!,
+                    newOwnerAddress: item.no!,
+                    responseDestination: item.rd,
+                    customPayload: item.cp as Base64String | undefined,
+                    forwardTonAmount: item.fta,
+                    forwardPayload: item.fp as Base64String | undefined,
+                    queryId: item.qi,
                 };
         }
     }

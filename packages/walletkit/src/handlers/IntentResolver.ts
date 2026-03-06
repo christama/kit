@@ -89,11 +89,11 @@ export class IntentResolver {
     private async resolveItem(item: IntentActionItem, wallet: Wallet): Promise<TransactionRequestMessage> {
         switch (item.type) {
             case 'sendTon':
-                return this.resolveTonItem(item.value);
+                return this.resolveTonItem(item);
             case 'sendJetton':
-                return this.resolveJettonItem(item.value, wallet);
+                return this.resolveJettonItem(item, wallet);
             case 'sendNft':
-                return this.resolveNftItem(item.value, wallet);
+                return this.resolveNftItem(item, wallet);
         }
     }
 

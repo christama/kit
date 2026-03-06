@@ -77,11 +77,12 @@ describe('IntentHandler', () => {
         /** Helper to build an event with resolvedTransaction so IntentResolver is bypassed. */
         function txEvent(overrides: Partial<TransactionIntentRequestEvent> = {}): TransactionIntentRequestEvent {
             return {
+                type: 'transaction',
                 id: 'tx-1',
                 origin: 'deepLink',
                 clientId: 'client-1',
                 deliveryMode: 'send',
-                items: [{ type: 'sendTon', value: { address: 'EQAddr', amount: '1000000000' } }],
+                items: [{ type: 'sendTon' as const, address: 'EQAddr', amount: '1000000000' }],
                 resolvedTransaction: {
                     messages: [{ address: 'EQAddr', amount: '1000000000' }],
                     fromAddress: 'UQTestAddr',
@@ -141,6 +142,7 @@ describe('IntentHandler', () => {
 
         it('signs data and returns result', async () => {
             const event: SignDataIntentRequestEvent = {
+                type: 'signData',
                 id: 'sd-1',
                 origin: 'deepLink',
                 clientId: 'client-1',
@@ -160,6 +162,7 @@ describe('IntentHandler', () => {
 
         it('falls back to raw manifestUrl for domain on invalid URL', async () => {
             const event: SignDataIntentRequestEvent = {
+                type: 'signData',
                 id: 'sd-2',
                 origin: 'deepLink',
                 clientId: 'client-1',
@@ -178,13 +181,11 @@ describe('IntentHandler', () => {
         it('sends error response with user declined code by default', async () => {
             const event: IntentRequestEvent = {
                 type: 'transaction',
-                value: {
-                    id: 'tx-r1',
-                    origin: 'deepLink',
-                    clientId: 'client-1',
-                    deliveryMode: 'send',
-                    items: [],
-                },
+                id: 'tx-r1',
+                origin: 'deepLink',
+                clientId: 'client-1',
+                deliveryMode: 'send',
+                items: [],
             };
 
             const result = await handler.rejectIntent(event);
@@ -197,13 +198,11 @@ describe('IntentHandler', () => {
         it('uses custom reason and error code', async () => {
             const event: IntentRequestEvent = {
                 type: 'signData',
-                value: {
-                    id: 'sd-r1',
-                    origin: 'deepLink',
-                    clientId: 'client-1',
-                    manifestUrl: 'https://example.com',
-                    payload: { data: { type: 'text', value: { content: 'test' } } },
-                },
+                id: 'sd-r1',
+                origin: 'deepLink',
+                clientId: 'client-1',
+                manifestUrl: 'https://example.com',
+                payload: { data: { type: 'text', value: { content: 'test' } } },
             };
 
             const result = await handler.rejectIntent(event, 'Not supported', 400);
@@ -267,12 +266,12 @@ describe('IntentHandler', () => {
 
             // Each inner event is a transaction with one item
             expect(batch.intents[0].type).toBe('transaction');
-            expect(batch.intents[0].value.id).toBe('tx-batch_0');
-            expect(batch.intents[0].value.items).toHaveLength(1);
+            expect(batch.intents[0].id).toBe('tx-batch_0');
+            expect((batch.intents[0] as TransactionIntentRequestEvent).items).toHaveLength(1);
 
             expect(batch.intents[1].type).toBe('transaction');
-            expect(batch.intents[1].value.id).toBe('tx-batch_1');
-            expect(batch.intents[1].value.items).toHaveLength(1);
+            expect(batch.intents[1].id).toBe('tx-batch_1');
+            expect((batch.intents[1] as TransactionIntentRequestEvent).items).toHaveLength(1);
         });
 
         it('emits regular IntentRequestEvent for single-item txIntent', async () => {
@@ -333,24 +332,20 @@ describe('IntentHandler', () => {
                 clientId: 'client-b',
                 intents: [
                     {
-                        type: 'transaction',
-                        value: {
-                            id: 'batch-1_0',
-                            origin: 'deepLink',
-                            clientId: 'client-b',
-                            deliveryMode: 'send',
-                            items: [{ type: 'sendTon', value: { address: 'EQAddr1', amount: '100' } }],
-                        },
+                        type: 'transaction' as const,
+                        id: 'batch-1_0',
+                        origin: 'deepLink' as const,
+                        clientId: 'client-b',
+                        deliveryMode: 'send' as const,
+                        items: [{ type: 'sendTon' as const, address: 'EQAddr1', amount: '100' }],
                     },
                     {
-                        type: 'transaction',
-                        value: {
-                            id: 'batch-1_1',
-                            origin: 'deepLink',
-                            clientId: 'client-b',
-                            deliveryMode: 'send',
-                            items: [{ type: 'sendTon', value: { address: 'EQAddr2', amount: '200' } }],
-                        },
+                        type: 'transaction' as const,
+                        id: 'batch-1_1',
+                        origin: 'deepLink' as const,
+                        clientId: 'client-b',
+                        deliveryMode: 'send' as const,
+                        items: [{ type: 'sendTon' as const, address: 'EQAddr2', amount: '200' }],
                     },
                 ],
                 ...overrides,
@@ -370,7 +365,7 @@ describe('IntentHandler', () => {
 
         it('uses signOnly when any inner event has signOnly delivery', async () => {
             const batch = makeBatch();
-            (batch.intents[1].value as TransactionIntentRequestEvent).deliveryMode = 'signOnly';
+            (batch.intents[1] as TransactionIntentRequestEvent).deliveryMode = 'signOnly';
 
             await handler.approveBatchedIntent(batch, 'wallet-1');
 
@@ -384,14 +379,12 @@ describe('IntentHandler', () => {
             const signDataBatch = makeBatch({
                 intents: [
                     {
-                        type: 'signData',
-                        value: {
-                            id: 'sd-1',
-                            origin: 'deepLink',
-                            clientId: 'client-b',
-                            manifestUrl: 'https://example.com',
-                            payload: { data: { type: 'text', value: { content: 'x' } } },
-                        },
+                        type: 'signData' as const,
+                        id: 'sd-1',
+                        origin: 'deepLink' as const,
+                        clientId: 'client-b',
+                        manifestUrl: 'https://example.com',
+                        payload: { data: { type: 'text', value: { content: 'x' } } },
                     },
                 ],
             });
@@ -406,15 +399,11 @@ describe('IntentHandler', () => {
             const emptyBatch = makeBatch({
                 intents: [
                     {
-                        type: 'connect',
-                        value: {
-                            from: 'client-b',
-                            id: 'c-1',
-                            method: 'connect',
-                            params: { manifest: { url: 'https://example.com' }, items: [] },
-                            timestamp: Date.now(),
-                            domain: '',
-                        },
+                        type: 'connect' as const,
+                        id: 'c-1',
+                        from: 'client-b',
+                        requestedItems: [],
+                        preview: { permissions: [] },
                     } as unknown as IntentRequestEvent,
                 ],
             });
@@ -441,14 +430,12 @@ describe('IntentHandler', () => {
                 clientId: 'client-br',
                 intents: [
                     {
-                        type: 'transaction',
-                        value: {
-                            id: 'batch-r_0',
-                            origin: 'deepLink',
-                            clientId: 'client-br',
-                            deliveryMode: 'send',
-                            items: [{ type: 'sendTon', value: { address: 'EQ1', amount: '100' } }],
-                        },
+                        type: 'transaction' as const,
+                        id: 'batch-r_0',
+                        origin: 'deepLink' as const,
+                        clientId: 'client-br',
+                        deliveryMode: 'send' as const,
+                        items: [{ type: 'sendTon' as const, address: 'EQ1', amount: '100' }],
                     },
                 ],
             };
@@ -476,13 +463,11 @@ describe('IntentHandler', () => {
                 clientId: 'cr',
                 intents: [
                     {
-                        type: 'connect',
-                        value: {
-                            id: 'batch-pcr',
-                            from: 'cr',
-                            requestedItems: [],
-                            preview: { permissions: [] },
-                        },
+                        type: 'connect' as const,
+                        id: 'batch-pcr',
+                        from: 'cr',
+                        requestedItems: [],
+                        preview: { permissions: [] },
                     },
                 ],
             };
@@ -502,11 +487,12 @@ describe('IntentHandler', () => {
             const h = new IntentHandler(defaultOptions, bridgeManager, noWalletManager);
 
             const event: TransactionIntentRequestEvent = {
+                type: 'transaction',
                 id: 'tx-nw',
                 origin: 'deepLink',
                 clientId: 'c1',
                 deliveryMode: 'send',
-                items: [{ type: 'sendTon', value: { address: 'EQ1', amount: '100' } }],
+                items: [{ type: 'sendTon' as const, address: 'EQ1', amount: '100' }],
                 resolvedTransaction: {
                     messages: [{ address: 'EQ1', amount: '100' }],
                     fromAddress: 'UQ1',

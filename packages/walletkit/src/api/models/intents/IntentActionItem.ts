@@ -14,6 +14,7 @@ import type { ExtraCurrencies } from '../core/ExtraCurrencies';
  * TON native coin transfer action.
  */
 export interface SendTonAction {
+    type: 'sendTon';
     /** Destination address (user-friendly) */
     address: UserFriendlyAddress;
     /** Amount in nanotons */
@@ -30,6 +31,7 @@ export interface SendTonAction {
  * Jetton transfer action (TEP-74).
  */
 export interface SendJettonAction {
+    type: 'sendJetton';
     /** Jetton master contract address */
     jettonMasterAddress: UserFriendlyAddress;
     /** Transfer amount in jetton elementary units */
@@ -55,6 +57,7 @@ export interface SendJettonAction {
  * NFT transfer action (TEP-62).
  */
 export interface SendNftAction {
+    type: 'sendNft';
     /** NFT item address */
     nftAddress: UserFriendlyAddress;
     /** New owner address */
@@ -76,8 +79,6 @@ export interface SendNftAction {
 
 /**
  * Union of all intent action items, discriminated by `type`.
+ * @discriminator type
  */
-export type IntentActionItem =
-    | { type: 'sendTon'; value: SendTonAction }
-    | { type: 'sendJetton'; value: SendJettonAction }
-    | { type: 'sendNft'; value: SendNftAction };
+export type IntentActionItem = SendTonAction | SendJettonAction | SendNftAction;

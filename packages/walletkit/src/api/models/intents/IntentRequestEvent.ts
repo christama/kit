@@ -42,6 +42,7 @@ export interface IntentRequestBase extends BridgeEvent {
  * The `deliveryMode` field distinguishes them.
  */
 export interface TransactionIntentRequestEvent extends IntentRequestBase {
+    type: 'transaction';
     /** Whether to send on-chain or return signed BoC */
     deliveryMode: IntentDeliveryMode;
     /** Network for the transaction */
@@ -63,6 +64,7 @@ export interface TransactionIntentRequestEvent extends IntentRequestBase {
  * Sign data intent request event.
  */
 export interface SignDataIntentRequestEvent extends IntentRequestBase {
+    type: 'signData';
     /** Network for sign data */
     network?: Network;
     /**
@@ -84,6 +86,7 @@ export interface SignDataIntentRequestEvent extends IntentRequestBase {
  * to a TransactionIntentRequestEvent or SignDataIntentRequestEvent.
  */
 export interface ActionIntentRequestEvent extends IntentRequestBase {
+    type: 'action';
     /**
      * Action URL to fetch
      * @format url
@@ -92,14 +95,23 @@ export interface ActionIntentRequestEvent extends IntentRequestBase {
 }
 
 /**
+ * Connect intent request event, wrapping a ConnectionRequestEvent
+ * when an intent URL also carries a connect request.
+ */
+export interface ConnectIntentRequestEvent extends ConnectionRequestEvent {
+    type: 'connect';
+}
+
+/**
  * Union of all intent request events, discriminated by `type`.
  *
  * The `connect` variant is used when an intent URL carries a connect request.
  * It appears as the first item in a {@link BatchedIntentEvent} so the wallet
  * can display it alongside the transaction/sign-data items.
+ * @discriminator type
  */
 export type IntentRequestEvent =
-    | { type: 'transaction'; value: TransactionIntentRequestEvent }
-    | { type: 'signData'; value: SignDataIntentRequestEvent }
-    | { type: 'action'; value: ActionIntentRequestEvent }
-    | { type: 'connect'; value: ConnectionRequestEvent };
+    | TransactionIntentRequestEvent
+    | SignDataIntentRequestEvent
+    | ActionIntentRequestEvent
+    | ConnectIntentRequestEvent;

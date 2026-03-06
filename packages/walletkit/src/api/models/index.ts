@@ -102,6 +102,7 @@ export type {
     TransactionIntentRequestEvent,
     SignDataIntentRequestEvent,
     ActionIntentRequestEvent,
+    ConnectIntentRequestEvent,
     IntentRequestEvent,
 } from './intents/IntentRequestEvent';
 export type {
