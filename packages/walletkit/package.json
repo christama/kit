@@ -59,6 +59,9 @@
       ],
       "swap/omniston": [
         "./dist/cjs/defi/swap/omniston/index.d.ts"
+      ],
+      "swap/dedust": [
+        "./dist/cjs/defi/swap/dedust/index.d.ts"
       ]
     }
   },
