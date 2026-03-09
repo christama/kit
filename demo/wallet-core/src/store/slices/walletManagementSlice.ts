@@ -6,7 +6,7 @@
  *
  */
 
-import { Network, getGlobalWebSocketClient } from '@ton/walletkit';
+import { Base64NormalizeUrl, HexToBase64, Network, getGlobalWebSocketClient } from '@ton/walletkit';
 import type { WalletAdapter } from '@ton/walletkit';
 import type { Wallet, ITonWalletKit } from '@ton/walletkit';
 import type { WebSocketSubscriptionConfig, WebSocketEventHandlers } from '@ton/walletkit';
@@ -639,21 +639,25 @@ export const createWalletManagementSlice =
                                     traceId: trace_external_hash_norm,
                                     externalHash,
                                     preview,
+                                    finality: 'pending',
                                 });
                             }
                         });
                     } else if (finality === 'confirmed' || finality === 'finalized') {
+                        // Update pending tx to show as confirmed - don't remove, let loadEvents dedupe when in history.
                         set((s) => {
-                            s.walletManagement.pendingTransactions = s.walletManagement.pendingTransactions.filter(
-                                (p) => p.traceId !== trace_external_hash_norm,
-                            );
-                            // Remember we confirmed this trace - ignore any late pending events
                             const ids = s.walletManagement.confirmedTraceIds;
                             if (!ids.includes(trace_external_hash_norm)) {
                                 ids.push(trace_external_hash_norm);
                                 if (ids.length > 50) {
                                     s.walletManagement.confirmedTraceIds = ids.slice(-50);
                                 }
+                            }
+                            const p = s.walletManagement.pendingTransactions.find(
+                                (t) => t.traceId === trace_external_hash_norm,
+                            );
+                            if (p) {
+                                p.finality = finality;
                             }
                         });
                         void get()
@@ -768,6 +772,17 @@ export const createWalletManagementSlice =
                 set((state) => {
                     state.walletManagement.events = response.events;
                     state.walletManagement.hasNextEvents = response.hasNext;
+                    // Remove pending transactions that now appear in history (same trace)
+                    const eventTraceIds = new Set(
+                        (response.events as Array<{ eventId?: string }>)
+                            .filter((ev): ev is { eventId: string } => !!ev.eventId)
+                            .map((ev) =>
+                                Base64NormalizeUrl(HexToBase64(ev.eventId as Parameters<typeof HexToBase64>[0])),
+                            ),
+                    );
+                    state.walletManagement.pendingTransactions = state.walletManagement.pendingTransactions.filter(
+                        (p) => !eventTraceIds.has(p.traceId),
+                    );
                 });
 
                 log.info(`Loaded ${response.events.length} events`);

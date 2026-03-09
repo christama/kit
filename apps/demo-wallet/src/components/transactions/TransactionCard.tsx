@@ -35,7 +35,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = memo(
                 return {
                     bgColor: 'bg-yellow-100',
                     icon: (
-                        <div className="w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin" />
+                        <div className="w-2.5 h-2.5 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin" />
                     ),
                 };
             }
@@ -43,7 +43,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = memo(
                 return {
                     bgColor: 'bg-red-100',
                     icon: (
-                        <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-2.5 h-2.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -58,7 +58,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = memo(
                 return {
                     bgColor: 'bg-red-100',
                     icon: (
-                        <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-2.5 h-2.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -72,7 +72,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = memo(
             return {
                 bgColor: 'bg-green-100',
                 icon: (
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-2.5 h-2.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -88,43 +88,40 @@ export const TransactionCard: React.FC<TransactionCardProps> = memo(
         const valueWithSign = isFailed ? value : isOutgoing ? `-${value}` : `+${value}`;
         const statusText = isPending ? 'Pending' : isFailed ? 'Failed' : formatTimestamp(timestamp);
 
-        const content = (
-            <>
-                <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${bgColor}`}>{icon}</div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-900">{description}</p>
+        return (
+            <Link to={traceLink} className="block py-2 hover:bg-gray-50/50 -mx-1 px-1 rounded transition-colors">
+                {/* Row 1: description + value */}
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${bgColor}`}
+                        >
+                            {icon}
+                        </div>
+                        <p className="text-xs font-medium text-gray-900 truncate">{description}</p>
                     </div>
-                </div>
-                <div className="text-right">
-                    <div className="flex items-center justify-end space-x-2">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                         {valueImage && (
                             <img
                                 src={valueImage}
                                 alt=""
-                                className="w-4 h-4 rounded-full"
+                                className="w-3 h-3 rounded-full"
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                 }}
                             />
                         )}
-                        <p className={`text-sm font-medium ${valueColor}`}>{valueWithSign}</p>
+                        <p className={`text-xs font-medium ${valueColor}`}>{valueWithSign}</p>
                     </div>
+                </div>
+                {/* Row 2: timestamp */}
+                <div className="flex justify-end">
                     <p
-                        className={`text-xs ${isPending ? 'text-yellow-600' : isFailed ? 'text-red-500' : 'text-gray-400'}`}
+                        className={`text-[10px] ${isPending ? 'text-yellow-600' : isFailed ? 'text-red-500' : 'text-gray-400'}`}
                     >
                         {statusText}
                     </p>
                 </div>
-            </>
-        );
-
-        return (
-            <Link
-                to={traceLink}
-                className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg border border-gray-100"
-            >
-                {content}
             </Link>
         );
     },

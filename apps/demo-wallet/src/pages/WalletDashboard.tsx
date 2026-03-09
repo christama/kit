@@ -43,6 +43,7 @@ export const WalletDashboard: React.FC = () => {
         address,
         getAvailableWallets,
         updateBalance,
+        loadEvents,
         savedWallets,
         activeWalletId,
         switchWallet,
@@ -70,13 +71,13 @@ export const WalletDashboard: React.FC = () => {
     const handleRefreshBalance = useCallback(async () => {
         setIsRefreshing(true);
         try {
-            await updateBalance();
+            await Promise.all([updateBalance(), loadEvents(10, 0)]);
         } catch (err) {
             log.error('Error refreshing balance:', err);
         } finally {
             setIsRefreshing(false);
         }
-    }, [updateBalance]);
+    }, [updateBalance, loadEvents]);
 
     const handleCopyAddress = useCallback(async () => {
         if (!address) return;
@@ -146,148 +147,144 @@ export const WalletDashboard: React.FC = () => {
 
     return (
         <Layout title="TON Wallet" showLogout>
-            <div className="space-y-6">
-                {/* Wallet Switcher */}
-                <WalletSwitcher
-                    savedWallets={savedWallets}
-                    activeWalletId={activeWalletId}
-                    onSwitchWallet={handleSwitchWallet}
-                    onRemoveWallet={handleRemoveWallet}
-                    onRenameWallet={handleRenameWallet}
-                />
+            <div className="space-y-4">
+                {/* Wallet Card: selector + balance + address + send/swap + jettons + history */}
+                <Card compact>
+                    <div className="space-y-3">
+                        {/* Row 1: Wallet selector */}
+                        <WalletSwitcher
+                            savedWallets={savedWallets}
+                            activeWalletId={activeWalletId}
+                            onSwitchWallet={handleSwitchWallet}
+                            onRemoveWallet={handleRemoveWallet}
+                            onRenameWallet={handleRenameWallet}
+                            compact
+                        />
 
-                {/* Balance Card */}
-                <Card className="relative">
-                    <button
-                        onClick={handleRefreshBalance}
-                        disabled={isRefreshing}
-                        className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
-                        title="Refresh balance"
-                        aria-label="Refresh balance"
-                    >
-                        <svg
-                            className={`w-4 h-4 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`}
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
-                            <path d="M21 3v5h-5"></path>
-                        </svg>
-                    </button>
+                        {/* Row 2: Balance */}
+                        <p className="text-xl font-bold text-gray-900 truncate">
+                            {formatTonAmount(balance || '0')} TON
+                        </p>
 
-                    <div className="text-center space-y-4">
-                        <div>
-                            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Balance</h3>
-                            <p className="text-3xl font-bold text-gray-900 mt-2">
-                                {formatTonAmount(balance || '0')} TON
-                            </p>
-                        </div>
-
+                        {/* Row 3: Address with copy, refresh, TONScan, TONViewer */}
                         {address && (
-                            <div className="flex items-center justify-center space-x-6">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="text-xs font-mono text-gray-600 truncate flex-1 min-w-0">
+                                    {address.slice(0, 6)}...{address.slice(-4)}
+                                </span>
+                                <button
+                                    onClick={handleCopyAddress}
+                                    className="p-1 rounded hover:bg-gray-100 transition-colors flex-shrink-0"
+                                    title="Copy address"
+                                >
+                                    {isCopied ? (
+                                        <svg
+                                            className="w-3.5 h-3.5 text-green-600"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M5 13l4 4L19 7"
+                                            />
+                                        </svg>
+                                    ) : (
+                                        <svg
+                                            className="w-3.5 h-3.5 text-gray-500"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                            />
+                                        </svg>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={handleRefreshBalance}
+                                    disabled={isRefreshing}
+                                    className="p-1 rounded hover:bg-gray-100 transition-colors disabled:opacity-50 flex-shrink-0"
+                                    title="Refresh balance"
+                                    aria-label="Refresh balance"
+                                >
+                                    <svg
+                                        className={`w-3.5 h-3.5 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`}
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                                        <path d="M21 3v5h-5" />
+                                    </svg>
+                                </button>
                                 <a
                                     href={`https://${network === 'testnet' ? 'testnet.' : network === 'tetra' ? 'tetra.' : ''}tonscan.org/address/${address}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all hover:scale-110"
-                                    title="View on TONScan"
-                                    aria-label="View on TONScan"
+                                    className="p-1 rounded hover:bg-gray-100 flex-shrink-0"
+                                    title="TONScan"
                                 >
-                                    <img src="https://tonscan.org/favicon.ico" alt="TONScan" className="w-6 h-6" />
+                                    <img src="https://tonscan.org/favicon.ico" alt="" className="w-4 h-4" />
                                 </a>
                                 <a
                                     href={`https://${network === 'testnet' ? 'testnet.' : network === 'tetra' ? 'tetra.' : ''}tonviewer.com/${address}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all hover:scale-110"
-                                    title="View on TONViewer"
-                                    aria-label="View on TONViewer"
+                                    className="p-1 rounded hover:bg-gray-100 flex-shrink-0"
+                                    title="TONViewer"
                                 >
                                     <img
                                         src="https://tonviewer.com/android-chrome-192x192.png"
-                                        alt="TONViewer"
-                                        className="w-6 h-6"
+                                        alt=""
+                                        className="w-4 h-4"
                                     />
                                 </a>
                             </div>
                         )}
 
-                        {address && (
-                            <div className="bg-gray-50 rounded-md p-3">
-                                <div className="flex items-center justify-between mb-2">
-                                    <p className="text-xs text-gray-500 uppercase tracking-wide">Address</p>
-                                    <button
-                                        onClick={handleCopyAddress}
-                                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded hover:bg-gray-50 hover:text-gray-700 transition-colors"
-                                        title="Copy address"
-                                    >
-                                        {isCopied ? (
-                                            <>
-                                                <svg
-                                                    className="w-3 h-3 mr-1"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M5 13l4 4L19 7"
-                                                    />
-                                                </svg>
-                                                Copied!
-                                            </>
-                                        ) : (
-                                            <>
-                                                <svg
-                                                    className="w-3 h-3 mr-1"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                                    />
-                                                </svg>
-                                                Copy
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                                <p className="text-sm font-mono text-gray-700 break-all">{address}</p>
-                            </div>
-                        )}
-
-                        <div className="flex space-x-3">
-                            <Button onClick={() => navigate('/send')} className="flex-1" data-testid="send-button">
+                        {/* Row 4: Send and Swap */}
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={() => navigate('/send')}
+                                className="flex-1 py-2 text-sm"
+                                data-testid="send-button"
+                            >
                                 Send
                             </Button>
-
-                            <Button variant="secondary" onClick={() => navigate('/swap')} className="flex-1">
+                            <Button
+                                variant="secondary"
+                                onClick={() => navigate('/swap')}
+                                className="flex-1 py-2 text-sm"
+                            >
                                 Swap
                             </Button>
                         </div>
+
+                        {/* Jettons (embedded in wallet card) */}
+                        <JettonsCard embedded />
+
+                        {/* History (embedded in wallet card) */}
+                        <RecentTransactions embedded />
                     </div>
                 </Card>
 
-                {/* Jettons Card */}
-                <JettonsCard />
-
-                {/* NFTs Card */}
+                {/* NFTs */}
                 <NftsCard />
 
-                {/* TON Connect URL Input */}
-                <Card title="Connect to dApp">
-                    <div className="space-y-4">
+                {/* Connect to dApp */}
+                <Card title="Connect to dApp" compact>
+                    <div className="space-y-3">
                         <div>
                             <label htmlFor="tonconnect-url" className="block text-sm font-medium text-gray-700 mb-2">
                                 Paste TON Connect Link
@@ -295,7 +292,7 @@ export const WalletDashboard: React.FC = () => {
                             <textarea
                                 data-testid="tonconnect-url"
                                 id="tonconnect-url"
-                                rows={3}
+                                rows={2}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-black"
                                 placeholder="tc://... or ton://... or https://..."
                                 value={tonConnectUrl}
@@ -340,7 +337,7 @@ export const WalletDashboard: React.FC = () => {
                 <RecentTransactions />
 
                 {/* Development Test Section */}
-                <Card title="Development Tools">
+                <Card title="Development Tools" compact>
                     <div className="space-y-4">
                         <p className="text-sm text-gray-600">Test disconnect event functionality</p>
                         <Button variant="secondary" onClick={handleTestDisconnectAll} className="w-full">

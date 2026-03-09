@@ -9,6 +9,7 @@
 import React from 'react';
 
 import { SettingsDropdown } from './SettingsDropdown';
+import { StreamingStatus } from './StreamingStatus';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -27,7 +28,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, title = 'TON Wallet', 
                     </h1>
                     <div className="flex items-center gap-2">
                         {headerAction}
-                        {showLogout && <SettingsDropdown />}
+                        {showLogout && (
+                            <>
+                                <StreamingStatus />
+                                <SettingsDropdown />
+                            </>
+                        )}
                     </div>
                 </div>
             </header>

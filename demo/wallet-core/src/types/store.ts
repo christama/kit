@@ -81,6 +81,8 @@ export interface WalletManagementSlice {
             traceId: string;
             externalHash?: string;
             preview?: { type: 'send' | 'receive' | 'contract'; amount: string; address: string; timestamp: number };
+            /** Set when WebSocket reports confirmed/finalized - show as done, not pending */
+            finality?: 'pending' | 'confirmed' | 'finalized';
         }>;
 
         /** Trace IDs we've received as confirmed - ignore late pending events for these */

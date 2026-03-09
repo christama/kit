@@ -13,7 +13,7 @@ export const StreamingStatus: React.FC = () => {
     const { isStreamingConnected } = useWallet();
 
     return (
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-1.5 text-xs">
             <div
                 className={`h-2 w-2 rounded-full ${isStreamingConnected ? 'bg-green-500' : 'bg-red-500'}`}
                 data-testid="streaming-status-dot"
