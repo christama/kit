@@ -30,6 +30,7 @@ export const createWalletManagementSlice =
             address: undefined,
             balance: undefined,
             publicKey: undefined,
+            localSeqnoByAddress: {},
             events: [],
             hasNextEvents: false,
             currentWallet: undefined,
@@ -630,6 +631,24 @@ export const createWalletManagementSlice =
                 );
                 const mnemonic = JSON.parse(mnemonicJson) as string[];
 
+                const seqnoResolver = async (networkSeqno: number) => {
+                    const local = get().walletManagement.localSeqnoByAddress?.[savedWallet.address];
+                    if (!local) return networkSeqno;
+                    const localSeqnoNext = local.seqno + 1;
+                    const now = Date.now();
+                    if (networkSeqno >= localSeqnoNext) return networkSeqno;
+                    if (localSeqnoNext > networkSeqno && now - local.timestamp < 5000) return localSeqnoNext;
+                    return networkSeqno;
+                };
+                const onSeqnoUsed = async (seqno: number) => {
+                    set((s) => {
+                        s.walletManagement.localSeqnoByAddress[savedWallet.address] = {
+                            seqno,
+                            timestamp: Date.now(),
+                        };
+                    });
+                };
+
                 walletAdapter = await createWalletAdapter({
                     mnemonic,
                     useWalletInterfaceType: savedWallet.walletInterfaceType,
@@ -638,6 +657,8 @@ export const createWalletManagementSlice =
                     network: walletNetwork,
                     walletKit,
                     version: savedWallet.version || 'v5r1',
+                    seqnoResolver,
+                    onSeqnoUsed,
                 });
             }
 

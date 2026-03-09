@@ -42,6 +42,10 @@ export interface CreateWalletAdapterParams {
      * For React Native: () => TransportBLE.open(deviceId)
      */
     createLedgerTransport?: CreateLedgerTransportFunction;
+    /** Resolve seqno from network + local (for fast send) */
+    seqnoResolver?: (networkSeqno: number) => Promise<number>;
+    /** Callback to persist seqno after transaction is sent */
+    onSeqnoUsed?: (seqno: number) => Promise<void>;
 }
 
 /**
@@ -57,9 +61,17 @@ export async function createWalletAdapter(params: CreateWalletAdapterParams): Pr
         walletKit,
         version = 'v5r1',
         createLedgerTransport,
+        seqnoResolver,
+        onSeqnoUsed,
     } = params;
 
     let chainNetwork = getChainNetwork(network);
+    const adapterOptions = {
+        client: walletKit.getApiClient(chainNetwork),
+        network: chainNetwork,
+        seqnoResolver,
+        onSeqnoUsed,
+    };
     let domain: SignatureDomain | undefined =
         network == 'tetra'
             ? {
@@ -89,15 +101,9 @@ export async function createWalletAdapter(params: CreateWalletAdapterParams): Pr
             };
 
             if (version === 'v5r1') {
-                return await WalletV5R1Adapter.create(customSigner, {
-                    client: walletKit.getApiClient(chainNetwork),
-                    network: chainNetwork,
-                });
+                return await WalletV5R1Adapter.create(customSigner, adapterOptions);
             } else {
-                return await WalletV4R2Adapter.create(customSigner, {
-                    client: walletKit.getApiClient(chainNetwork),
-                    network: chainNetwork,
-                });
+                return await WalletV4R2Adapter.create(customSigner, adapterOptions);
             }
         }
         case 'mnemonic': {
@@ -108,15 +114,9 @@ export async function createWalletAdapter(params: CreateWalletAdapterParams): Pr
             const signer = await Signer.fromMnemonic(mnemonic, { type: 'ton' }, domain);
 
             if (version === 'v5r1') {
-                return await WalletV5R1Adapter.create(signer, {
-                    client: walletKit.getApiClient(chainNetwork),
-                    network: chainNetwork,
-                });
+                return await WalletV5R1Adapter.create(signer, adapterOptions);
             } else {
-                return await WalletV4R2Adapter.create(signer, {
-                    client: walletKit.getApiClient(chainNetwork),
-                    network: chainNetwork,
-                });
+                return await WalletV4R2Adapter.create(signer, adapterOptions);
             }
         }
         case 'ledger': {

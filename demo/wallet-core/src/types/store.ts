@@ -57,6 +57,9 @@ export interface WalletCoreSlice {
     initializeWalletKit: (network?: NetworkType) => Promise<void>;
 }
 
+/** Local seqno + timestamp for fast send (prevents duplicate seqno on rapid clicks) */
+export type LocalSeqnoEntry = { seqno: number; timestamp: number };
+
 // Wallet Management slice - Wallet CRUD and data
 export interface WalletManagementSlice {
     walletManagement: {
@@ -65,6 +68,9 @@ export interface WalletManagementSlice {
         address?: string;
         balance?: string;
         publicKey?: string;
+
+        /** Per-address local seqno for fast send */
+        localSeqnoByAddress: Record<string, LocalSeqnoEntry>;
 
         // Event history for active wallet
         events: unknown[];

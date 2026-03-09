@@ -111,6 +111,10 @@ export class WalletTonClass implements WalletTonInterface {
 
             await CallForSuccess(() => this.getClient().sendBoc(boc));
 
+            if (this.onSeqnoUsed && this.lastUsedSeqno !== undefined) {
+                await this.onSeqnoUsed(this.lastUsedSeqno);
+            }
+
             const { hash: normalizedHash, boc: normalizedBoc } = getNormalizedExtMessageHash(boc);
             return { boc, normalizedBoc, normalizedHash };
         } catch (error) {

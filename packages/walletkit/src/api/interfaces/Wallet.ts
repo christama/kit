@@ -23,9 +23,10 @@ import type {
     NFTTransferRequest,
     NFTRawTransferRequest,
 } from '../models';
-import type { WalletAdapter } from './WalletAdapter';
+import type { WalletAdapter, WalletAdapterSeqnoExtensions } from './WalletAdapter';
 
 export type Wallet = WalletAdapter &
+    Partial<WalletAdapterSeqnoExtensions> &
     WalletTonInterface &
     WalletJettonInterface &
     WalletNftInterface & { client: ApiClient };

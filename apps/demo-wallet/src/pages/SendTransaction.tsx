@@ -208,7 +208,7 @@ export const SendTransaction: React.FC = () => {
             if (selectedToken.type === 'TON') {
                 const tonTransferParams: TONTransferRequest = {
                     recipientAddress: recipientAddress,
-                    transferAmount: '1', // 1 nanotons
+                    transferAmount: '1000000', // 1000000 nanotons (less than that shows error in trace)
                 };
                 const tx = await currentWallet.createTransferTonTransaction(tonTransferParams);
                 result = await currentWallet.sendTransaction(tx);

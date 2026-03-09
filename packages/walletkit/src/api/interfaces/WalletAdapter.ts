@@ -62,3 +62,13 @@ export interface WalletAdapter {
      */
     getSupportedFeatures(): Feature[] | undefined;
 }
+
+/**
+ * Optional properties for local seqno support (fast send)
+ */
+export interface WalletAdapterSeqnoExtensions {
+    /** Seqno used in last getSignedSendTransaction call */
+    lastUsedSeqno?: number;
+    /** Callback to persist seqno after transaction is sent */
+    onSeqnoUsed?: (seqno: number) => Promise<void>;
+}

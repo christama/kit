@@ -56,6 +56,8 @@ export class WalletV4R2Adapter implements WalletAdapter {
     private config: WalletV4R2AdapterConfig;
 
     readonly walletContract: WalletV4R2;
+    lastUsedSeqno?: number;
+    onSeqnoUsed?: (seqno: number) => Promise<void>;
     readonly client: ApiClient;
     public readonly publicKey: Hex;
     public readonly version = 'v4r2';
@@ -72,6 +74,8 @@ export class WalletV4R2Adapter implements WalletAdapter {
             network: Network;
             walletId?: number | bigint;
             workchain?: number;
+            seqnoResolver?: (networkSeqno: number) => Promise<number>;
+            onSeqnoUsed?: (seqno: number) => Promise<void>;
         },
     ): Promise<WalletV4R2Adapter> {
         return new WalletV4R2Adapter({
@@ -81,6 +85,8 @@ export class WalletV4R2Adapter implements WalletAdapter {
             network: options.network,
             walletId: typeof options.walletId === 'bigint' ? Number(options.walletId) : options.walletId,
             workchain: options.workchain,
+            seqnoResolver: options.seqnoResolver,
+            onSeqnoUsed: options.onSeqnoUsed,
         });
     }
 
@@ -88,6 +94,7 @@ export class WalletV4R2Adapter implements WalletAdapter {
         this.config = config;
         this.client = config.tonClient;
         this.signer = config.signer;
+        this.onSeqnoUsed = config.onSeqnoUsed;
 
         this.publicKey = this.config.publicKey;
 
@@ -148,10 +155,12 @@ export class WalletV4R2Adapter implements WalletAdapter {
 
         let seqno = 0;
         try {
-            seqno = await CallForSuccess(async () => this.getSeqno(), 5, 1000);
+            const networkSeqno = await CallForSuccess(async () => this.getSeqno(), 5, 1000);
+            seqno = this.config.seqnoResolver ? await this.config.seqnoResolver(networkSeqno) : networkSeqno;
         } catch (_) {
             //
         }
+        this.lastUsedSeqno = seqno;
 
         const timeout = input.validUntil
             ? Math.min(input.validUntil, Math.floor(Date.now() / 1000) + 600)
