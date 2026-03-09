@@ -19,9 +19,9 @@ import {
 } from '@ton/walletkit';
 import type { ITonWalletKit, ToncenterTransaction } from '@ton/walletkit';
 import { createWalletInitConfigLedger, createLedgerPath, createWalletV4R2Ledger } from '@demo/v4ledger-adapter';
-import { WalletV5SeqnoAdapter } from '@ton/walletkit';
-import type { LocalSeqnoEntry } from '@ton/walletkit';
 
+import type { LocalSeqnoEntry } from '../adapters/WalletV5SeqnoAdapter';
+import { WalletV5SeqnoAdapter } from '../adapters/WalletV5SeqnoAdapter';
 import type { CreateLedgerTransportFunction, LedgerConfig, PreviewTransaction, SavedWallet } from '../types/wallet';
 import type { NetworkType } from './network';
 import { createComponentLogger } from './logger';

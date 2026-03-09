@@ -13,7 +13,7 @@ catalogs:
       specifier: 5.90.20
       version: 5.90.20
     '@ton/core':
-      specifier: ^0.63.0
+      specifier: 0.63.0
       version: 0.63.0
     '@ton/crypto':
       specifier: 3.3.0
