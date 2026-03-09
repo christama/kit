@@ -38,6 +38,8 @@ export type { WalletV5Config } from './contracts/w5/WalletV5R1';
 export { WalletV5R1CodeCell, WalletV5R1CodeBoc } from './contracts/w5/WalletV5R1.source';
 export { WalletV5R1Adapter } from './contracts/w5/WalletV5R1Adapter';
 export { defaultWalletIdV5R1 } from './contracts/w5/WalletV5R1Adapter';
+export { WalletV5SeqnoAdapter } from './contracts/w5/WalletV5SeqnoAdapter';
+export type { LocalSeqnoEntry, WalletV5SeqnoAdapterOptions } from './contracts/w5/WalletV5SeqnoAdapter';
 export { WalletV4R2 } from './contracts/v4r2/WalletV4R2';
 export type { WalletV4R2Config } from './contracts/v4r2/WalletV4R2';
 export { WalletV4R2CodeCell } from './contracts/v4r2/WalletV4R2.source';

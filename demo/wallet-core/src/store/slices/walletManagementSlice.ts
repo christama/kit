@@ -631,35 +631,39 @@ export const createWalletManagementSlice =
                 );
                 const mnemonic = JSON.parse(mnemonicJson) as string[];
 
-                const seqnoResolver = async (networkSeqno: number) => {
-                    const local = get().walletManagement.localSeqnoByAddress?.[savedWallet.address];
-                    if (!local) return networkSeqno;
-                    const localSeqnoNext = local.seqno + 1;
-                    const now = Date.now();
-                    if (networkSeqno >= localSeqnoNext) return networkSeqno;
-                    if (localSeqnoNext > networkSeqno && now - local.timestamp < 5000) return localSeqnoNext;
-                    return networkSeqno;
-                };
-                const onSeqnoUsed = async (seqno: number) => {
-                    set((s) => {
-                        s.walletManagement.localSeqnoByAddress[savedWallet.address] = {
-                            seqno,
-                            timestamp: Date.now(),
-                        };
+                if (savedWallet.version === 'v5r1') {
+                    const getLocalSeqno = (addr: string) => get().walletManagement.localSeqnoByAddress?.[addr];
+                    const setLocalSeqno = (addr: string, seqno: number) => {
+                        set((s) => {
+                            s.walletManagement.localSeqnoByAddress[addr] = {
+                                seqno,
+                                timestamp: Date.now(),
+                            };
+                        });
+                    };
+                    walletAdapter = await createWalletAdapter({
+                        mnemonic,
+                        useWalletInterfaceType: savedWallet.walletInterfaceType,
+                        ledgerAccountNumber: state.auth.ledgerAccountNumber,
+                        storedLedgerConfig: undefined,
+                        network: walletNetwork,
+                        walletKit,
+                        version: 'v5r1',
+                        walletAddress: savedWallet.address,
+                        getLocalSeqno,
+                        setLocalSeqno,
                     });
-                };
-
-                walletAdapter = await createWalletAdapter({
-                    mnemonic,
-                    useWalletInterfaceType: savedWallet.walletInterfaceType,
-                    ledgerAccountNumber: state.auth.ledgerAccountNumber,
-                    storedLedgerConfig: undefined,
-                    network: walletNetwork,
-                    walletKit,
-                    version: savedWallet.version || 'v5r1',
-                    seqnoResolver,
-                    onSeqnoUsed,
-                });
+                } else {
+                    walletAdapter = await createWalletAdapter({
+                        mnemonic,
+                        useWalletInterfaceType: savedWallet.walletInterfaceType,
+                        ledgerAccountNumber: state.auth.ledgerAccountNumber,
+                        storedLedgerConfig: undefined,
+                        network: walletNetwork,
+                        walletKit,
+                        version: savedWallet.version || 'v4r2',
+                    });
+                }
             }
 
             return walletAdapter;

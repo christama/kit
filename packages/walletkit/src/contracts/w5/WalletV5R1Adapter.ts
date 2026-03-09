@@ -57,10 +57,6 @@ export interface WalletV5R1AdapterConfig {
     network: Network;
     /** Workchain */
     workchain?: number;
-    /** Resolve seqno from network + local (for fast send) */
-    seqnoResolver?: (networkSeqno: number) => Promise<number>;
-    /** Callback to persist seqno after transaction is sent */
-    onSeqnoUsed?: (seqno: number) => Promise<void>;
 }
 
 /**
@@ -72,8 +68,6 @@ export class WalletV5R1Adapter implements WalletAdapter {
     private config: WalletV5R1AdapterConfig;
 
     readonly walletContract: WalletV5;
-    lastUsedSeqno?: number;
-    onSeqnoUsed?: (seqno: number) => Promise<void>;
     readonly client: ApiClient;
     public readonly publicKey: Hex;
     public readonly version = 'v5r1';
@@ -90,8 +84,6 @@ export class WalletV5R1Adapter implements WalletAdapter {
             network: Network;
             walletId?: number | bigint;
             workchain?: number;
-            seqnoResolver?: (networkSeqno: number) => Promise<number>;
-            onSeqnoUsed?: (seqno: number) => Promise<void>;
         },
     ): Promise<WalletV5R1Adapter> {
         return new WalletV5R1Adapter({
@@ -101,8 +93,6 @@ export class WalletV5R1Adapter implements WalletAdapter {
             network: options.network,
             walletId: options.walletId,
             workchain: options.workchain,
-            seqnoResolver: options.seqnoResolver,
-            onSeqnoUsed: options.onSeqnoUsed,
         });
     }
 
@@ -110,7 +100,6 @@ export class WalletV5R1Adapter implements WalletAdapter {
         this.config = config;
         this.client = config.tonClient;
         this.signer = config.signer;
-        this.onSeqnoUsed = config.onSeqnoUsed;
 
         this.publicKey = this.config.publicKey;
         this.walletContract = WalletV5.createFromConfig(
@@ -236,12 +225,10 @@ export class WalletV5R1Adapter implements WalletAdapter {
 
         let seqno = 0;
         try {
-            const networkSeqno = await CallForSuccess(async () => this.getSeqno(), 5, 1000);
-            seqno = this.config.seqnoResolver ? await this.config.seqnoResolver(networkSeqno) : networkSeqno;
+            seqno = await CallForSuccess(async () => this.getSeqno(), 5, 1000);
         } catch (_) {
             //
         }
-        this.lastUsedSeqno = seqno;
         const walletId = (await this.walletContract.walletId).serialized;
         if (!walletId) {
             throw new Error('Failed to get seqno or walletId');

@@ -26,8 +26,4 @@ export interface WalletV4R2AdapterConfig {
     network: Network;
     /** Workchain */
     workchain?: number;
-    /** Resolve seqno from network + local (for fast send) */
-    seqnoResolver?: (networkSeqno: number) => Promise<number>;
-    /** Callback to persist seqno after transaction is sent */
-    onSeqnoUsed?: (seqno: number) => Promise<void>;
 }

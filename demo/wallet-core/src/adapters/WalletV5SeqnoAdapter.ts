@@ -6,5 +6,4 @@
  *
  */
 
-export * from './storage';
-export * from './WalletV5SeqnoAdapter';
+export { WalletV5SeqnoAdapter, type LocalSeqnoEntry, type WalletV5SeqnoAdapterOptions } from '@ton/walletkit';

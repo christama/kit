@@ -273,10 +273,6 @@ export class RequestProcessor {
                     // Get the client for the wallet's network
                     const client = this.getClientForWallet(event.walletId);
                     await CallForSuccess(() => client.sendBoc(signedBoc));
-                    const wallet = this.getWalletFromEvent(event);
-                    if (wallet?.onSeqnoUsed && wallet.lastUsedSeqno !== undefined) {
-                        await wallet.onSeqnoUsed(wallet.lastUsedSeqno);
-                    }
                 }
 
                 // Send approval response

@@ -107,13 +107,9 @@ export class WalletTonClass implements WalletTonInterface {
 
     async sendTransaction(this: Wallet, request: TransactionRequest): Promise<SendTransactionResponse> {
         try {
-            const boc = await this.getSignedSendTransaction(request);
+            const boc = await this.getSignedSendTransaction(request, { fakeSignature: false });
 
             await CallForSuccess(() => this.getClient().sendBoc(boc));
-
-            if (this.onSeqnoUsed && this.lastUsedSeqno !== undefined) {
-                await this.onSeqnoUsed(this.lastUsedSeqno);
-            }
 
             const { hash: normalizedHash, boc: normalizedBoc } = getNormalizedExtMessageHash(boc);
             return { boc, normalizedBoc, normalizedHash };

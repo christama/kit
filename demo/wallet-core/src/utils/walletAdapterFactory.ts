@@ -19,6 +19,8 @@ import {
 } from '@ton/walletkit';
 import type { ITonWalletKit, ToncenterTransaction } from '@ton/walletkit';
 import { createWalletInitConfigLedger, createLedgerPath, createWalletV4R2Ledger } from '@demo/v4ledger-adapter';
+import { WalletV5SeqnoAdapter } from '@ton/walletkit';
+import type { LocalSeqnoEntry } from '@ton/walletkit';
 
 import type { CreateLedgerTransportFunction, LedgerConfig, PreviewTransaction, SavedWallet } from '../types/wallet';
 import type { NetworkType } from './network';
@@ -42,10 +44,12 @@ export interface CreateWalletAdapterParams {
      * For React Native: () => TransportBLE.open(deviceId)
      */
     createLedgerTransport?: CreateLedgerTransportFunction;
-    /** Resolve seqno from network + local (for fast send) */
-    seqnoResolver?: (networkSeqno: number) => Promise<number>;
-    /** Callback to persist seqno after transaction is sent */
-    onSeqnoUsed?: (seqno: number) => Promise<void>;
+    /** For v5r1: wallet address for local seqno storage (uses WalletV5SeqnoAdapter) */
+    walletAddress?: string;
+    /** For v5r1: get local seqno for address */
+    getLocalSeqno?: (address: string) => LocalSeqnoEntry | undefined;
+    /** For v5r1: persist seqno after use */
+    setLocalSeqno?: (address: string, seqno: number) => void;
 }
 
 /**
@@ -61,16 +65,15 @@ export async function createWalletAdapter(params: CreateWalletAdapterParams): Pr
         walletKit,
         version = 'v5r1',
         createLedgerTransport,
-        seqnoResolver,
-        onSeqnoUsed,
+        walletAddress,
+        getLocalSeqno,
+        setLocalSeqno,
     } = params;
 
     let chainNetwork = getChainNetwork(network);
-    const adapterOptions = {
+    const baseAdapterOptions = {
         client: walletKit.getApiClient(chainNetwork),
         network: chainNetwork,
-        seqnoResolver,
-        onSeqnoUsed,
     };
     let domain: SignatureDomain | undefined =
         network == 'tetra'
@@ -100,11 +103,18 @@ export async function createWalletAdapter(params: CreateWalletAdapterParams): Pr
                 publicKey: Uint8ArrayToHex(keyPair.publicKey),
             };
 
-            if (version === 'v5r1') {
-                return await WalletV5R1Adapter.create(customSigner, adapterOptions);
-            } else {
-                return await WalletV4R2Adapter.create(customSigner, adapterOptions);
+            if (version === 'v5r1' && walletAddress && getLocalSeqno) {
+                return await WalletV5SeqnoAdapter.create(customSigner, {
+                    ...baseAdapterOptions,
+                    walletAddress,
+                    getLocalSeqno,
+                    setLocalSeqno,
+                });
             }
+            if (version === 'v5r1') {
+                return await WalletV5R1Adapter.create(customSigner, baseAdapterOptions);
+            }
+            return await WalletV4R2Adapter.create(customSigner, baseAdapterOptions);
         }
         case 'mnemonic': {
             if (!mnemonic) {
@@ -113,11 +123,18 @@ export async function createWalletAdapter(params: CreateWalletAdapterParams): Pr
 
             const signer = await Signer.fromMnemonic(mnemonic, { type: 'ton' }, domain);
 
-            if (version === 'v5r1') {
-                return await WalletV5R1Adapter.create(signer, adapterOptions);
-            } else {
-                return await WalletV4R2Adapter.create(signer, adapterOptions);
+            if (version === 'v5r1' && walletAddress && getLocalSeqno) {
+                return await WalletV5SeqnoAdapter.create(signer, {
+                    ...baseAdapterOptions,
+                    walletAddress,
+                    getLocalSeqno,
+                    setLocalSeqno,
+                });
             }
+            if (version === 'v5r1') {
+                return await WalletV5R1Adapter.create(signer, baseAdapterOptions);
+            }
+            return await WalletV4R2Adapter.create(signer, baseAdapterOptions);
         }
         case 'ledger': {
             if (!createLedgerTransport) {
