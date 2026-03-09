@@ -22,6 +22,7 @@ import { globalLogger } from '../../../core/Logger';
 import { tokenToMinter, validateNetwork, isDeDustQuoteMetadata } from './utils';
 import type { TransactionRequest } from '../../../api/models';
 import { asBase64 } from '../../../utils';
+import { formatUnits, parseUnits } from '../../../utils/units';
 
 const log = globalLogger.createChild('DeDustSwapProvider');
 
@@ -96,8 +97,8 @@ export class DeDustSwapProvider extends SwapProvider<DeDustProviderOptions, DeDu
 
     async getQuote(params: SwapQuoteParams<DeDustProviderOptions>): Promise<SwapQuote> {
         log.debug('Getting DeDust quote', {
-            fromToken: params.fromToken,
-            toToken: params.toToken,
+            fromToken: params.from,
+            toToken: params.to,
             amount: params.amount,
             isReverseSwap: params.isReverseSwap,
         });
@@ -107,15 +108,18 @@ export class DeDustSwapProvider extends SwapProvider<DeDustProviderOptions, DeDu
 
         const slippageBps = params.slippageBps ?? this.defaultSlippageBps;
         const swapMode = params.isReverseSwap ? 'exact_out' : 'exact_in';
+        const amount = params.isReverseSwap
+            ? parseUnits(params.amount, params.to.decimals).toString()
+            : parseUnits(params.amount, params.from.decimals).toString();
 
         try {
-            const inMinter = tokenToMinter(params.fromToken);
-            const outMinter = tokenToMinter(params.toToken);
+            const inMinter = tokenToMinter(params.from);
+            const outMinter = tokenToMinter(params.to);
 
             const requestBody = {
                 in_minter: inMinter,
                 out_minter: outMinter,
-                amount: params.amount,
+                amount,
                 swap_mode: swapMode,
                 slippage_bps: slippageBps,
                 protocols: params.providerOptions?.protocols ?? DEFAULT_PROTOCOLS,
@@ -170,11 +174,14 @@ export class DeDustSwapProvider extends SwapProvider<DeDustProviderOptions, DeDu
             const swapQuote: SwapQuote = {
                 metadata,
                 providerId: this.providerId,
-                fromToken: params.fromToken,
-                toToken: params.toToken,
-                fromAmount: quoteResponse.in_amount,
-                toAmount: quoteResponse.out_amount,
-                minReceived: minReceived.toString(),
+                fromToken: params.from,
+                toToken: params.to,
+                rawFromAmount: quoteResponse.in_amount,
+                rawToAmount: quoteResponse.out_amount,
+                rawMinReceived: minReceived.toString(),
+                fromAmount: formatUnits(quoteResponse.in_amount, params.from.decimals),
+                toAmount: formatUnits(quoteResponse.out_amount, params.to.decimals),
+                minReceived: formatUnits(minReceived.toString(), params.to.decimals),
                 network: params.network,
                 priceImpact: quoteResponse.price_impact ? Math.round(quoteResponse.price_impact * 100) : undefined,
             };

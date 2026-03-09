@@ -348,7 +348,7 @@ return (
 );
 ```
 
-### `useNFTsByAddress`
+### `useNftsByAddress`
 
 Hook to get NFTs of a specific address.
 
@@ -357,7 +357,7 @@ const {
     data: nfts,
     isLoading,
     error,
-} = useNFTsByAddress({
+} = useNftsByAddress({
     address: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
     limit: 10,
 });
@@ -508,13 +508,12 @@ const {
     isLoading,
     error,
 } = useSwapQuote({
-    fromToken: { type: 'ton' },
-    toToken: {
-        type: 'jetton',
-        value: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+    from: { address: 'ton', decimals: 9 },
+    to: {
+        address: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+        decimals: 6,
     }, // USDT
-    amount: '1000000000', // 1 TON in nanotons (raw format)
-    network: Network.mainnet(),
+    amount: '1', // human-readable amount as string
 });
 
 if (isLoading) {
@@ -545,12 +544,12 @@ Hook to build a transaction for a swap operation based on a quote.
 ```tsx
 // First, get a quote
 const { data: quote } = useSwapQuote({
-    fromToken: { type: 'ton' },
-    toToken: {
-        type: 'jetton',
-        value: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+    from: { address: 'ton', decimals: 9 },
+    to: {
+        address: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+        decimals: 6,
     },
-    amount: '1000000000', // 1 TON in nanotons (raw format)
+    amount: '1', // human-readable amount as string
     network: Network.mainnet(),
 });
 

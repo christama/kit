@@ -7,11 +7,11 @@
  */
 
 import { AppKit, Network } from '@ton/appkit';
-import { TonConnectConnector } from '@ton/appkit';
+import { TonConnectConnector, ApiClientTonApi } from '@ton/appkit';
 import { DeDustSwapProvider } from '@ton/appkit/swap/dedust';
 import { OmnistonSwapProvider } from '@ton/appkit/swap/omniston';
 
-import { ENV_TON_API_KEY_MAINNET, ENV_TON_API_KEY_TESTNET } from '@/core/configs/env';
+import { ENV_TON_API_KEY_TESTNET, ENV_TON_API_KEY_MAINNET } from '@/core/configs/env';
 
 export const appKit = new AppKit({
     networks: {
@@ -27,11 +27,17 @@ export const appKit = new AppKit({
                 key: ENV_TON_API_KEY_TESTNET,
             },
         },
+        [Network.tetra().chainId]: {
+            apiClient: new ApiClientTonApi({
+                network: Network.tetra(),
+                endpoint: 'https://tetra.tonapi.io',
+            }),
+        },
     },
     connectors: [
         new TonConnectConnector({
             tonConnectOptions: {
-                manifestUrl: 'https://tonconnect-demo-dapp-with-react-ui.vercel.app/tonconnect-manifest.json',
+                manifestUrl: 'https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json',
             },
         }),
     ],

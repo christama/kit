@@ -22,25 +22,25 @@ export const NATIVE_TON_MINTER = 'native';
  * DeDust API expects user-friendly address format (e.g., EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCALE)
  */
 export const tokenToMinter = (token: SwapToken): string => {
-    if (token.type === 'ton') {
+    if (token.address === 'ton') {
         return NATIVE_TON_MINTER;
     }
     // Return user-friendly address format (base64 with workchain prefix)
-    return Address.parse(token.value).toString({ bounceable: true, urlSafe: true });
+    return Address.parse(token.address).toString({ bounceable: true, urlSafe: true });
 };
 
 /**
  * Convert DeDust minter address string to SwapToken
  */
-export const minterToToken = (minter: string): SwapToken => {
+export const minterToToken = (minter: string, decimals: number = 9): SwapToken => {
     if (minter === NATIVE_TON_MINTER) {
-        return { type: 'ton' };
+        return { address: 'ton', decimals: 9 };
     }
 
     try {
-        return { type: 'jetton', value: Address.parseRaw(minter).toString() };
+        return { address: Address.parseRaw(minter).toString(), decimals };
     } catch {
-        return { type: 'jetton', value: minter };
+        return { address: minter, decimals };
     }
 };
 
@@ -48,7 +48,7 @@ export const minterToToken = (minter: string): SwapToken => {
  * Check if token is native TON
  */
 export const isNativeTon = (token: SwapToken): boolean => {
-    return token.type === 'ton';
+    return token.address === 'ton';
 };
 
 /**

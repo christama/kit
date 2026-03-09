@@ -1,6 +1,6 @@
 {
   "name": "@ton/walletkit",
-  "version": "0.0.7",
+  "version": "0.0.10",
   "description": "Wallet kit for TON Connect",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -50,6 +50,16 @@
         "types": "./dist/cjs/defi/swap/dedust/index.d.ts",
         "default": "./dist/cjs/defi/swap/dedust/index.js"
       }
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "bridge": [
+        "./dist/cjs/bridge/JSBridgeInjector.d.ts"
+      ],
+      "swap/omniston": [
+        "./dist/cjs/defi/swap/omniston/index.d.ts"
+      ]
     }
   },
   "scripts": {

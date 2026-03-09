@@ -6,7 +6,8 @@
  *
  */
 
-export * from './amount/units';
+export { formatUnits, parseUnits } from '@ton/walletkit';
+
 export * from './amount/validate-numeric-string';
 export * from './arrays/key-by';
 export * from './arrays/random-from-array';
@@ -19,4 +20,5 @@ export * from './predicate/is-string';
 export * from './promise/cancel-promise';
 export * from './promise/sleep';
 export * from './query/filter-query-options';
+export * from './network/resolve-network';
 export * from './string/middle-ellipsis';

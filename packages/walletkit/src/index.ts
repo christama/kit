@@ -7,6 +7,7 @@
  */
 
 export { SEND_TRANSACTION_ERROR_CODES } from '@tonconnect/protocol';
+export { SignatureDomain } from '@ton/core';
 export { TonWalletKit } from './core/TonWalletKit';
 export * from './types';
 export type * from './types/internal';
@@ -22,7 +23,8 @@ export { JettonsManager } from './core/JettonsManager';
 export { SwapManager, SwapProvider, SwapError } from './defi/swap';
 export { EventEmitter } from './core/EventEmitter';
 export type { EventListener } from './core/EventEmitter';
-export { ApiClientToncenter } from './core/ApiClientToncenter';
+export { ApiClientToncenter } from './clients/toncenter';
+export { ApiClientTonApi } from './clients/tonapi';
 export type { NetworkManager } from './core/NetworkManager';
 export { KitNetworkManager } from './core/NetworkManager';
 export { StorageEventStore } from './core/EventStore';
@@ -91,7 +93,7 @@ export type {
     InjectedToExtensionBridgeRequestPayload,
 } from './types/jsBridge';
 export { MnemonicToKeyPair, CreateTonMnemonic } from './utils/mnemonic';
-export { DefaultSignature, FakeSignature } from './utils/sign';
+export { DefaultSignature, DefaultDomainSignature, FakeSignature } from './utils/sign';
 export { wrapWalletInterface } from './core/Initializer';
 export type { NftTransferParamsHuman, NftTransferParamsRaw } from './types/nfts';
 
@@ -143,6 +145,8 @@ export type {
     NftTransferRawParams,
     CreateTransferTransactionParams,
 } from './utils/messageBuilders';
+export { getTransactionStatus } from './utils/toncenter/getTransactionStatus';
+export { getNormalizedExtMessageHash } from './utils/getNormalizedExtMessageHash';
 
 // Asset helpers
 export {
@@ -152,6 +156,8 @@ export {
     getNftsFromClient,
     getNftFromClient,
 } from './utils/assetHelpers';
+
+export { formatUnits, parseUnits } from './utils/units';
 
 // API Interfaces
 export type * from './api/interfaces';

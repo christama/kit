@@ -8,10 +8,11 @@
 
 import { useMemo } from 'react';
 import type { FC } from 'react';
-import { formatUnits, parseUnits } from '@ton/appkit';
 import { Transaction, useSwapQuote, useNetwork, useAddress, useBuildSwapTransaction } from '@ton/appkit-react';
 
-export const USDT_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+const USDT_ADDRESS = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+const TON = { address: 'ton', decimals: 9, symbol: 'TON' };
+const USDT = { address: USDT_ADDRESS, decimals: 6, symbol: 'USDT' };
 
 interface SwapButtonProps {
     amount: string;
@@ -22,16 +23,16 @@ interface SwapButtonProps {
 export const SwapButton: FC<SwapButtonProps> = ({ amount, direction, providerId }) => {
     const network = useNetwork();
     const address = useAddress();
-    const decimals = direction === 'from' ? 9 : 6;
-    const reverseDecimals = direction === 'from' ? 6 : 9;
+    const from = direction === 'from' ? TON : USDT;
+    const to = direction === 'to' ? TON : USDT;
     const {
         data: quote,
         isError,
         isLoading,
     } = useSwapQuote({
-        amount: parseUnits(amount, decimals).toString(),
-        fromToken: direction === 'from' ? { type: 'ton' } : { type: 'jetton', value: USDT_ADDRESS },
-        toToken: direction === 'to' ? { type: 'ton' } : { type: 'jetton', value: USDT_ADDRESS },
+        amount,
+        from,
+        to,
         network,
         slippageBps: 100,
         providerId,
@@ -59,7 +60,7 @@ export const SwapButton: FC<SwapButtonProps> = ({ amount, direction, providerId 
             return 'Swap Unavailable';
         }
 
-        return `Swap ${formatUnits(quote.fromAmount, decimals)} ${direction === 'from' ? 'TON' : 'USDT'} -> ${formatUnits(quote.toAmount, reverseDecimals)} ${direction === 'to' ? 'TON' : 'USDT'}`;
+        return `Swap ${quote.fromAmount} ${from.symbol} -> ${quote.toAmount} ${to.symbol}`;
     }, [isLoading, isError, quote]);
 
     return (
