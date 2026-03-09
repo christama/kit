@@ -8,8 +8,7 @@
 
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useWalletStore, useWalletKit, getChainNetwork } from '@demo/wallet-core';
-import type { PreviewTransaction } from '@demo/wallet-core';
+import { useWalletStore } from '@demo/wallet-core';
 import { Base64NormalizeUrl, HexToBase64 } from '@ton/walletkit';
 import type { Event, Action } from '@ton/walletkit';
 
@@ -21,83 +20,20 @@ import { TransactionErrorState, TransactionLoadingState, TransactionEmptyState, 
  * Displays a list of recent blockchain transactions for the current wallet
  */
 export const RecentTransactions: React.FC = memo(() => {
-    const { events, loadEvents, address, hasNextEvents, savedWallets, activeWalletId } = useWalletStore(
+    const { events, loadEvents, address, hasNextEvents, pendingTransactions } = useWalletStore(
         useShallow((state) => ({
             events: state.walletManagement.events,
             loadEvents: state.loadEvents,
             address: state.walletManagement.address,
             hasNextEvents: state.walletManagement.hasNextEvents,
-            savedWallets: state.walletManagement.savedWallets,
-            activeWalletId: state.walletManagement.activeWalletId,
+            pendingTransactions: state.walletManagement.pendingTransactions,
         })),
     );
-    const walletKit = useWalletKit();
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isPaginating, setIsPaginating] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [pendingTransactions, setPendingTransactions] = useState<PreviewTransaction[]>([]);
     const [currentPage, setCurrentPage] = useState(0);
     const [limit] = useState(10);
-
-    // Get the active wallet's network
-    const activeWallet = savedWallets.find((w) => w.id === activeWalletId);
-    const walletNetwork = activeWallet?.network || 'testnet';
-    const chainNetwork = getChainNetwork(walletNetwork);
-
-    // Check for pending transactions
-    const checkPendingTransactions = async () => {
-        if (!address || !walletKit) return;
-
-        try {
-            const apiClient = walletKit.getApiClient(chainNetwork);
-            const pendingResponse = await apiClient.getPendingTransactions({
-                accounts: [address],
-            });
-
-            if (pendingResponse.transactions && pendingResponse.transactions.length > 0) {
-                const pendingTxs: PreviewTransaction[] = pendingResponse.transactions.map((tx) => {
-                    // Determine transaction type and amount
-                    let type: 'send' | 'receive' = 'receive';
-                    let amount = '0';
-                    let targetAddress = '';
-
-                    // Check incoming message
-                    if (tx.inMessage && tx.inMessage.value) {
-                        amount = tx.inMessage.value;
-                        targetAddress = tx.inMessage.source || '';
-                        type = 'receive';
-                    }
-
-                    // Check outgoing messages - if there are any, it's likely a send transaction
-                    if (tx.outMessages && tx.outMessages.length > 0) {
-                        const mainOutMsg = tx.outMessages[0];
-                        if (mainOutMsg.value) {
-                            amount = mainOutMsg.value;
-                            targetAddress = mainOutMsg.destination || '';
-                            type = 'send';
-                        }
-                    }
-
-                    return {
-                        id: tx.hash,
-                        messageHash: tx.inMessage?.hash || '',
-                        type,
-                        amount,
-                        address: targetAddress,
-                        timestamp: tx.now * 1000, // Convert to milliseconds
-                        status: 'pending' as const,
-                    };
-                });
-
-                setPendingTransactions(pendingTxs);
-            } else {
-                setPendingTransactions([]);
-            }
-        } catch (_err) {
-            // Silently handle errors to avoid spamming the user
-            setPendingTransactions([]);
-        }
-    };
 
     // Load events when component mounts, address changes, or page changes
     useEffect(() => {
@@ -127,22 +63,6 @@ export const RecentTransactions: React.FC = memo(() => {
 
         fetchEvents();
     }, [address, loadEvents, currentPage, limit]);
-
-    // Set up polling for pending transactions
-    useEffect(() => {
-        if (!address) return;
-
-        // Start polling immediately
-        checkPendingTransactions();
-
-        // Set up interval for polling every 5000ms
-        const interval = setInterval(checkPendingTransactions, 5000);
-
-        // Cleanup interval on unmount or address change
-        return () => {
-            clearInterval(interval);
-        };
-    }, [address]);
 
     const handleRefresh = async () => {
         if (!address) return;
@@ -253,15 +173,57 @@ export const RecentTransactions: React.FC = memo(() => {
                         <div
                             className={`space-y-3 transition-opacity duration-200 ${isPaginating ? 'opacity-50' : 'opacity-100'}`}
                         >
-                            {/* Pending transactions */}
-                            {pendingTransactions.map((p) => (
-                                <TraceRow
-                                    key={`pending-${p.id}`}
-                                    traceId={p.id}
-                                    externalHash={p.messageHash}
-                                    isPending
-                                />
-                            ))}
+                            {/* Pending transactions from WebSocket streaming */}
+                            {pendingTransactions.map((p) => {
+                                const preview = p.preview;
+                                const formatTonAmount = (amount: string) =>
+                                    (parseFloat(amount || '0') / 1e9).toFixed(4);
+                                const amountFormatted = preview ? formatTonAmount(preview.amount) : '0';
+                                const description = preview ? `Transferring ${amountFormatted} TON` : 'Processing';
+                                const value = preview ? `${amountFormatted} TON` : '0 TON';
+
+                                const pendingAction = {
+                                    type: 'TonTransfer',
+                                    id: p.traceId,
+                                    status: 'success' as const,
+                                    simplePreview: {
+                                        name: 'Ton Transfer',
+                                        description,
+                                        value,
+                                        accounts:
+                                            preview && address
+                                                ? preview.type === 'send'
+                                                    ? [{ address, isScam: false, isWallet: true }]
+                                                    : [{ address: preview.address, isScam: false, isWallet: false }]
+                                                : [],
+                                    },
+                                    baseTransactions: [] as string[],
+                                    TonTransfer: {
+                                        sender: {
+                                            address: preview?.type === 'send' ? address || '' : preview?.address || '',
+                                            isScam: false,
+                                            isWallet: true,
+                                        },
+                                        recipient: {
+                                            address: preview?.type === 'send' ? preview?.address || '' : address || '',
+                                            isScam: false,
+                                            isWallet: false,
+                                        },
+                                        amount: BigInt(preview?.amount || 0),
+                                    },
+                                } as Action;
+
+                                return (
+                                    <ActionCard
+                                        key={`pending-${p.traceId}`}
+                                        action={pendingAction}
+                                        myAddress={address || ''}
+                                        timestamp={preview?.timestamp ?? Math.floor(Date.now() / 1000)}
+                                        traceLink={`/wallet/trace/${p.traceId}`}
+                                        isPending
+                                    />
+                                );
+                            })}
 
                             {/* Confirmed transactions */}
                             {(eventItems || []).map((ev) => {

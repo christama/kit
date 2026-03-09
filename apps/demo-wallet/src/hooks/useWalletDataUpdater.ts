@@ -11,7 +11,7 @@ import { useJettons, useNfts, useWallet } from '@demo/wallet-core';
 
 export const useWalletDataUpdater = () => {
     const { address, updateBalance } = useWallet();
-    const { loadUserJettons, clearJettons, refreshJettons } = useJettons();
+    const { loadUserJettons, clearJettons } = useJettons();
     const { loadUserNfts, clearNfts, refreshNfts } = useNfts();
 
     // Update on address change
@@ -23,16 +23,14 @@ export const useWalletDataUpdater = () => {
         }
     }, [address, updateBalance, loadUserJettons, loadUserNfts, clearNfts, clearJettons]);
 
-    // Periodic refresh
+    // Periodic refresh for NFTs only (balance and jettons are updated via WebSocket streaming)
     useEffect(() => {
         if (!address) return;
 
         const timeout = setInterval(() => {
-            void Promise.allSettled([updateBalance(), refreshJettons(), refreshNfts()]);
-        }, 30_000);
+            void refreshNfts();
+        }, 60_000);
 
-        return () => {
-            clearInterval(timeout);
-        };
-    }, [address, updateBalance, refreshJettons, refreshNfts]);
+        return () => clearInterval(timeout);
+    }, [address, refreshNfts]);
 };

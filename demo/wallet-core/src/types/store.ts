@@ -76,6 +76,16 @@ export interface WalletManagementSlice {
         events: unknown[];
         hasNextEvents: boolean;
 
+        /** Pending transactions from WebSocket streaming */
+        pendingTransactions: Array<{
+            traceId: string;
+            externalHash?: string;
+            preview?: { type: 'send' | 'receive' | 'contract'; amount: string; address: string; timestamp: number };
+        }>;
+
+        /** Trace IDs we've received as confirmed - ignore late pending events for these */
+        confirmedTraceIds: string[];
+
         currentWallet?: Wallet;
         hasWallet: boolean;
         isAuthenticated: boolean;
@@ -193,6 +203,7 @@ export interface JettonsSlice {
 
     loadUserJettons: (userAddress?: string) => Promise<void>;
     refreshJettons: (userAddress?: string) => Promise<void>;
+    updateJettonBalanceFromStream: (walletAddress: string, balance: string) => void;
     validateJettonAddress: (address: string) => boolean;
     clearJettons: () => void;
     getJettonByAddress: (jettonAddress: string) => Jetton | undefined;

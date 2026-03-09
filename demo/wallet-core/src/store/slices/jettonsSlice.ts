@@ -124,6 +124,18 @@ export const createJettonsSlice: JettonsSliceCreator = (set: SetState, get) => (
         }
     },
 
+    updateJettonBalanceFromStream: (walletAddress: string, balance: string) => {
+        set((state) => {
+            const jetton = state.jettons.userJettons.find(
+                (j) => j.walletAddress?.toLowerCase() === walletAddress.toLowerCase(),
+            );
+            if (jetton) {
+                jetton.balance = balance;
+                state.jettons.lastJettonsUpdate = Date.now();
+            }
+        });
+    },
+
     validateJettonAddress: (address: string): boolean => {
         const state = get();
         if (!state.walletCore.walletKit) {

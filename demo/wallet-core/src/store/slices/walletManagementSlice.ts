@@ -15,7 +15,12 @@ import { createLedgerPath } from '@demo/v4ledger-adapter';
 import { SimpleEncryption } from '../../utils';
 import { createComponentLogger } from '../../utils/logger';
 import { getChainNetwork } from '../../utils/network';
-import { createWalletAdapter, generateWalletId, generateWalletName } from '../../utils/walletAdapterFactory';
+import {
+    createWalletAdapter,
+    generateWalletId,
+    generateWalletName,
+    transformToncenterTransaction,
+} from '../../utils/walletAdapterFactory';
 import type { LedgerConfig, SavedWallet, WalletKitConfig } from '../../types/wallet';
 import type { NetworkType } from '../../utils/network';
 import type { SetState, WalletManagementSliceCreator } from '../../types/store';
@@ -34,6 +39,8 @@ export const createWalletManagementSlice =
             localSeqnoByAddress: {},
             events: [],
             hasNextEvents: false,
+            pendingTransactions: [],
+            confirmedTraceIds: [],
             currentWallet: undefined,
             hasWallet: false,
             isAuthenticated: false,
@@ -373,6 +380,8 @@ export const createWalletManagementSlice =
                         state.walletManagement.balance = undefined;
                         state.walletManagement.currentWallet = undefined;
                         state.walletManagement.events = [];
+                        state.walletManagement.pendingTransactions = [];
+                        state.walletManagement.confirmedTraceIds = [];
                         state.walletManagement.isStreamingConnected = false;
                     }
                 }
@@ -522,6 +531,8 @@ export const createWalletManagementSlice =
                 state.walletManagement.balance = undefined;
                 state.walletManagement.publicKey = undefined;
                 state.walletManagement.events = [];
+                state.walletManagement.pendingTransactions = [];
+                state.walletManagement.confirmedTraceIds = [];
                 state.walletManagement.currentWallet = undefined;
                 state.walletManagement.isStreamingConnected = false;
                 state.tonConnect.pendingConnectRequestEvent = undefined;
@@ -584,10 +595,71 @@ export const createWalletManagementSlice =
             };
 
             const handlers: WebSocketEventHandlers = {
-                onTransaction: () => {
-                    void get()
-                        .loadEvents()
-                        .catch((err) => log.error('Error loading events after WebSocket transaction:', err));
+                onTransaction: (event) => {
+                    const { finality, trace_external_hash_norm, transactions } = event;
+                    const firstTx = transactions?.[0];
+                    const externalHash = (firstTx as { in_msg?: { hash?: string } })?.in_msg?.hash;
+
+                    if (finality === 'pending') {
+                        set((s) => {
+                            // Ignore pending for traces we've already confirmed (API may send out of order)
+                            if (s.walletManagement.confirmedTraceIds.includes(trace_external_hash_norm)) {
+                                return;
+                            }
+                            const exists = s.walletManagement.pendingTransactions.some(
+                                (p) => p.traceId === trace_external_hash_norm,
+                            );
+                            if (!exists) {
+                                let preview:
+                                    | {
+                                          type: 'send' | 'receive' | 'contract';
+                                          amount: string;
+                                          address: string;
+                                          timestamp: number;
+                                      }
+                                    | undefined;
+                                if (firstTx) {
+                                    try {
+                                        const p = transformToncenterTransaction(
+                                            firstTx as Parameters<typeof transformToncenterTransaction>[0],
+                                        );
+                                        const type =
+                                            p.type === 'send' ? 'send' : p.type === 'receive' ? 'receive' : 'contract';
+                                        preview = {
+                                            type,
+                                            amount: p.amount,
+                                            address: p.address,
+                                            timestamp: p.timestamp / 1000,
+                                        };
+                                    } catch {
+                                        // ignore parse errors
+                                    }
+                                }
+                                s.walletManagement.pendingTransactions.push({
+                                    traceId: trace_external_hash_norm,
+                                    externalHash,
+                                    preview,
+                                });
+                            }
+                        });
+                    } else if (finality === 'confirmed' || finality === 'finalized') {
+                        set((s) => {
+                            s.walletManagement.pendingTransactions = s.walletManagement.pendingTransactions.filter(
+                                (p) => p.traceId !== trace_external_hash_norm,
+                            );
+                            // Remember we confirmed this trace - ignore any late pending events
+                            const ids = s.walletManagement.confirmedTraceIds;
+                            if (!ids.includes(trace_external_hash_norm)) {
+                                ids.push(trace_external_hash_norm);
+                                if (ids.length > 50) {
+                                    s.walletManagement.confirmedTraceIds = ids.slice(-50);
+                                }
+                            }
+                        });
+                        void get()
+                            .loadEvents()
+                            .catch((err) => log.error('Error loading events after WebSocket transaction:', err));
+                    }
                 },
                 onAccountStateChange: (event) => {
                     set((s) => {
@@ -597,10 +669,17 @@ export const createWalletManagementSlice =
                         }
                     });
                 },
-                onJettonChange: () => {
-                    void get()
-                        .refreshJettons()
-                        .catch((err) => log.error('Error refreshing jettons after WebSocket:', err));
+                onJettonChange: (event) => {
+                    get().updateJettonBalanceFromStream(event.jetton.address, event.jetton.balance);
+                    // If jetton not in list yet (e.g. new jetton received), refresh to load it
+                    const hasJetton = get().jettons.userJettons.some(
+                        (j) => j.walletAddress?.toLowerCase() === event.jetton.address.toLowerCase(),
+                    );
+                    if (!hasJetton) {
+                        void get()
+                            .refreshJettons()
+                            .catch((err) => log.error('Error refreshing jettons after new jetton:', err));
+                    }
                 },
                 onTraceInvalidated: () => {
                     void get()
@@ -637,6 +716,8 @@ export const createWalletManagementSlice =
             wsClient.unsubscribe();
             set((s) => {
                 s.walletManagement.isStreamingConnected = false;
+                s.walletManagement.pendingTransactions = [];
+                s.walletManagement.confirmedTraceIds = [];
             });
             log.info('WebSocket streaming stopped');
         },

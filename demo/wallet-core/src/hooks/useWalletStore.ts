@@ -71,6 +71,7 @@ export const useWallet = () => {
             balance: state.walletManagement.balance,
             publicKey: state.walletManagement.publicKey,
             events: state.walletManagement.events,
+            pendingTransactions: state.walletManagement.pendingTransactions,
             currentWallet: state.walletManagement.currentWallet,
             savedWallets: state.walletManagement.savedWallets,
             activeWalletId: state.walletManagement.activeWalletId,
