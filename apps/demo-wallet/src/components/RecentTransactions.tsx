@@ -200,6 +200,21 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = memo(({ emb
                             if (item.type === 'pending') {
                                 const p = item.data;
                                 const preview = p.preview;
+                                const isPending = p.finality !== 'confirmed' && p.finality !== 'finalized';
+
+                                if (p.action) {
+                                    return (
+                                        <ActionCard
+                                            key={`pending-${p.traceId}`}
+                                            action={p.action}
+                                            myAddress={address || ''}
+                                            timestamp={preview?.timestamp ?? Math.floor(Date.now() / 1000)}
+                                            traceLink={`/wallet/trace/${p.traceId}`}
+                                            isPending={isPending}
+                                        />
+                                    );
+                                }
+
                                 const formatTonAmount = (amount: string) =>
                                     (parseFloat(amount || '0') / 1e9).toFixed(4);
                                 const amountFormatted = preview ? formatTonAmount(preview.amount) : '0';
@@ -248,7 +263,6 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = memo(({ emb
                                     },
                                 } as Action;
 
-                                const isPending = p.finality !== 'confirmed' && p.finality !== 'finalized';
                                 return (
                                     <ActionCard
                                         key={`pending-${p.traceId}`}

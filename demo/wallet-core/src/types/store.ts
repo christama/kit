@@ -23,6 +23,7 @@ import type {
     SwapToken,
 } from '@ton/walletkit';
 
+import type { PendingTransaction } from './streaming';
 import type {
     AuthState,
     SavedWallet,
@@ -77,13 +78,7 @@ export interface WalletManagementSlice {
         hasNextEvents: boolean;
 
         /** Pending transactions from WebSocket streaming */
-        pendingTransactions: Array<{
-            traceId: string;
-            externalHash?: string;
-            preview?: { type: 'send' | 'receive' | 'contract'; amount: string; address: string; timestamp: number };
-            /** Set when WebSocket reports confirmed/finalized - show as done, not pending */
-            finality?: 'pending' | 'confirmed' | 'finalized';
-        }>;
+        pendingTransactions: PendingTransaction[];
 
         /** Trace IDs we've received as confirmed - ignore late pending events for these */
         confirmedTraceIds: string[];

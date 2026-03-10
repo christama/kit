@@ -7,6 +7,7 @@
  */
 
 import { Base64NormalizeUrl, HexToBase64, Network, getGlobalWebSocketClient } from '@ton/walletkit';
+import type { Action, Hex } from '@ton/walletkit';
 import type { WalletAdapter } from '@ton/walletkit';
 import type { Wallet, ITonWalletKit } from '@ton/walletkit';
 import type { WebSocketSubscriptionConfig, WebSocketEventHandlers } from '@ton/walletkit';
@@ -22,10 +23,70 @@ import {
     transformToncenterTransaction,
 } from '../../utils/walletAdapterFactory';
 import type { LedgerConfig, SavedWallet, WalletKitConfig } from '../../types/wallet';
+import type {
+    StreamingActionRaw,
+    StreamingAddressBook,
+    StreamingAccount,
+    StreamingMetadata,
+    StreamingTransactionPreview,
+} from '../../types/streaming';
 import type { NetworkType } from '../../utils/network';
 import type { SetState, WalletManagementSliceCreator } from '../../types/store';
 
 const log = createComponentLogger('WalletManagementSlice');
+
+/** Convert streaming API action format to walletkit Action (simplePreview) */
+function streamingActionToAction(
+    raw: StreamingActionRaw,
+    myAddress: string,
+    addressBook: StreamingAddressBook = {},
+    metadata: StreamingMetadata = {},
+): Action | null {
+    if (raw.type !== 'jetton_transfer') return null;
+    const toFriendly = (rawAddr: string) => addressBook[rawAddr]?.user_friendly ?? rawAddr;
+    const amount = raw.details?.amount ?? '0';
+    const asset = raw.details?.asset ?? '';
+    const sender = raw.details?.sender ?? '';
+    const receiver = raw.details?.receiver ?? '';
+    const meta = metadata[asset];
+    const tokenInfo = meta?.token_info?.find((t) => t.type === 'jetton_masters');
+    const symbol = tokenInfo?.symbol ?? 'JETTON';
+    const decimals = parseInt(tokenInfo?.extra?.decimals ?? '9', 10);
+    const image = tokenInfo?.extra?._image_small ?? tokenInfo?.extra?.image ?? '';
+    const denom = BigInt(10) ** BigInt(decimals);
+    const valueNum = Number(BigInt(amount)) / Number(denom);
+    const valueStr =
+        valueNum >= 1
+            ? valueNum.toFixed(3).replace(/\.0+$/, '')
+            : valueNum.toFixed(9).replace(/0+$/, '').replace(/\.$/, '');
+    const human = `${valueStr} ${symbol}`;
+    const senderFriendly = toFriendly(sender);
+    const receiverFriendly = toFriendly(receiver);
+    const isOutgoing = [sender, senderFriendly].some((a) => a === myAddress);
+    const accounts: StreamingAccount[] = isOutgoing
+        ? [
+              { address: senderFriendly, isScam: false, isWallet: true },
+              { address: receiverFriendly, isScam: false, isWallet: false },
+          ]
+        : [
+              { address: senderFriendly, isScam: false, isWallet: false },
+              { address: receiverFriendly, isScam: false, isWallet: true },
+          ];
+    const simplePreview = {
+        name: 'Jetton Transfer',
+        description: `Transferring ${human}`,
+        value: human,
+        accounts,
+        ...(image && { valueImage: image }),
+    };
+    return {
+        type: 'JettonTransfer',
+        id: '' as Hex,
+        status: 'success',
+        simplePreview,
+        baseTransactions: [],
+    } as Action;
+}
 
 export const createWalletManagementSlice =
     (walletKitConfig?: WalletKitConfig): WalletManagementSliceCreator =>
@@ -588,7 +649,7 @@ export const createWalletManagementSlice =
 
             const config: WebSocketSubscriptionConfig = {
                 addresses: [state.walletManagement.address],
-                types: ['transactions', 'account_state_change', 'jettons_change'],
+                types: ['transactions', 'actions', 'account_state_change', 'jettons_change'],
                 minFinality: 'pending',
                 includeAddressBook: true,
                 includeMetadata: true,
@@ -601,46 +662,37 @@ export const createWalletManagementSlice =
                     const externalHash = (firstTx as { in_msg?: { hash?: string } })?.in_msg?.hash;
 
                     if (finality === 'pending') {
-                        set((s) => {
-                            // Ignore pending for traces we've already confirmed (API may send out of order)
-                            if (s.walletManagement.confirmedTraceIds.includes(trace_external_hash_norm)) {
-                                return;
+                        let preview: StreamingTransactionPreview | undefined;
+                        if (firstTx) {
+                            try {
+                                const p = transformToncenterTransaction(
+                                    firstTx as Parameters<typeof transformToncenterTransaction>[0],
+                                );
+                                const type = p.type === 'send' ? 'send' : p.type === 'receive' ? 'receive' : 'contract';
+                                preview = {
+                                    type,
+                                    amount: p.amount,
+                                    address: p.address,
+                                    timestamp: p.timestamp / 1000,
+                                };
+                            } catch {
+                                /* ignore parse errors */
                             }
-                            const exists = s.walletManagement.pendingTransactions.some(
+                        }
+                        set((s) => {
+                            if (s.walletManagement.confirmedTraceIds.includes(trace_external_hash_norm)) return;
+                            const existing = s.walletManagement.pendingTransactions.find(
                                 (p) => p.traceId === trace_external_hash_norm,
                             );
-                            if (!exists) {
-                                let preview:
-                                    | {
-                                          type: 'send' | 'receive' | 'contract';
-                                          amount: string;
-                                          address: string;
-                                          timestamp: number;
-                                      }
-                                    | undefined;
-                                if (firstTx) {
-                                    try {
-                                        const p = transformToncenterTransaction(
-                                            firstTx as Parameters<typeof transformToncenterTransaction>[0],
-                                        );
-                                        const type =
-                                            p.type === 'send' ? 'send' : p.type === 'receive' ? 'receive' : 'contract';
-                                        preview = {
-                                            type,
-                                            amount: p.amount,
-                                            address: p.address,
-                                            timestamp: p.timestamp / 1000,
-                                        };
-                                    } catch {
-                                        // ignore parse errors
-                                    }
-                                }
+                            if (!existing) {
                                 s.walletManagement.pendingTransactions.push({
                                     traceId: trace_external_hash_norm,
                                     externalHash,
                                     preview,
                                     finality: 'pending',
                                 });
+                            } else if (preview) {
+                                existing.preview = preview;
                             }
                         });
                     } else if (finality === 'confirmed' || finality === 'finalized') {
@@ -664,6 +716,38 @@ export const createWalletManagementSlice =
                             .loadEvents()
                             .catch((err) => log.error('Error loading events after WebSocket transaction:', err));
                     }
+                },
+                onAction: (event) => {
+                    const { trace_external_hash_norm, actions, address_book, metadata } = event;
+                    const account = get().walletManagement.address;
+                    if (!account || !actions?.length) return;
+                    const addrBook = (address_book ?? {}) as StreamingAddressBook;
+                    const meta = (metadata ?? {}) as StreamingMetadata;
+                    const rawActions = actions as StreamingActionRaw[];
+                    const action = rawActions
+                        .map((a) => streamingActionToAction(a, account, addrBook, meta))
+                        .find((a): a is Action => a !== null);
+                    if (!action) return;
+                    set((s) => {
+                        let p = s.walletManagement.pendingTransactions.find(
+                            (t) => t.traceId === trace_external_hash_norm,
+                        );
+                        if (p) {
+                            p.action = action;
+                        } else if (!s.walletManagement.confirmedTraceIds.includes(trace_external_hash_norm)) {
+                            s.walletManagement.pendingTransactions.push({
+                                traceId: trace_external_hash_norm,
+                                preview: {
+                                    type: 'contract',
+                                    amount: '0',
+                                    address: '',
+                                    timestamp: Math.floor(Date.now() / 1000),
+                                },
+                                action,
+                                finality: 'pending',
+                            });
+                        }
+                    });
                 },
                 onAccountStateChange: (event) => {
                     set((s) => {
