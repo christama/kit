@@ -68,7 +68,11 @@ test.describe('SetupPassword', () => {
             });
         });
 
-        test('page reload stays on /setup-password when no password is set', async ({ webOnly, setupPassword, page }) => {
+        test('page reload stays on /setup-password when no password is set', async ({
+            webOnly: _webOnly,
+            setupPassword,
+            page,
+        }) => {
             await step('Reload the page', async () => {
                 await page.reload({ waitUntil: 'load' });
             });
