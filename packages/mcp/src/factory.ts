@@ -299,11 +299,11 @@ export async function createTonWalletMCP(config: TonMcpFactoryConfig): Promise<M
         dnsToolDefs.back_resolve_dns,
         (service) => createMcpDnsTools(service).back_resolve_dns,
     );
-    registerRegistryWalletTool(
-        'agentic_deploy_subwallet',
-        agenticToolDefs.deploy_agentic_subwallet,
-        (service) => createMcpAgenticTools(service).deploy_agentic_subwallet,
-    );
+    // registerRegistryWalletTool(
+    //     'agentic_deploy_subwallet',
+    //     agenticToolDefs.deploy_agentic_subwallet,
+    //     (service) => createMcpAgenticTools(service).deploy_agentic_subwallet,
+    // );
 
     registerTool('list_wallets', walletManagementTools.list_wallets);
     registerTool('get_current_wallet', walletManagementTools.get_current_wallet);
