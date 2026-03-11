@@ -238,48 +238,48 @@ export function createMcpAddressTools(service: McpWalletService) {
             },
         },
 
-        get_jetton_wallet_address: {
-            description: 'Get the jetton-wallet address for a given Jetton master and owner address.',
-            inputSchema: getJettonWalletAddressSchema,
-            handler: async (args: z.infer<typeof getJettonWalletAddressSchema>): Promise<ToolResponse> => {
-                try {
-                    const jettonWalletAddress = await service.getJettonWalletAddress(
-                        args.jettonAddress,
-                        args.ownerAddress,
-                    );
+        // get_jetton_wallet_address: {
+        //     description: 'Get the jetton-wallet address for a given Jetton master and owner address.',
+        //     inputSchema: getJettonWalletAddressSchema,
+        //     handler: async (args: z.infer<typeof getJettonWalletAddressSchema>): Promise<ToolResponse> => {
+        //         try {
+        //             const jettonWalletAddress = await service.getJettonWalletAddress(
+        //                 args.jettonAddress,
+        //                 args.ownerAddress,
+        //             );
 
-                    return {
-                        content: [
-                            {
-                                type: 'text' as const,
-                                text: JSON.stringify(
-                                    {
-                                        success: true,
-                                        jettonAddress: args.jettonAddress,
-                                        ownerAddress: args.ownerAddress,
-                                        jettonWalletAddress,
-                                    },
-                                    null,
-                                    2,
-                                ),
-                            },
-                        ],
-                    };
-                } catch (error) {
-                    return {
-                        content: [
-                            {
-                                type: 'text' as const,
-                                text: JSON.stringify({
-                                    success: false,
-                                    error: error instanceof Error ? error.message : 'Unknown error',
-                                }),
-                            },
-                        ],
-                        isError: true,
-                    };
-                }
-            },
-        },
+        //             return {
+        //                 content: [
+        //                     {
+        //                         type: 'text' as const,
+        //                         text: JSON.stringify(
+        //                             {
+        //                                 success: true,
+        //                                 jettonAddress: args.jettonAddress,
+        //                                 ownerAddress: args.ownerAddress,
+        //                                 jettonWalletAddress,
+        //                             },
+        //                             null,
+        //                             2,
+        //                         ),
+        //                     },
+        //                 ],
+        //             };
+        //         } catch (error) {
+        //             return {
+        //                 content: [
+        //                     {
+        //                         type: 'text' as const,
+        //                         text: JSON.stringify({
+        //                             success: false,
+        //                             error: error instanceof Error ? error.message : 'Unknown error',
+        //                         }),
+        //                     },
+        //                 ],
+        //                 isError: true,
+        //             };
+        //         }
+        //     },
+        // },
     };
 }

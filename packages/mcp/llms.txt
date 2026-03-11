@@ -70,13 +70,6 @@ Parameters:
 - address (required): Jetton master contract address
 Returns: Jetton metadata (address, name, symbol, decimals, description, image, uri)
 
-### get_jetton_wallet_address
-Resolve Jetton wallet address by master+owner.
-Parameters:
-- jettonAddress (required): Jetton master contract address
-- ownerAddress (required): owner wallet address
-Returns: derived jetton wallet address
-
 ### get_transactions
 Get recent transaction history.
 Parameters:

@@ -24,7 +24,6 @@ Use this skill when the user wants to:
 - `get_jettons` - List all tokens in wallet
 - `get_jettons_by_address` - List all tokens for any owner address
 - `get_jetton_info` - Get jetton metadata by master contract address
-- `get_jetton_wallet_address` - Get jetton-wallet address for owner + jetton
 - `get_transactions` - View recent transactions (optional `limit`)
 - `get_transaction_status` - Check completion status of a sent transaction by normalized hash
 - `get_known_jettons` - Get list of popular tokens with addresses

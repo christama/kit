@@ -48,6 +48,12 @@ export interface TonMcpFactoryConfig {
     wallet?: WalletAdapter;
 
     /**
+     * Optional wallet version.
+     * If omitted, the server uses the wallet version of the wallet.
+     */
+    walletVersion?: 'agentic' | 'v4r2' | 'v5r1';
+
+    /**
      * Optional contact resolver for name-to-address resolution.
      */
     contacts?: IContactResolver;
@@ -118,12 +124,11 @@ export async function createTonWalletMCP(config: TonMcpFactoryConfig): Promise<M
         registerTool('get_jettons', balanceTools.get_jettons);
         registerTool('get_jettons_by_address', addressTools.get_jettons_by_address);
         registerTool('get_jetton_info', addressTools.get_jetton_info);
-        registerTool('get_jetton_wallet_address', addressTools.get_jetton_wallet_address);
+        // registerTool('get_jetton_wallet_address', addressTools.get_jetton_wallet_address);
         registerTool('get_transactions', balanceTools.get_transactions);
         registerTool('send_ton', transferTools.send_ton);
         registerTool('send_jetton', transferTools.send_jetton);
         registerTool('send_raw_transaction', transferTools.send_raw_transaction);
-        registerTool('agentic_deploy_subwallet', agenticTools.deploy_agentic_subwallet);
         registerTool('get_transaction_status', transactionTools.get_transaction_status);
         registerTool('get_swap_quote', swapTools.get_swap_quote);
         registerTool('get_nfts', nftTools.get_nfts);
@@ -132,6 +137,10 @@ export async function createTonWalletMCP(config: TonMcpFactoryConfig): Promise<M
         registerTool('send_nft', nftTools.send_nft);
         registerTool('resolve_dns', dnsTools.resolve_dns);
         registerTool('back_resolve_dns', dnsTools.back_resolve_dns);
+
+        if (config.walletVersion === 'agentic') {
+            registerTool('agentic_deploy_subwallet', agenticTools.deploy_agentic_subwallet);
+        }
 
         return server;
     }
@@ -226,11 +235,11 @@ export async function createTonWalletMCP(config: TonMcpFactoryConfig): Promise<M
         addressToolDefs.get_jetton_info,
         (service) => createMcpAddressTools(service).get_jetton_info,
     );
-    registerRegistryWalletTool(
-        'get_jetton_wallet_address',
-        addressToolDefs.get_jetton_wallet_address,
-        (service) => createMcpAddressTools(service).get_jetton_wallet_address,
-    );
+    // registerRegistryWalletTool(
+    //     'get_jetton_wallet_address',
+    //     addressToolDefs.get_jetton_wallet_address,
+    //     (service) => createMcpAddressTools(service).get_jetton_wallet_address,
+    // );
     registerRegistryWalletTool(
         'get_transactions',
         balanceToolDefs.get_transactions,
@@ -290,13 +299,17 @@ export async function createTonWalletMCP(config: TonMcpFactoryConfig): Promise<M
         dnsToolDefs.back_resolve_dns,
         (service) => createMcpDnsTools(service).back_resolve_dns,
     );
+    registerRegistryWalletTool(
+        'agentic_deploy_subwallet',
+        agenticToolDefs.deploy_agentic_subwallet,
+        (service) => createMcpAgenticTools(service).deploy_agentic_subwallet,
+    );
 
     registerTool('list_wallets', walletManagementTools.list_wallets);
     registerTool('get_current_wallet', walletManagementTools.get_current_wallet);
     registerTool('set_active_wallet', walletManagementTools.set_active_wallet);
     registerTool('remove_wallet', walletManagementTools.remove_wallet);
     registerTool('get_network_config', walletManagementTools.get_network_config);
-    // registerTool('set_network_config', walletManagementTools.set_network_config);
     registerTool('agentic_validate_wallet', walletManagementTools.validate_agentic_wallet);
     registerTool('agentic_list_wallets_by_owner', walletManagementTools.list_agentic_wallets_by_owner);
     registerTool('agentic_import_wallet', walletManagementTools.import_agentic_wallet);

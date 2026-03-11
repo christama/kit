@@ -169,6 +169,7 @@ export function createServerlessHandler() {
 
             const server = await createTonWalletMCP({
                 wallet,
+                walletVersion: 'v5r1',
                 networks: {
                     mainnet:
                         credentials.toncenterKey && credentials.network === 'mainnet'

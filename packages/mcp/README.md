@@ -177,13 +177,6 @@ Get metadata for a Jetton master contract.
 **Parameters:**
 - `address` (required): Jetton master contract address
 
-#### `get_jetton_wallet_address`
-Get the jetton-wallet address for a given Jetton master and owner address.
-
-**Parameters:**
-- `jettonAddress` (required): Jetton master contract address
-- `ownerAddress` (required): Owner wallet address
-
 #### `get_transactions`
 Get recent transaction history for the wallet (TON transfers, Jetton transfers, swaps, etc.).
 

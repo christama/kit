@@ -250,6 +250,7 @@ async function createWalletAndServer(agenticSessionManager?: AgenticSetupSession
         log('No direct wallet credentials provided. Starting in config-registry mode.');
         const server = await createTonWalletMCP({
             agenticSessionManager,
+            walletVersion: WALLET_VERSION,
             networks: {
                 mainnet: TONCENTER_API_KEY && NETWORK === 'mainnet' ? { apiKey: TONCENTER_API_KEY } : undefined,
                 testnet: TONCENTER_API_KEY && NETWORK === 'testnet' ? { apiKey: TONCENTER_API_KEY } : undefined,
@@ -303,6 +304,7 @@ async function createWalletAndServer(agenticSessionManager?: AgenticSetupSession
     const server = await createTonWalletMCP({
         agenticSessionManager,
         wallet,
+        walletVersion: WALLET_VERSION,
         networks: {
             mainnet: TONCENTER_API_KEY && NETWORK === 'mainnet' ? { apiKey: TONCENTER_API_KEY } : undefined,
             testnet: TONCENTER_API_KEY && NETWORK === 'testnet' ? { apiKey: TONCENTER_API_KEY } : undefined,
