@@ -1,5 +1,11 @@
 # @ton/mcp
 
+## 0.1.15-alpha.0
+
+### Patch Changes
+
+- 2760b89: Added agentic wallet management APIs
+
 ## 0.1.14
 
 ### Patch Changes
