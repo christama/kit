@@ -6,23 +6,51 @@
  *
  */
 
-import type { Wallet, WalletAdapter, WalletSigner, Network } from '@ton/walletkit';
+import type {
+    ApiClient,
+    BridgeEventMessageInfo,
+    ConnectionApprovalResponse,
+    ConnectionRequestEvent,
+    DeviceInfo,
+    DisconnectionEvent,
+    InjectedToExtensionBridgeRequestPayload,
+    Network,
+    RequestErrorEvent,
+    SendTransactionApprovalResponse,
+    SendTransactionRequestEvent,
+    SignDataApprovalResponse,
+    SignDataRequestEvent,
+    TONConnectSession,
+    TransactionRequest,
+    Wallet,
+    WalletAdapter,
+    WalletInfo,
+    WalletSigner,
+} from '@ton/walletkit';
+import type { CONNECT_EVENT_ERROR_CODES, SendTransactionRpcResponseError } from '@tonconnect/protocol';
 
 /**
  * Configuration and bridge-facing types for Ton WalletKit.
  */
 export interface WalletKitBridgeInitConfig {
-    network?: string;
-    apiUrl?: string;
-    apiBaseUrl?: string;
-    tonApiUrl?: string;
-    tonClientEndpoint?: string;
     bridgeUrl?: string;
     bridgeName?: string;
     allowMemoryStorage?: boolean;
-    walletManifest?: unknown;
-    deviceInfo?: unknown;
+    walletManifest?: WalletInfo;
+    deviceInfo?: DeviceInfo;
     disableNetworkSend?: boolean;
+    disableTransactionEmulation?: boolean;
+    /**
+     * Network configurations matching native SDK format.
+     * Each entry has a network with chainId and optional apiClientConfiguration.
+     */
+    networkConfigurations?: Array<{
+        network: { chainId: string };
+        apiClientConfiguration?: {
+            url?: string;
+            key?: string;
+        };
+    }>;
 }
 
 export interface AndroidBridgeType {
@@ -31,44 +59,59 @@ export interface AndroidBridgeType {
 
 export interface WalletKitNativeBridgeType {
     postMessage(json: string): void;
-    signWithCustomSigner?(signerId: string, bytes: number[]): Promise<string>;
+    adapterCallSync(method: string, paramsJson: string): string;
 }
 
-export type WalletKitWallet = Wallet;
 export type WalletKitAdapter = WalletAdapter;
 export type WalletKitSigner = WalletSigner;
 
 export interface WalletKitInstance {
     ensureInitialized?: () => Promise<void>;
-    getWallets: () => WalletKitWallet[];
-    getWallet(walletId: string): WalletKitWallet | undefined;
+    getWallets: () => Wallet[];
+    getWallet(walletId: string): Wallet | undefined;
     getNetwork?: () => string;
     removeWallet(walletId: string): Promise<void>;
-    getApiClient(network?: Network): unknown;
-    addWallet(adapter: unknown): Promise<WalletKitWallet | null>;
-    handleNewTransaction(wallet: WalletKitWallet, transaction: unknown): Promise<unknown>;
-    handleTonConnectUrl(url: string): Promise<unknown>;
-    listSessions?(): Promise<unknown>;
+    getApiClient(network?: Network): ApiClient;
+    addWallet(adapter: WalletAdapter): Promise<Wallet | null>;
+    handleNewTransaction(wallet: Wallet, transaction: TransactionRequest): Promise<void>;
+    handleTonConnectUrl(url: string): Promise<void>;
+    listSessions?(): Promise<TONConnectSession[]>;
     disconnect?(sessionId?: string): Promise<void>;
     processInjectedBridgeRequest?(
-        messageInfo: Record<string, unknown>,
-        request: Record<string, unknown>,
-    ): Promise<unknown>;
-    onConnectRequest(callback: (event: unknown) => void): void;
+        messageInfo: BridgeEventMessageInfo,
+        request: InjectedToExtensionBridgeRequestPayload,
+    ): Promise<void>;
+    onConnectRequest(callback: (event: ConnectionRequestEvent) => void): void;
     removeConnectRequestCallback(): void;
-    onTransactionRequest(callback: (event: unknown) => void): void;
+    onTransactionRequest(callback: (event: SendTransactionRequestEvent) => void): void;
     removeTransactionRequestCallback(): void;
-    onSignDataRequest(callback: (event: unknown) => void): void;
+    onSignDataRequest(callback: (event: SignDataRequestEvent) => void): void;
     removeSignDataRequestCallback(): void;
-    onDisconnect(callback: (event: unknown) => void): void;
+    onDisconnect(callback: (event: DisconnectionEvent) => void): void;
     removeDisconnectCallback(): void;
-    onRequestError(callback: (event: unknown) => void): void;
+    onRequestError(callback: (event: RequestErrorEvent) => void): void;
     removeErrorCallback(): void;
-    // Request approval methods
-    approveConnectRequest(event: unknown): Promise<unknown>;
-    rejectConnectRequest(event: unknown, reason?: string, errorCode?: number): Promise<unknown>;
-    approveTransactionRequest(event: unknown): Promise<unknown>;
-    rejectTransactionRequest(event: unknown, reason?: string | { code: number; message: string }): Promise<unknown>;
-    approveSignDataRequest(event: unknown): Promise<unknown>;
-    rejectSignDataRequest(event: unknown, reason?: string | { code: number; message: string }): Promise<unknown>;
+    // Request approval methods - event and response are separate parameters
+    approveConnectRequest(event: ConnectionRequestEvent, response?: ConnectionApprovalResponse): Promise<void>;
+    rejectConnectRequest(
+        event: ConnectionRequestEvent,
+        reason?: string,
+        errorCode?: CONNECT_EVENT_ERROR_CODES,
+    ): Promise<void>;
+    approveTransactionRequest(
+        event: SendTransactionRequestEvent,
+        response?: SendTransactionApprovalResponse,
+    ): Promise<SendTransactionApprovalResponse>;
+    rejectTransactionRequest(
+        event: SendTransactionRequestEvent,
+        reason?: string | SendTransactionRpcResponseError['error'],
+    ): Promise<void>;
+    approveSignDataRequest(
+        event: SignDataRequestEvent,
+        response?: SignDataApprovalResponse,
+    ): Promise<SignDataApprovalResponse>;
+    rejectSignDataRequest(
+        event: SignDataRequestEvent,
+        reason?: string | SendTransactionRpcResponseError['error'],
+    ): Promise<void>;
 }

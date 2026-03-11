@@ -6,12 +6,17 @@
  *
  */
 
+import type { BridgeResponse, BridgeEvent } from '@ton/walletkit';
+
 import type { WalletKitBridgeEvent } from './events';
 import type { WalletKitBridgeApi } from './api';
 
 export type WalletKitApiMethod = keyof WalletKitBridgeApi;
 
-export type DiagnosticStage = 'start' | 'checkpoint' | 'success' | 'error';
+/**
+ * Union type for all messages passed through jsBridgeTransport from walletkit.
+ */
+export type JsBridgeTransportMessage = BridgeResponse | BridgeEvent;
 
 export type BridgePayload =
     | { kind: 'response'; id: string; result?: unknown; error?: { message: string } }
@@ -24,15 +29,8 @@ export type BridgePayload =
           source?: string;
           timestamp?: number;
       }
-    | {
-          kind: 'diagnostic-call';
-          id: string;
-          method: WalletKitApiMethod;
-          stage: DiagnosticStage;
-          timestamp: number;
-          message?: string;
-      }
-    | { kind: 'jsBridgeEvent'; sessionId: string; event: unknown };
+    | { kind: 'jsBridgeEvent'; sessionId: string; event: JsBridgeTransportMessage }
+    | { kind: 'request'; id: string; method: string; params: Record<string, unknown> };
 
 export interface CallContext {
     id: string;

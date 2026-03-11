@@ -10,6 +10,7 @@ import { useMemo } from 'react';
 import type { FC } from 'react';
 import { useJettons } from '@demo/wallet-core';
 import type { Jetton } from '@ton/walletkit';
+import type { SwapToken } from '@ton/walletkit';
 
 import { cn } from '@/lib/utils';
 import { USDT_ADDRESS } from '@/constants/swap';
@@ -17,16 +18,17 @@ import { getJettonsImage, getJettonsSymbol } from '@/utils/jetton';
 import { CircleLogo } from '@/components/CircleLogo';
 
 interface TokenSelectorProps {
-    selectedToken: string;
-    onTokenSelect: (token: string) => void;
-    excludeToken?: string;
+    selectedToken: SwapToken;
+    onTokenSelect: (token: SwapToken) => void;
+    excludeToken?: SwapToken;
     placeholder?: string;
     className?: string;
 }
 
-const getTokenSymbol = (tokenAddress: string, jetton?: Jetton): string => {
-    if (tokenAddress === 'TON') return 'TON';
-    if (tokenAddress === USDT_ADDRESS) return 'USDT';
+const getTokenSymbol = (token: SwapToken, jetton?: Jetton): string => {
+    if (token.symbol) return token.symbol;
+    if (token.address === 'ton') return 'TON';
+    if (token.address === USDT_ADDRESS) return 'USDT';
 
     if (jetton) {
         const symbol = getJettonsSymbol(jetton);
@@ -55,18 +57,18 @@ export const TokenSelector: FC<TokenSelectorProps> = ({
     const selectedTokenInfo = useMemo(() => {
         const symbol = getTokenSymbol(selectedToken);
 
-        if (selectedToken !== 'TON') {
-            const jetton = userJettons.find((j) => j.address === selectedToken);
-            const icon = jetton ? getJettonsImage(jetton) : undefined;
+        if (selectedToken.address !== 'ton') {
+            const jetton = userJettons.find((j) => j.address === selectedToken.address);
+            const icon = selectedToken.image ?? (jetton ? getJettonsImage(jetton) : undefined);
 
             return { symbol, icon };
         }
 
         return {
             symbol,
-            icon: '/ton.png',
+            icon: '/ton.svg',
         };
-    }, [selectedToken]);
+    }, [selectedToken, userJettons]);
 
     return (
         <>

@@ -27,10 +27,14 @@ import type {
  * Users can extend this class to create custom staking providers.
  */
 export abstract class StakingProvider implements StakingProviderInterface {
+    readonly type = 'swap';
+    readonly providerId: string;
+
     protected networkManager: NetworkManager;
     protected eventEmitter: EventEmitter;
 
-    constructor(networkManager: NetworkManager, eventEmitter: EventEmitter) {
+    constructor(providerId: string, networkManager: NetworkManager, eventEmitter: EventEmitter) {
+        this.providerId = providerId;
         this.networkManager = networkManager;
         this.eventEmitter = eventEmitter;
     }

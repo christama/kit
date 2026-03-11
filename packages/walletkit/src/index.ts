@@ -12,14 +12,14 @@ export * from './types';
 export type * from './types/internal';
 export * from './errors';
 export { WalletManager } from './core/WalletManager';
-export { SessionManager } from './core/SessionManager';
+export { TONConnectStoredSessionManager } from './core/TONConnectStoredSessionManager';
+export type { TONConnectSessionManager } from './api/interfaces/TONConnectSessionManager';
 export { BridgeManager } from './core/BridgeManager';
 export { EventRouter } from './core/EventRouter';
 export { RequestProcessor } from './core/RequestProcessor';
 export { Initializer } from './core/Initializer';
 export { JettonsManager } from './core/JettonsManager';
 export { SwapManager, SwapProvider, SwapError } from './defi/swap';
-export type * from './defi/swap/types';
 export {
     StakingManager,
     StakingProvider,
@@ -36,8 +36,10 @@ export type * from './defi/staking/types';
 export type { TonStakersProviderConfig, PoolFullData, TonStakersPoolInfo } from './defi/staking/tonstakers/types';
 export { EventEmitter } from './core/EventEmitter';
 export type { EventListener } from './core/EventEmitter';
-export { ApiClientToncenter } from './core/ApiClientToncenter';
-export { NetworkManager } from './core/NetworkManager';
+export { ApiClientToncenter } from './clients/toncenter';
+export { ApiClientTonApi } from './clients/tonapi';
+export type { NetworkManager } from './core/NetworkManager';
+export { KitNetworkManager } from './core/NetworkManager';
 export { StorageEventStore } from './core/EventStore';
 export { StorageEventProcessor } from './core/EventProcessor';
 export { ConnectHandler } from './handlers/ConnectHandler';
@@ -104,8 +106,12 @@ export type {
     InjectedToExtensionBridgeRequestPayload,
 } from './types/jsBridge';
 export { MnemonicToKeyPair, CreateTonMnemonic } from './utils/mnemonic';
-export { DefaultSignature, FakeSignature } from './utils/sign';
+export { DefaultSignature, DefaultDomainSignature, FakeSignature } from './utils/sign';
 export { wrapWalletInterface } from './core/Initializer';
+export type { NftTransferParamsHuman, NftTransferParamsRaw } from './types/nfts';
+
+export { isValidAddress } from './utils/address';
+export { validateTransactionMessage } from './validation';
 export { createDeviceInfo, createWalletManifest, getMaxOutgoingMessages } from './utils/getDefaultWalletConfig';
 export { Signer } from './utils/Signer';
 export { ParseStack, SerializeStack } from './utils/tvmStack';
@@ -114,7 +120,57 @@ export { TONCONNECT_BRIDGE_EVENT } from './bridge/utils/messageTypes';
 export { RESTORE_CONNECTION_TIMEOUT, DEFAULT_REQUEST_TIMEOUT } from './bridge/utils/timeouts';
 export { CreateTonProofMessageBytes } from './utils/tonProof';
 export type { AnalyticsAppInfo, AnalyticsManagerOptions } from './analytics';
-export { isValidAddress } from './utils/address';
+
+// API Client types (ApiClient is exported above)
+export type {
+    TransactionsByAddressRequest,
+    GetTransactionByHashRequest,
+    GetPendingTransactionsRequest,
+    GetTraceRequest,
+    GetPendingTraceRequest,
+    GetJettonsByOwnerRequest,
+    GetJettonsByAddressRequest,
+    GetEventsRequest,
+    GetEventsResponse,
+} from './types/toncenter/ApiClient';
+export type { FullAccountState } from './types/toncenter/api';
+export type { ToncenterEmulationResult } from './utils/toncenterEmulation';
+export type { ToncenterResponseJettonMasters } from './types/toncenter/emulation';
+export { asHex } from './utils/hex';
+export {
+    // Message builders
+    storeJettonTransferMessage,
+    storeNftTransferMessage,
+    createJettonTransferPayload,
+    createNftTransferPayload,
+    createNftTransferRawPayload,
+    createCommentPayload,
+    createCommentPayloadBase64,
+    createTransferTransaction,
+    // Constants
+    DEFAULT_JETTON_GAS_FEE,
+    DEFAULT_NFT_GAS_FEE,
+    DEFAULT_FORWARD_AMOUNT,
+} from './utils/messageBuilders';
+export type {
+    JettonTransferMessage,
+    NftTransferMessage,
+    NftTransferRawParams,
+    CreateTransferTransactionParams,
+} from './utils/messageBuilders';
+export { getTransactionStatus } from './utils/toncenter/getTransactionStatus';
+export { getNormalizedExtMessageHash } from './utils/getNormalizedExtMessageHash';
+
+// Asset helpers
+export {
+    getJettonWalletAddressFromClient,
+    getJettonBalanceFromClient,
+    getJettonsFromClient,
+    getNftsFromClient,
+    getNftFromClient,
+} from './utils/assetHelpers';
+
+export { formatUnits, parseUnits } from './utils/units';
 
 // API Interfaces
 export type * from './api/interfaces';

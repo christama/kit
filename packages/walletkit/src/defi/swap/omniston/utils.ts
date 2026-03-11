@@ -10,23 +10,25 @@ import { Address } from '@ton/core';
 import type { Address as OmnistonAddress } from '@ston-fi/omniston-sdk';
 
 import { Network } from '../../../api/models';
-import type { OmnistonQuoteMetadata } from './types';
+import type { OmnistonQuoteMetadata } from './models';
+import type { SwapToken } from '../../../api/models';
 
-export const tokenToAddress = (token: string): string => {
-    if (token === 'TON') {
+export const tokenToAddress = (token: SwapToken): string => {
+    if (token.address === 'ton') {
         return 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
     }
-    return Address.parse(token).toRawString();
+    return Address.parse(token.address).toRawString();
 };
 
-export const addressToToken = (address: string): string => {
+export const addressToToken = (address: string, decimals: number = 9): SwapToken => {
     if (address === 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c') {
-        return 'TON';
+        return { address: 'ton', decimals: 9 };
     }
+
     try {
-        return Address.parseRaw(address).toString();
+        return { address: Address.parseRaw(address).toString(), decimals };
     } catch {
-        return address;
+        return { address, decimals };
     }
 };
 
@@ -56,10 +58,5 @@ export const isOmnistonQuoteMetadata = (metadata: unknown): metadata is Omniston
 
     const meta = metadata as Record<string, unknown>;
 
-    return (
-        typeof meta.quoteId === 'string' &&
-        typeof meta.resolverId === 'string' &&
-        typeof meta.omnistonQuote === 'object' &&
-        meta.omnistonQuote !== null
-    );
+    return typeof meta.omnistonQuote === 'object' && meta.omnistonQuote !== null;
 };

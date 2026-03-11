@@ -10,10 +10,8 @@ import type { TupleItem } from '@ton/core';
 import { Cell } from '@ton/core';
 import { TupleReader } from '@ton/core';
 
-export type RawStackItem =
-    | { type: 'null' }
-    | { type: 'num' | 'cell' | 'slice' | 'builder'; value: string }
-    | { type: 'tuple' | 'list'; value: RawStackItem[] };
+import type { RawStackItem } from '../api/models/';
+export type { RawStackItem };
 
 function ParseStackItem(item: RawStackItem): TupleItem {
     switch (item.type) {
@@ -55,7 +53,10 @@ export function ReaderStack(list: RawStackItem[]): TupleReader {
 function SerializeStackItem(item: TupleItem): RawStackItem {
     switch (item.type) {
         case 'int':
-            return { type: 'num', value: `${item.value < 0 ? '-' : ''}0x${item.value.toString(16)}` };
+            return {
+                type: 'num',
+                value: `${item.value < 0 ? '-' : ''}0x${(item.value < 0 ? -item.value : item.value).toString(16)}`,
+            };
         case 'slice':
             return { type: 'slice', value: item.cell.toBoc().toString('base64') };
         case 'cell':

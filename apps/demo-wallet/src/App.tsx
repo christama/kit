@@ -16,10 +16,12 @@ import { Toaster } from '@/components/ui/sonner';
 import {
     DISABLE_AUTO_EMULATION,
     DISABLE_HTTP_BRIDGE,
+    DISABLE_MANIFEST_DOMAIN_CHECK,
     DISABLE_NETWORK_SEND,
     ENV_BRIDGE_URL,
     ENV_TON_API_KEY_MAINNET,
     ENV_TON_API_KEY_TESTNET,
+    ENV_TON_API_KEY_TETRA,
 } from '@/lib/env';
 import { isExtension } from '@/utils/isExtension';
 import type { SendMessageToExtensionContent, CreateExtensionStorageAdapter } from '@/lib/extensionPopup';
@@ -58,9 +60,11 @@ const walletKitConfig: WalletKitConfig = {
     jsBridgeTransport,
     disableHttpBridge: DISABLE_HTTP_BRIDGE,
     disableNetworkSend: DISABLE_NETWORK_SEND,
+    disableManifestDomainCheck: DISABLE_MANIFEST_DOMAIN_CHECK,
     bridgeUrl: ENV_BRIDGE_URL,
     tonApiKeyMainnet: ENV_TON_API_KEY_MAINNET,
     tonApiKeyTestnet: ENV_TON_API_KEY_TESTNET,
+    tonApiKeyTetra: ENV_TON_API_KEY_TETRA,
     createLedgerTransport: createWebLedgerTransport,
     analytics: {
         appInfo: {

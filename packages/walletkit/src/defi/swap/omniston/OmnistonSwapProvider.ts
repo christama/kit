@@ -10,14 +10,15 @@ import { SettlementMethod, Omniston, GaslessSettlement } from '@ston-fi/omniston
 import type { Quote, QuoteResponseEvent, QuoteRequest } from '@ston-fi/omniston-sdk';
 import { Address } from '@ton/core';
 
-import type { OmnistonQuoteMetadata, OmnistonSwapProviderConfig, OmnistonProviderOptions } from './types';
+import type { OmnistonQuoteMetadata, OmnistonSwapProviderConfig, OmnistonProviderOptions } from './models';
 import { SwapProvider } from '../SwapProvider';
-import type { SwapQuoteParams, SwapQuote, SwapParams, SwapFee } from '../types';
+import type { SwapQuoteParams, SwapQuote, SwapParams, SwapFee } from '../../../api/models';
 import { SwapError } from '../errors';
 import { globalLogger } from '../../../core/Logger';
 import { tokenToAddress, addressToToken, toOmnistonAddress, isOmnistonQuoteMetadata } from './utils';
 import type { TransactionRequest } from '../../../api/models';
 import { asBase64, getUnixtime } from '../../../utils';
+import { formatUnits, parseUnits } from '../../../utils/units';
 
 const log = globalLogger.createChild('OmnistonSwapProvider');
 
@@ -46,7 +47,7 @@ const log = globalLogger.createChild('OmnistonSwapProvider');
  *   }
  * );
  *
- * kit.swap.registerProvider('omniston', provider);
+ * kit.swap.registerProvider(provider);
  * ```
  */
 export class OmnistonSwapProvider extends SwapProvider<OmnistonProviderOptions> {
@@ -56,11 +57,13 @@ export class OmnistonSwapProvider extends SwapProvider<OmnistonProviderOptions> 
     private readonly referrerAddress?: string;
     private readonly referrerFeeBps?: number;
     private readonly flexibleReferrerFee: boolean;
-
     private omniston$?: Omniston;
+
+    readonly providerId: string;
 
     constructor(config?: OmnistonSwapProviderConfig) {
         super();
+        this.providerId = config?.providerId ?? 'omniston';
         this.apiUrl = config?.apiUrl ?? 'wss://omni-ws.ston.fi';
         this.defaultSlippageBps = config?.defaultSlippageBps ?? 100; // 1% default
         this.quoteTimeoutMs = config?.quoteTimeoutMs ?? 10000; // 10 seconds
@@ -86,15 +89,15 @@ export class OmnistonSwapProvider extends SwapProvider<OmnistonProviderOptions> 
 
     async getQuote(params: SwapQuoteParams<OmnistonProviderOptions>): Promise<SwapQuote> {
         log.debug('Getting Omniston quote', {
-            fromToken: params.fromToken,
-            toToken: params.toToken,
-            amountFrom: params.amountFrom,
-            amountTo: params.amountTo,
+            fromToken: params.from,
+            toToken: params.to,
+            amount: params.amount,
+            isReverseSwap: params.isReverseSwap,
         });
 
         try {
-            const bidAssetAddress = tokenToAddress(params.fromToken);
-            const askAssetAddress = tokenToAddress(params.toToken);
+            const bidAssetAddress = tokenToAddress(params.from);
+            const askAssetAddress = tokenToAddress(params.to);
 
             const slippageBps = params.slippageBps ?? this.defaultSlippageBps;
 
@@ -104,7 +107,9 @@ export class OmnistonSwapProvider extends SwapProvider<OmnistonProviderOptions> 
             const flexibleReferrerFee = params.providerOptions?.flexibleReferrerFee ?? this.flexibleReferrerFee;
 
             // Determine amount based on whether amountFrom or amountTo is specified
-            const amount = params.amountFrom ? { bidUnits: params.amountFrom } : { askUnits: params.amountTo };
+            const amount = params.isReverseSwap
+                ? { askUnits: parseUnits(params.amount, params.to.decimals).toString() }
+                : { bidUnits: parseUnits(params.amount, params.from.decimals).toString() };
 
             const quoteRequest: QuoteRequest = {
                 amount,
@@ -126,7 +131,7 @@ export class OmnistonSwapProvider extends SwapProvider<OmnistonProviderOptions> 
             const quoteEvent = await new Promise<QuoteResponseEvent>((resolve, reject) => {
                 let isSettled = false;
 
-                log.debug('Requesting quote');
+                log.debug('Requesting quote', { quoteRequest });
 
                 const timeoutId = setTimeout(() => {
                     log.debug('Timeout reached');
@@ -254,7 +259,7 @@ export class OmnistonSwapProvider extends SwapProvider<OmnistonProviderOptions> 
             };
 
             log.debug('Built Omniston swap transaction', {
-                quoteId: metadata.quoteId,
+                quoteId: metadata.omnistonQuote.quoteId,
                 transaction,
             });
 
@@ -276,12 +281,7 @@ export class OmnistonSwapProvider extends SwapProvider<OmnistonProviderOptions> 
 
     private mapOmnistonQuoteToSwapQuote(quote: Quote, params: SwapQuoteParams): SwapQuote {
         const metadata: OmnistonQuoteMetadata = {
-            quoteId: quote.quoteId,
-            resolverId: quote.resolverId,
-            resolverName: quote.resolverName,
             omnistonQuote: quote,
-            gasBudget: quote.gasBudget,
-            estimatedGasConsumption: quote.estimatedGasConsumption,
         };
 
         const fee: SwapFee[] = [];
@@ -301,13 +301,19 @@ export class OmnistonSwapProvider extends SwapProvider<OmnistonProviderOptions> 
         }
 
         return {
+            rawFromAmount: quote.bidUnits,
+            rawToAmount: quote.askUnits,
+            rawMinReceived: quote.askUnits,
+
+            fromAmount: formatUnits(quote.bidUnits, params.from.decimals),
+            toAmount: formatUnits(quote.askUnits, params.to.decimals),
+            minReceived: formatUnits(quote.askUnits, params.to.decimals),
+
             metadata,
-            provider: 'omniston',
-            fromToken: params.fromToken,
-            toToken: params.toToken,
-            fromAmount: quote.bidUnits,
-            toAmount: quote.askUnits,
-            minReceived: quote.askUnits,
+            providerId: this.providerId,
+            fromToken: params.from,
+            toToken: params.to,
+
             network: params.network,
             expiresAt: quote.tradeStartDeadline ? quote.tradeStartDeadline : undefined,
             fee: fee?.length ? fee : undefined,

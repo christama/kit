@@ -8,24 +8,28 @@
 
 // Network management for multi-network support
 
-import { CHAIN } from '@tonconnect/protocol';
-
 import type { ApiClient } from '../types/toncenter/ApiClient';
 import type { ApiClientConfig, TonWalletKitOptions } from '../types/config';
-import { ApiClientToncenter } from './ApiClientToncenter';
+import { ApiClientToncenter } from '../clients/toncenter';
 import { globalLogger } from './Logger';
 import { WalletKitError, ERROR_CODES } from '../errors';
 import { Network } from '../api/models';
 
 const log = globalLogger.createChild('NetworkManager');
 
+export interface NetworkManager {
+    getClient(network: Network): ApiClient;
+    hasNetwork(network: Network): boolean;
+    getConfiguredNetworks(): Network[];
+    setClient(network: Network, client: ApiClient): void;
+}
 /**
  * Manages multiple API clients for different networks
  *
- * Each network (identified by CHAIN) has its own ApiClient instance.
+ * Each network has its own ApiClient instance.
  * At least one network must be configured.
  */
-export class NetworkManager {
+export class KitNetworkManager implements NetworkManager {
     private clients: Map<string, ApiClient> = new Map();
 
     constructor(options: TonWalletKitOptions) {
@@ -77,9 +81,16 @@ export class NetworkManager {
             return apiClientConfig;
         }
 
-        // Create a new ApiClientToncenter
-        const defaultEndpoint =
-            network.chainId === CHAIN.MAINNET ? 'https://toncenter.com' : 'https://testnet.toncenter.com';
+        let defaultEndpoint: string;
+
+        // TODO: Tetra
+        if (network.chainId == Network.mainnet().chainId) {
+            defaultEndpoint = 'https://toncenter.com';
+        } else if (network.chainId == Network.tetra().chainId) {
+            defaultEndpoint = 'https://tetra.tonapi.io';
+        } else {
+            defaultEndpoint = 'https://testnet.toncenter.com';
+        }
 
         const endpoint = apiClientConfig?.url || defaultEndpoint;
 
@@ -109,7 +120,7 @@ export class NetworkManager {
 
     /**
      * Get API client for a specific network
-     * @param chainId - The chain ID (CHAIN.MAINNET or CHAIN.TESTNET)
+     * @param chainId - The chain ID
      * @returns The API client for the specified network
      * @throws WalletKitError if no client is configured for the network
      */

@@ -10,13 +10,13 @@ import { createInterface } from 'readline';
 
 import type {
     SignDataRequestEvent,
-    TransactionRequestEvent,
+    SendTransactionRequestEvent,
     DisconnectionEvent,
     ConnectionRequestEvent,
 } from '@ton/walletkit';
 
 import 'dotenv/config';
-import { walletKitInitializeSample } from './lib/walletKitInitializeSample';
+import { walletKitInitializeSample } from './lib/wallet-kit-initialize-sample';
 
 const isCI = process.env.CI === 'true' || process.env.CI === '1';
 
@@ -91,7 +91,7 @@ export async function main() {
     });
 
     // Transaction requests - triggered when a dApp wants to execute a transaction
-    kit.onTransactionRequest(async (event: TransactionRequestEvent) => {
+    kit.onTransactionRequest(async (event: SendTransactionRequestEvent) => {
         try {
             // Use tx.preview.moneyFlow.ourTransfers to show net asset changes
             // Each transfer shows positive amounts for incoming, negative for outgoing

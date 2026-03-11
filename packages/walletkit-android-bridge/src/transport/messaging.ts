@@ -6,49 +6,21 @@
  *
  */
 
-/**
- * Messaging helpers that mediate between the native bridge and WalletKit APIs.
- */
 import type { WalletKitBridgeEvent, WalletKitBridgeApi, WalletKitApiMethod, CallContext } from '../types';
 import { postToNative } from './nativeBridge';
-import { emitCallDiagnostic } from './diagnostics';
-import { log, error } from '../utils/logger';
+import { error } from '../utils/logger';
 
 let apiRef: WalletKitBridgeApi | undefined;
 
-/**
- * Emits a bridge event to the native layer.
- *
- * @param type - Event type identifier.
- * @param data - Optional event payload.
- */
 export function emit(type: WalletKitBridgeEvent['type'], data?: WalletKitBridgeEvent['data']): void {
     const event: WalletKitBridgeEvent = { type, data };
     postToNative({ kind: 'event', event });
 }
 
-/**
- * Sends a response payload (or error) back to the native layer.
- *
- * @param id - Native call identifier.
- * @param result - Optional result payload.
- * @param error - Optional error to report.
- */
 export function respond(id: string, result?: unknown, error?: { message: string }): void {
-    log('[walletkitBridge] 🟢 respond() called with:');
-    log('[walletkitBridge] 🟢 id:', id);
-    log('[walletkitBridge] 🟢 result:', result);
-    log('[walletkitBridge] 🟢 error:', error);
-    log('[walletkitBridge] 🟢 About to call postToNative...');
     postToNative({ kind: 'response', id, result, error });
-    log('[walletkitBridge] 🟢 postToNative completed');
 }
 
-/**
- * Registers the active API implementation that will service native calls.
- *
- * @param api - WalletKit bridge API surface.
- */
 export function setBridgeApi(api: WalletKitBridgeApi): void {
     apiRef = api;
 }
@@ -59,55 +31,33 @@ async function invokeApiMethod(
     params: unknown,
     context: CallContext,
 ): Promise<unknown> {
-    log(`[walletkitBridge] handleCall ${method}, looking up api[${method}]`);
     const fn = api[method];
-    log(`[walletkitBridge] fn found:`, typeof fn);
     if (typeof fn !== 'function') {
         throw new Error(`Unknown method ${String(method)}`);
     }
-    log(`[walletkitBridge] about to call fn for ${method}`);
     const value = await (fn as (args: unknown, context?: CallContext) => Promise<unknown> | unknown).call(
         api,
         params as never,
         context,
     );
-    log(`[walletkitBridge] fn returned for ${method}`);
-    log(`[walletkitBridge] 🔵 fn returned value:`, value);
-    log(`[walletkitBridge] 🔵 value type:`, typeof value);
     return value;
 }
 
-/**
- * Handles a native call by invoking the corresponding WalletKit bridge method.
- *
- * @param id - Native call identifier.
- * @param method - API method name.
- * @param params - Optional serialized parameters.
- */
 export async function handleCall(id: string, method: WalletKitApiMethod, params?: unknown): Promise<void> {
     if (!apiRef) {
         throw new Error('Bridge API not registered');
     }
-    emitCallDiagnostic(id, method, 'start');
     try {
         const context: CallContext = { id, method };
         const value = await invokeApiMethod(apiRef, method, params, context);
-        emitCallDiagnostic(id, method, 'success');
         respond(id, value);
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        error(`[walletkitBridge] handleCall error for ${method}:`, err);
-        error(`[walletkitBridge] error type:`, typeof err);
-        error(`[walletkitBridge] error message:`, message);
-        error(`[walletkitBridge] error stack:`, err instanceof Error ? err.stack : 'no stack');
-        emitCallDiagnostic(id, method, 'error', message);
+        error(`[walletkitBridge] handleCall error for ${method}:`, message);
         respond(id, undefined, { message });
     }
 }
 
-/**
- * Registers the global handler that native code invokes to call into the bridge.
- */
 export function registerNativeCallHandler(): void {
     window.__walletkitCall = (id, method, paramsJson) => {
         let params: unknown = undefined;

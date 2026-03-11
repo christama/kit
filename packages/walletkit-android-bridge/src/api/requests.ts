@@ -6,105 +6,28 @@
  *
  */
 
-/**
- * requests.ts – Request approval handlers
- *
- * Simplified bridge for connect, transaction, and sign-data request approvals/rejections.
- * All event manipulation and metadata restoration handled by Kotlin RequestEventProcessor.
- */
+import { kit } from '../utils/bridge';
 
-import type {
-    ApproveConnectRequestArgs,
-    RejectConnectRequestArgs,
-    ApproveTransactionRequestArgs,
-    RejectTransactionRequestArgs,
-    ApproveSignDataRequestArgs,
-    RejectSignDataRequestArgs,
-} from '../types';
-import { callBridge } from '../utils/bridgeWrapper';
-import { log } from '../utils/logger';
-
-/**
- * Approves a connect request.
- */
-export async function approveConnectRequest(args: ApproveConnectRequestArgs) {
-    return callBridge('approveConnectRequest', async (kit) => {
-        log('approveConnectRequest walletId:', args.walletId);
-
-        const wallet = kit.getWallet(args.walletId);
-        args.event.wallet = wallet;
-        args.event.walletId = args.walletId;
-
-        return await kit.approveConnectRequest(args.event);
-    });
+export async function approveConnectRequest(args: unknown[]) {
+    return kit('approveConnectRequest', ...args);
 }
 
-/**
- * Rejects a connect request.
- */
-export async function rejectConnectRequest(args: RejectConnectRequestArgs) {
-    return callBridge('rejectConnectRequest', async (kit) => {
-        const result = await kit.rejectConnectRequest(args.event, args.reason, args.errorCode);
-        return result ?? { success: true };
-    });
+export async function rejectConnectRequest(args: unknown[]) {
+    return kit('rejectConnectRequest', ...args);
 }
 
-/**
- * Approves a transaction request.
- */
-export async function approveTransactionRequest(args: ApproveTransactionRequestArgs) {
-    return callBridge('approveTransactionRequest', async (kit) => {
-        // Enrich event with walletId (same pattern as approveConnectRequest)
-        if (args.walletId) {
-            args.event.walletId = args.walletId;
-        }
-
-        return await kit.approveTransactionRequest(args.event);
-    });
+export async function approveTransactionRequest(args: unknown[]) {
+    return kit('approveTransactionRequest', ...args);
 }
 
-/**
- * Rejects a transaction request.
- */
-export async function rejectTransactionRequest(args: RejectTransactionRequestArgs) {
-    return callBridge('rejectTransactionRequest', async (kit) => {
-        // If errorCode is provided, pass it as an error object; otherwise just pass the reason string
-        const reason =
-            args.errorCode !== undefined
-                ? { code: args.errorCode, message: args.reason || 'Transaction rejected' }
-                : args.reason;
-
-        const result = await kit.rejectTransactionRequest(args.event, reason);
-        return result ?? { success: true };
-    });
+export async function rejectTransactionRequest(args: unknown[]) {
+    return kit('rejectTransactionRequest', ...args);
 }
 
-/**
- * Approves a sign-data request.
- */
-export async function approveSignDataRequest(args: ApproveSignDataRequestArgs) {
-    return callBridge('approveSignDataRequest', async (kit) => {
-        // Enrich event with walletId (same pattern as approveConnectRequest)
-        if (args.walletId) {
-            args.event.walletId = args.walletId;
-        }
-
-        return await kit.approveSignDataRequest(args.event);
-    });
+export async function approveSignDataRequest(args: unknown[]) {
+    return kit('approveSignDataRequest', ...args);
 }
 
-/**
- * Rejects a sign-data request.
- */
-export async function rejectSignDataRequest(args: RejectSignDataRequestArgs) {
-    return callBridge('rejectSignDataRequest', async (kit) => {
-        // If errorCode is provided, pass it as an error object; otherwise just pass the reason string
-        const reason =
-            args.errorCode !== undefined
-                ? { code: args.errorCode, message: args.reason || 'Sign data rejected' }
-                : args.reason;
-
-        const result = await kit.rejectSignDataRequest(args.event, reason);
-        return result ?? { success: true };
-    });
+export async function rejectSignDataRequest(args: unknown[]) {
+    return kit('rejectSignDataRequest', ...args);
 }

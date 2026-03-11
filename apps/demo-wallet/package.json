@@ -19,7 +19,7 @@
     "build:website": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "clean": "git clean -xdf .cache .turbo dist dist-extension-chrome dist-extension-firefox node_modules",
+    "clean": "git clean -xdf .cache .turbo dist dist-extension-chrome dist-extension-firefox node_modules allure-results playwright-report test-results",
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
@@ -28,8 +28,8 @@
     "@ledgerhq/hw-transport-webhid": "^6.30.12",
     "@ledgerhq/hw-transport-webusb": "^6.29.16",
     "@tailwindcss/vite": "^4.1.18",
-    "@ton/core": "^0.62.1",
-    "@ton/crypto": "^3.3.0",
+    "@ton/core": "catalog:",
+    "@ton/crypto": "catalog:",
     "@ton/walletkit": "workspace:*",
     "@truecarry/vite-plugin-web-extension": "^4.5.1",
     "@truecarry/webext-bridge": "^6.0.2",

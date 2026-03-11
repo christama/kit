@@ -24,9 +24,7 @@
   "dependencies": {
     "@ledgerhq/hw-transport": "^6.31.16",
     "@ton-community/ton-ledger": "^7.3.0",
-    "@ton/core": "^0.62.1",
-    "@ton/walletkit": "workspace:*",
-    "@tonconnect/protocol": "^2.3.0"
+    "@ton/walletkit": "workspace:*"
   },
   "devDependencies": {
     "@ledgerhq/hw-transport-node-hid": "^6.29.17",
@@ -34,12 +32,17 @@
     "rimraf": "^6.1.2",
     "typescript": "~5.9.3"
   },
+  "peerDependencies": {
+    "@ton/core": "catalog:",
+    "@tonconnect/protocol": "catalog:"
+  },
   "scripts": {
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:esm",
     "build:clean": "rimraf dist",
     "build:cjs": "tsc -p tsconfig.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "dev": "tsc -p tsconfig.esm.json --watch",
-    "clean": "git clean -xdf dist node_modules .turbo"
+    "clean": "git clean -xdf dist node_modules .turbo",
+    "typecheck": "tsc --noEmit"
   }
 }

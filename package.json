@@ -4,16 +4,21 @@
   "description": "",
   "private": true,
   "scripts": {
-    "kit": "pnpm --filter @ton/walletkit",
+    "appkit": "pnpm --filter @ton/appkit",
+    "appkit-react": "pnpm --filter @ton/appkit-react",
+    "walletkit": "pnpm --filter @ton/walletkit",
     "examples": "pnpm --filter @ton/walletkit-examples",
     "docs:update": "tsx scripts/update-docs.ts",
     "demo-wallet": "pnpm --filter demo-wallet",
     "demo-wallet-native": "pnpm --filter demo-wallet-native",
+    "appkit-minter": "pnpm --filter appkit-minter",
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "quality": "turbo quality",
+    "quality:bridge": "turbo quality:bridge",
+    "typecheck": "turbo typecheck",
     "e2e": "turbo e2e",
     "clean": "git clean -xdf node_modules",
     "clean:workspaces": "turbo run clean",
@@ -32,9 +37,9 @@
     "eslint": "^9.39.2",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-license-header": "^0.8.0",
-    "globals": "^17.0.0",
+    "globals": "^17.1.0",
     "rimraf": "^6.1.2",
-    "turbo": "^2.7.4"
+    "turbo": "2.7.4"
   },
   "packageManager": "pnpm@10.15.0+sha512.486ebc259d3e999a4e8691ce03b5cac4a71cbeca39372a9b762cb500cfdf0873e2cb16abe3d951b1ee2cf012503f027b98b6584e4df22524e0c7450d9ec7aa7b"
 }

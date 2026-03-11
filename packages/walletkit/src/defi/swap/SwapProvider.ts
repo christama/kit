@@ -6,8 +6,8 @@
  *
  */
 
-import type { TransactionRequest } from '../../api/models';
-import type { SwapQuoteParams, SwapQuote, SwapParams, SwapProviderInterface } from './types';
+import type { TransactionRequest, SwapQuoteParams, SwapQuote, SwapParams } from '../../api/models';
+import type { SwapProviderInterface } from '../../api/interfaces';
 
 /**
  * Abstract base class for swap providers
@@ -32,6 +32,9 @@ export abstract class SwapProvider<
     TQuoteOptions = undefined,
     TSwapOptions = undefined,
 > implements SwapProviderInterface<TQuoteOptions, TSwapOptions> {
+    readonly type = 'swap';
+    abstract readonly providerId: string;
+
     /**
      * Get a quote for swapping tokens
      * @param params - Quote parameters including tokens, amount, and network

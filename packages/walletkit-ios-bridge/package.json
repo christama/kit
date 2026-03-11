@@ -9,7 +9,7 @@
   "scripts": {
     "build": "node build.js",
     "clean": "git clean -xdf dist node_modules .turbo",
-    "typecheck": "tsc --noEmit"
+    "typecheck:bridge": "tsc --noEmit"
   },
   "dependencies": {
     "@ton/walletkit": "workspace:*",
@@ -31,7 +31,7 @@
     "tonconnect"
   ],
   "devDependencies": {
-    "@ton/crypto": "^3.3.0",
+    "@ton/crypto": "catalog:",
     "@ton/crypto-primitives": "^2.1.0",
     "@types/whatwg-url": "^13.0.0",
     "typescript": "~5.9.3",

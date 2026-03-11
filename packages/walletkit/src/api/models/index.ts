@@ -16,12 +16,15 @@ export type { PreparedSignData, SignDataPayload, UnpreparedSignData } from './co
 export type { UserFriendlyAddress, Hex, Base64String, LogicalTime, ResultError, Pagination } from './core/Primitives';
 export { Result } from './core/Primitives';
 export type { ProofMessage } from './core/ProofMessage';
-export { SendMode, SendModeFlag, SendModeBase } from './core/SendMode';
+export type { SendMode } from './core/SendMode';
+export { SendModeFlag, SendModeBase } from './core/SendMode';
 export type { SignData, SignDataText, SignDataBinary, SignDataCell } from './core/SignData';
 export type { TokenAmount } from './core/TokenAmount';
 export type { TokenAnimation } from './core/TokenAnimation';
 export type { TokenImage } from './core/TokenImage';
 export type { TokenInfo } from './core/TokenInfo';
+export type { RawStackItem } from './core/RawStackItem';
+export type { SignatureDomain, SignatureDomainL2, SignatureDomainEmpty } from './core/SignatureDomain';
 
 // Bridge models
 export type { BridgeEvent } from './bridge/BridgeEvent';
@@ -31,12 +34,21 @@ export type {
     ConnectionRequestEventRequestedItem,
     ConnectionRequestEventPreviewPermission,
 } from './bridge/ConnectionRequestEvent';
+export type {
+    ConnectionApprovalResponse,
+    ConnectionApprovalProof,
+    ConnectionApprovalProofDomain,
+} from './bridge/ConnectionApprovalResponse';
 export type { DisconnectionEvent } from './bridge/DisconnectionEvent';
 export type { SignDataApprovalResponse } from './bridge/SignDataApprovalResponse';
 export type { SignDataRequestEvent, SignDataRequestEventPreview, SignDataPreview } from './bridge/SignDataRequestEvent';
-export type { TransactionApprovalResponse } from './bridge/TransactionApprovalResponse';
-export type { TransactionRequestEvent, TransactionRequestEventPreview } from './bridge/TransactionRequestEvent';
+export type { SendTransactionApprovalResponse } from './bridge/SendTransactionApprovalResponse';
+export type {
+    SendTransactionRequestEvent,
+    SendTransactionRequestEventPreview,
+} from './bridge/SendTransactionRequestEvent';
 export type { RequestErrorEvent } from './bridge/RequestErrorEvent';
+export type { TONConnectSession } from './sessions/TONConnectSession';
 
 // Jetton models
 export type { Jetton } from './jettons/Jetton';
@@ -57,6 +69,13 @@ export type { UserNFTsRequest } from './nfts/UserNFTsRequest';
 // TON models
 export type { TONTransferRequest } from './tons/TONTransferRequest';
 
+// Swap models
+export type { SwapToken } from './swaps/SwapToken';
+export type { SwapFee } from './swaps/SwapFee';
+export type { SwapQuote } from './swaps/SwapQuote';
+export type { SwapQuoteParams } from './swaps/SwapQuoteParams';
+export type { SwapParams } from './swaps/SwapParams';
+
 // Transaction models
 export * from './transactions/Transaction';
 export type { TransactionAddressMetadata, TransactionAddressMetadataEntry } from './transactions/TransactionMetadata';
@@ -66,8 +85,13 @@ export * from './transactions/TransactionTrace';
 export type { TransactionEmulatedPreview } from './transactions/emulation/TransactionEmulatedPreview';
 export type { TransactionEmulatedTrace } from './transactions/emulation/TransactionEmulatedTrace';
 export type { SendTransactionResponse } from './transactions/SendTransactionResponse';
+export { TransactionStatus } from './transactions/TransactionStatus';
+export type { TransactionStatusResponse } from './transactions/TransactionStatus';
 export type { TransactionsResponse } from './transactions/TransactionsResponse';
 export type {
     TransactionTraceMoneyFlow,
     TransactionTraceMoneyFlowItem,
 } from './transactions/TransactionTraceMoneyFlow';
+
+// RPC models
+export type { GetMethodResult } from './rpc/GetMethodResult';

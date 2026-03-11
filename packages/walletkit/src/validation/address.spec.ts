@@ -7,9 +7,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { CHAIN } from '@tonconnect/protocol';
 
-import { validateTonAddress, detectAddressFormat, detectAddressNetwork } from './address';
+import { validateTonAddress, detectAddressFormat } from './address';
 
 describe('address validation', () => {
     const validRaw = '0:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
@@ -58,17 +57,5 @@ describe('address validation', () => {
         it('should detect unknown', () => {
             expect(detectAddressFormat('invalid')).toBe('unknown');
         });
-    });
-
-    describe('detectAddressNetwork', () => {
-        it('should return unknown for raw', () => {
-            expect(detectAddressNetwork(validRaw)).toBe('unknown');
-        });
-
-        it('should detect mainnet', () => {
-            expect(detectAddressNetwork(validBounceable)).toBe(CHAIN.MAINNET);
-        });
-
-        // Add testnet address example if available/needed, but mainnet is enough coverage for logic
     });
 });

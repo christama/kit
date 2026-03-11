@@ -7,16 +7,16 @@
  */
 
 import { Address } from '@ton/core';
-import type { SendTransactionRpcResponseError, WalletResponseTemplateError } from '@tonconnect/protocol';
-import { CHAIN, SEND_TRANSACTION_ERROR_CODES } from '@tonconnect/protocol';
+import type { ChainId, SendTransactionRpcResponseError, WalletResponseTemplateError } from '@tonconnect/protocol';
+import { SEND_TRANSACTION_ERROR_CODES } from '@tonconnect/protocol';
 
 import type { TonWalletKitOptions, ValidationResult } from '../types';
-import { toTransactionRequest } from '../types/internal';
+import { toTransactionRequest, parseConnectTransactionParamContent } from '../types/internal';
 import type {
     RawBridgeEvent,
     EventHandler,
     RawBridgeEventTransaction,
-    ConnectTransactionParamContent,
+    RawConnectTransactionParamContent,
 } from '../types/internal';
 import { validateTransactionMessages as validateTonConnectTransactionMessages } from '../validation/transaction';
 import { globalLogger } from '../core/Logger';
@@ -29,26 +29,26 @@ import type { WalletManager } from '../core/WalletManager';
 import type { ReturnWithValidationResult } from '../validation/types';
 import { WalletKitError, ERROR_CODES } from '../errors';
 import type { Wallet } from '../api/interfaces';
-import type { TransactionEmulatedPreview, TransactionRequest, TransactionRequestEvent } from '../api/models';
+import type { TransactionEmulatedPreview, TransactionRequest, SendTransactionRequestEvent } from '../api/models';
 import { Result } from '../api/models';
 import type { Analytics, AnalyticsManager } from '../analytics';
-import type { SessionManager } from '../core/SessionManager';
+import type { TONConnectSessionManager } from '../api/interfaces/TONConnectSessionManager';
 
 const log = globalLogger.createChild('TransactionHandler');
 
 export class TransactionHandler
-    extends BasicHandler<TransactionRequestEvent>
-    implements EventHandler<TransactionRequestEvent, RawBridgeEventTransaction>
+    extends BasicHandler<SendTransactionRequestEvent>
+    implements EventHandler<SendTransactionRequestEvent, RawBridgeEventTransaction>
 {
     private eventEmitter: EventEmitter;
     private analytics?: Analytics;
 
     constructor(
-        notify: (event: TransactionRequestEvent) => void,
+        notify: (event: SendTransactionRequestEvent) => void,
         private readonly config: TonWalletKitOptions,
         eventEmitter: EventEmitter,
         private readonly walletManager: WalletManager,
-        private readonly sessionManager: SessionManager,
+        private readonly sessionManager: TONConnectSessionManager,
         analyticsManager?: AnalyticsManager,
     ) {
         super(notify);
@@ -60,7 +60,7 @@ export class TransactionHandler
         return event.method === 'sendTransaction';
     }
 
-    async handle(event: RawBridgeEventTransaction): Promise<TransactionRequestEvent | WalletResponseTemplateError> {
+    async handle(event: RawBridgeEventTransaction): Promise<SendTransactionRequestEvent | WalletResponseTemplateError> {
         // Support both walletId (new) and walletAddress (legacy)
         const walletId = event.walletId;
         const walletAddress = event.walletAddress;
@@ -128,7 +128,7 @@ export class TransactionHandler
             }
         }
 
-        const txEvent: TransactionRequestEvent = {
+        const txEvent: SendTransactionRequestEvent = {
             ...event,
             request,
             preview: {
@@ -178,13 +178,14 @@ export class TransactionHandler
                     { paramCount: event.params.length, eventId: event.id },
                 );
             }
-            const params = JSON.parse(event.params[0]) as ConnectTransactionParamContent;
+            const rawParams = JSON.parse(event.params[0]) as RawConnectTransactionParamContent;
+            const params = parseConnectTransactionParamContent(rawParams);
 
-            const validUntilValidation = this.validateValidUntil(params.valid_until);
+            const validUntilValidation = this.validateValidUntil(params.validUntil);
             if (!validUntilValidation.isValid) {
                 errors = errors.concat(validUntilValidation.errors);
             } else {
-                params.valid_until = validUntilValidation.result;
+                params.validUntil = validUntilValidation.result;
             }
 
             const networkValidation = this.validateNetwork(params.network, wallet);
@@ -225,19 +226,14 @@ export class TransactionHandler
      * Parse network from various possible formats
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private validateNetwork(network: any, wallet: Wallet): ReturnWithValidationResult<CHAIN | undefined> {
+    private validateNetwork(network: any, wallet: Wallet): ReturnWithValidationResult<ChainId | undefined> {
         let errors: string[] = [];
         if (typeof network === 'string') {
-            if (network === '-3' || network === '-239') {
-                const chain = network === '-3' ? CHAIN.TESTNET : CHAIN.MAINNET;
-                const walletNetwork = wallet.getNetwork();
-                if (chain !== walletNetwork.chainId) {
-                    errors.push('Invalid network not equal to wallet network');
-                } else {
-                    return { result: chain, isValid: errors.length === 0, errors: errors };
-                }
+            const walletNetwork = wallet.getNetwork();
+            if (network !== walletNetwork.chainId) {
+                errors.push('Invalid network not equal to wallet network');
             } else {
-                errors.push('Invalid network not a valid network');
+                return { result: network, isValid: errors.length === 0, errors: errors };
             }
         } else {
             errors.push('Invalid network not a string');

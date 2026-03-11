@@ -1,0 +1,23 @@
+# @ton/mcp
+
+## 0.1.15-alpha.0
+
+### Patch Changes
+
+- 2760b89: Added agentic wallet management APIs
+
+## 0.1.14
+
+### Patch Changes
+
+- Updated dependencies [9c1a73d]
+    - @ton/walletkit@0.0.10
+
+## 0.1.13
+
+### Patch Changes
+
+- ac2a290: Add possibility to get transaction status by boc or hash. Added 0x prefix for hash from ApiClient.sendBoc
+- Updated dependencies [97e06e7]
+- Updated dependencies [ac2a290]
+    - @ton/walletkit@0.0.9

@@ -166,13 +166,15 @@ export function createWalletStore(options: CreateWalletStoreOptions = {}) {
                                 activeWalletId: state.walletManagement.activeWalletId,
                             },
                             tonConnect: {
-                                requestQueue: state.tonConnect.requestQueue,
+                                requestQueue: {
+                                    items: state.tonConnect.requestQueue.items,
+                                },
                                 isSignDataModalOpen: state.tonConnect.isSignDataModalOpen,
                                 isTransactionModalOpen: state.tonConnect.isTransactionModalOpen,
                                 isConnectModalOpen: state.tonConnect.isConnectModalOpen,
-                                pendingSignDataRequest: state.tonConnect.pendingSignDataRequest,
-                                pendingTransactionRequest: state.tonConnect.pendingTransactionRequest,
-                                pendingConnectRequest: state.tonConnect.pendingConnectRequest,
+                                pendingSignDataRequest: state.tonConnect.pendingSignDataRequestEvent,
+                                pendingTransactionRequest: state.tonConnect.pendingTransactionRequestEvent,
+                                pendingConnectRequest: state.tonConnect.pendingConnectRequestEvent,
                             },
                         }),
                         merge: (persistedState, currentState) => {
@@ -200,8 +202,8 @@ export function createWalletStore(options: CreateWalletStoreOptions = {}) {
                                     ...currentState.tonConnect,
                                     ...persisted?.tonConnect,
                                     disconnectedSessions: [],
-                                    requestQueue: persisted?.tonConnect?.requestQueue || {
-                                        items: [],
+                                    requestQueue: {
+                                        items: persisted?.tonConnect?.requestQueue?.items || [],
                                         currentRequestId: undefined,
                                         isProcessing: false,
                                     },

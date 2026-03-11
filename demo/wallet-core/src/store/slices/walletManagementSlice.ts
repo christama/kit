@@ -13,8 +13,10 @@ import { createLedgerPath } from '@demo/v4ledger-adapter';
 
 import { SimpleEncryption } from '../../utils';
 import { createComponentLogger } from '../../utils/logger';
+import { getChainNetwork } from '../../utils/network';
 import { createWalletAdapter, generateWalletId, generateWalletName } from '../../utils/walletAdapterFactory';
 import type { LedgerConfig, SavedWallet, WalletKitConfig } from '../../types/wallet';
+import type { NetworkType } from '../../utils/network';
 import type { SetState, WalletManagementSliceCreator } from '../../types/store';
 
 const log = createComponentLogger('WalletManagementSlice');
@@ -75,12 +77,7 @@ export const createWalletManagementSlice =
         },
 
         // Create a new wallet
-        createWallet: async (
-            mnemonic: string[],
-            name?: string,
-            version?: 'v5r1' | 'v4r2',
-            network?: 'mainnet' | 'testnet',
-        ) => {
+        createWallet: async (mnemonic: string[], name?: string, version?: 'v5r1' | 'v4r2', network?: NetworkType) => {
             const state = get();
             if (!state.auth.currentPassword) {
                 throw new Error('User not authenticated');
@@ -158,16 +155,11 @@ export const createWalletManagementSlice =
             }
         },
 
-        importWallet: async (
-            mnemonic: string[],
-            name?: string,
-            version?: 'v5r1' | 'v4r2',
-            network?: 'mainnet' | 'testnet',
-        ) => {
+        importWallet: async (mnemonic: string[], name?: string, version?: 'v5r1' | 'v4r2', network?: NetworkType) => {
             return get().createWallet(mnemonic, name, version, network);
         },
 
-        createLedgerWallet: async (name?: string, network?: 'mainnet' | 'testnet') => {
+        createLedgerWallet: async (name?: string, network?: NetworkType) => {
             const state = get();
             if (!state.auth.currentPassword) {
                 throw new Error('User not authenticated');
@@ -317,13 +309,20 @@ export const createWalletManagementSlice =
                     throw new Error('Failed to load wallet');
                 }
 
-                const balance = await wallet.getBalance();
+                // Activate the wallet immediately, even if API calls fail
+                let balance: string | undefined;
+                try {
+                    const balanceResult = await wallet.getBalance();
+                    balance = balanceResult.toString();
+                } catch (balanceError) {
+                    log.warn('Failed to fetch balance during wallet switch (API may be down):', balanceError);
+                }
 
                 set((state) => {
                     state.walletManagement.activeWalletId = walletId;
                     state.walletManagement.address = savedWallet.address;
                     state.walletManagement.publicKey = savedWallet.publicKey;
-                    state.walletManagement.balance = balance.toString();
+                    state.walletManagement.balance = balance ?? state.walletManagement.balance;
                     state.walletManagement.currentWallet = wallet;
                     state.walletManagement.events = [];
                 });
@@ -428,10 +427,15 @@ export const createWalletManagementSlice =
                     await state.walletCore.walletKit.addWallet(walletAdapter);
                 }
 
-                if (state.walletManagement.savedWallets.length > 0 && !state.walletManagement.activeWalletId) {
-                    await get().switchWallet(state.walletManagement.savedWallets[0].id);
-                } else if (state.walletManagement.activeWalletId) {
-                    await get().switchWallet(state.walletManagement.activeWalletId);
+                // Switch to active wallet — errors here should not block login
+                try {
+                    if (state.walletManagement.savedWallets.length > 0 && !state.walletManagement.activeWalletId) {
+                        await get().switchWallet(state.walletManagement.savedWallets[0].id);
+                    } else if (state.walletManagement.activeWalletId) {
+                        await get().switchWallet(state.walletManagement.activeWalletId);
+                    }
+                } catch (switchError) {
+                    log.warn('Failed to switch wallet during loadAllWallets (API may be down):', switchError);
                 }
 
                 set((state) => {
@@ -442,7 +446,12 @@ export const createWalletManagementSlice =
                 log.info('All wallets loaded successfully');
             } catch (error) {
                 log.error('Error loading wallets:', error);
-                throw new Error('Failed to load wallets');
+                // Still mark as authenticated if we have saved wallets —
+                // the user should be able to enter the app even if API is down
+                set((state) => {
+                    state.walletManagement.hasWallet = state.walletManagement.savedWallets.length > 0;
+                    state.walletManagement.isAuthenticated = state.walletManagement.savedWallets.length > 0;
+                });
             }
         },
 
@@ -497,11 +506,11 @@ export const createWalletManagementSlice =
                 state.walletManagement.publicKey = undefined;
                 state.walletManagement.events = [];
                 state.walletManagement.currentWallet = undefined;
-                state.tonConnect.pendingConnectRequest = undefined;
+                state.tonConnect.pendingConnectRequestEvent = undefined;
                 state.tonConnect.isConnectModalOpen = false;
-                state.tonConnect.pendingTransactionRequest = undefined;
+                state.tonConnect.pendingTransactionRequestEvent = undefined;
                 state.tonConnect.isTransactionModalOpen = false;
-                state.tonConnect.pendingSignDataRequest = undefined;
+                state.tonConnect.pendingSignDataRequestEvent = undefined;
                 state.tonConnect.isSignDataModalOpen = false;
             });
         },
@@ -522,7 +531,6 @@ export const createWalletManagementSlice =
                 });
             } catch (error) {
                 log.error('Error updating balance:', error);
-                throw new Error('Failed to update balance');
             }
         },
 
@@ -553,7 +561,7 @@ export const createWalletManagementSlice =
                 const walletNetwork = activeWallet?.network || 'testnet';
 
                 const response = await state.walletCore.walletKit
-                    .getApiClient(walletNetwork === 'mainnet' ? Network.mainnet() : Network.testnet())
+                    .getApiClient(getChainNetwork(walletNetwork))
                     .getEvents({
                         account: state.walletManagement.address,
                         limit,
@@ -568,7 +576,6 @@ export const createWalletManagementSlice =
                 log.info(`Loaded ${response.events.length} events`);
             } catch (error) {
                 log.error('Error loading events:', error);
-                throw new Error('Failed to load events');
             }
         },
 

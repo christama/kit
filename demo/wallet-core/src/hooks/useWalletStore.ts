@@ -94,7 +94,7 @@ export const useWallet = () => {
 export const useTonConnect = () => {
     return useWalletStore(
         useShallow((state) => ({
-            pendingConnectRequest: state.tonConnect.pendingConnectRequest,
+            pendingConnectRequest: state.tonConnect.pendingConnectRequestEvent,
             isConnectModalOpen: state.tonConnect.isConnectModalOpen,
             handleTonConnectUrl: state.handleTonConnectUrl,
             showConnectRequest: state.showConnectRequest,
@@ -111,7 +111,7 @@ export const useTonConnect = () => {
 export const useTransactionRequests = () => {
     return useWalletStore(
         useShallow((state) => ({
-            pendingTransactionRequest: state.tonConnect.pendingTransactionRequest,
+            pendingTransactionRequest: state.tonConnect.pendingTransactionRequestEvent,
             isTransactionModalOpen: state.tonConnect.isTransactionModalOpen,
             showTransactionRequest: state.showTransactionRequest,
             approveTransactionRequest: state.approveTransactionRequest,
@@ -127,7 +127,7 @@ export const useTransactionRequests = () => {
 export const useSignDataRequests = () => {
     return useWalletStore(
         useShallow((state) => ({
-            pendingSignDataRequest: state.tonConnect.pendingSignDataRequest,
+            pendingSignDataRequest: state.tonConnect.pendingSignDataRequestEvent,
             isSignDataModalOpen: state.tonConnect.isSignDataModalOpen,
             showSignDataRequest: state.showSignDataRequest,
             approveSignDataRequest: state.approveSignDataRequest,
@@ -207,20 +207,20 @@ export const useSwap = () => {
         useShallow((state) => ({
             fromToken: state.swap.fromToken,
             toToken: state.swap.toToken,
-            fromAmount: state.swap.fromAmount,
-            toAmount: state.swap.toAmount,
+            amount: state.swap.amount,
             destinationAddress: state.swap.destinationAddress,
             currentQuote: state.swap.currentQuote,
             isLoadingQuote: state.swap.isLoadingQuote,
             isSwapping: state.swap.isSwapping,
             error: state.swap.error,
             slippageBps: state.swap.slippageBps,
+            isReverseSwap: state.swap.isReverseSwap,
             setFromToken: state.setFromToken,
             setToToken: state.setToToken,
-            setFromAmount: state.setFromAmount,
-            setToAmount: state.setToAmount,
+            setAmount: state.setAmount,
             setDestinationAddress: state.setDestinationAddress,
             setSlippageBps: state.setSlippageBps,
+            setIsReverseSwap: state.setIsReverseSwap,
             swapTokens: state.swapTokens,
             getQuote: state.getQuote,
             executeSwap: state.executeSwap,

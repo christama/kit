@@ -82,7 +82,7 @@ export class TonStakersStakingProvider extends StakingProvider {
      * @param config - Optional configuration with custom contract addresses per network
      */
     constructor(networkManager: NetworkManager, eventEmitter: EventEmitter, config: TonStakersProviderConfig = {}) {
-        super(networkManager, eventEmitter);
+        super('tonstakers', networkManager, eventEmitter);
         this.config = {
             [Network.mainnet().chainId]: {
                 contractAddress: CONTRACT.STAKING_CONTRACT_ADDRESS,
@@ -284,7 +284,7 @@ export class TonStakersStakingProvider extends StakingProvider {
                 stakedBalance: stakedBalance,
                 availableBalance: availableBalance.toString(),
                 instantUnstakeAvailable: instantUnstakeAvailable.toString(),
-                provider: 'tonstakers',
+                providerId: 'tonstakers',
             };
         } catch (error) {
             log.error('Failed to get balance', { error, userAddress, network });
@@ -325,7 +325,7 @@ export class TonStakersStakingProvider extends StakingProvider {
                     return {
                         apy,
                         instantUnstakeAvailable: instantLiquidity.toString(),
-                        provider: 'tonstakers',
+                        providerId: 'tonstakers',
                     };
                 },
                 TIMING.CACHE_TIMEOUT,
@@ -335,7 +335,7 @@ export class TonStakersStakingProvider extends StakingProvider {
             return {
                 apy: 0,
                 instantUnstakeAvailable: '0',
-                provider: 'tonstakers',
+                providerId: 'tonstakers',
             };
         }
     }

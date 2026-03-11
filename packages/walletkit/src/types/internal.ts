@@ -13,17 +13,16 @@ import type {
     SendTransactionRpcRequest,
     SignDataRpcRequest,
     WalletResponseTemplateError,
+    ChainId,
 } from '@tonconnect/protocol';
 import { WalletResponseError as _WalletResponseError } from '@tonconnect/protocol';
 
 import type { JSBridgeTransportFunction } from './jsBridge';
-import type { WalletId } from '../utils/walletId';
 import type {
     ExtraCurrencies,
     TransactionRequest,
     TransactionRequestMessage,
     BridgeEvent,
-    UserFriendlyAddress,
     Base64String,
 } from '../api/models';
 import { SendModeFromValue } from '../utils/sendMode';
@@ -31,25 +30,6 @@ import { SendModeToValue } from '../utils/sendMode';
 import { asAddressFriendly } from '../utils/address';
 
 // import type { WalletInterface } from './wallet';
-
-export interface SessionData {
-    sessionId: string;
-
-    walletId: WalletId;
-    walletAddress: UserFriendlyAddress;
-    createdAt: string; // date
-    lastActivityAt: string; // date
-    privateKey: string;
-    publicKey: string;
-
-    dAppName: string;
-    dAppDescription: string;
-    domain: string;
-    dAppIconUrl: string;
-
-    // Bridge type indicator (needed to determine how to send disconnect events)
-    isJsBridge?: boolean; // true if session was created via JS Bridge, false/undefined for HTTP Bridge
-}
 
 export interface BridgeConfig {
     bridgeUrl?: string; // defaults to WalletInfo.bridgeUrl if exists
@@ -77,18 +57,6 @@ export interface StorageAdapter {
 export interface EventCallback<T = any> {
     (event: T): void | Promise<void>;
 }
-
-export type EventApprovalBase = {
-    id: string;
-    from: string;
-    sessionId: string;
-    walletId: WalletId;
-    walletAddress?: UserFriendlyAddress;
-
-    messageId?: string;
-
-    traceId?: string;
-};
 
 // Bridge event types (raw from bridge)
 export interface RawBridgeEventGeneric extends BridgeEvent {
@@ -140,11 +108,35 @@ export function toExtraCurrencies(extraCurrency: ConnectExtraCurrency | undefine
     return extraCurrency as ExtraCurrencies;
 }
 
+/**
+ * Raw transaction params as received from TON Connect protocol
+ */
+export interface RawConnectTransactionParamContent {
+    messages: ConnectTransactionParamMessage[];
+    network?: ChainId;
+    valid_until?: number;
+    from?: string;
+}
+
 export interface ConnectTransactionParamContent {
     messages: ConnectTransactionParamMessage[];
-    network?: string;
-    valid_until?: number; // unixtime
+    network?: ChainId;
+    validUntil?: number;
     from?: string;
+}
+
+/**
+ * Parse raw TON Connect transaction params to internal format
+ */
+export function parseConnectTransactionParamContent(
+    raw: RawConnectTransactionParamContent,
+): ConnectTransactionParamContent {
+    return {
+        messages: raw.messages,
+        network: raw.network,
+        validUntil: raw.valid_until,
+        from: raw.from,
+    };
 }
 
 export function toTransactionRequestMessage(msg: ConnectTransactionParamMessage): TransactionRequestMessage {
@@ -172,16 +164,22 @@ export function toConnectTransactionParamMessage(message: TransactionRequestMess
     };
 }
 
+/**
+ * Convert internal params format to TransactionRequest model.
+ */
 export function toTransactionRequest(params: ConnectTransactionParamContent): TransactionRequest {
     return {
         messages: params.messages.map(toTransactionRequestMessage),
         network: params.network ? { chainId: params.network } : undefined,
-        validUntil: params.valid_until,
+        validUntil: params.validUntil,
         fromAddress: params.from,
     };
 }
 
-export function toConnectTransactionParamContent(request: TransactionRequest): ConnectTransactionParamContent {
+/**
+ * Convert internal TransactionRequest to raw TON Connect protocol
+ */
+export function toConnectTransactionParamContent(request: TransactionRequest): RawConnectTransactionParamContent {
     return {
         messages: request.messages.map(toConnectTransactionParamMessage),
         network: request.network?.chainId,

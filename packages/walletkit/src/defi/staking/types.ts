@@ -6,6 +6,7 @@
  *
  */
 
+import type { DefiProvider } from '../../api/interfaces';
 import type { Network, TokenAmount, TransactionRequest, UserFriendlyAddress } from '../../api/models';
 
 export enum StakingQuoteDirection {
@@ -90,7 +91,7 @@ export interface StakingBalance {
     stakedBalance: TokenAmount;
     availableBalance: TokenAmount;
     instantUnstakeAvailable: TokenAmount;
-    provider: string;
+    providerId: string;
 }
 
 /**
@@ -99,24 +100,24 @@ export interface StakingBalance {
 export interface StakingInfo {
     apy: number;
     instantUnstakeAvailable?: TokenAmount;
-    provider: string;
+    providerId: string;
 }
 
 /**
  * Staking API interface exposed by StakingManager
  */
 export interface StakingAPI {
-    getQuote(params: StakingQuoteParams, provider?: string): Promise<StakingQuote>;
-    stake(params: StakeParams, provider?: string): Promise<TransactionRequest>;
-    unstake(params: UnstakeParams, provider?: string): Promise<TransactionRequest>;
-    getBalance(userAddress: UserFriendlyAddress, network?: Network, provider?: string): Promise<StakingBalance>;
-    getStakingInfo(network?: Network, provider?: string): Promise<StakingInfo>;
+    getQuote(params: StakingQuoteParams, providerId?: string): Promise<StakingQuote>;
+    stake(params: StakeParams, providerId?: string): Promise<TransactionRequest>;
+    unstake(params: UnstakeParams, providerId?: string): Promise<TransactionRequest>;
+    getBalance(userAddress: UserFriendlyAddress, network?: Network, providerId?: string): Promise<StakingBalance>;
+    getStakingInfo(network?: Network, providerId?: string): Promise<StakingInfo>;
 }
 
 /**
  * Interface that all staking providers must implement
  */
-export interface StakingProviderInterface {
+export interface StakingProviderInterface extends DefiProvider {
     getQuote(params: StakingQuoteParams): Promise<StakingQuote>;
     stake(params: StakeParams): Promise<TransactionRequest>;
     unstake(params: UnstakeParams): Promise<TransactionRequest>;

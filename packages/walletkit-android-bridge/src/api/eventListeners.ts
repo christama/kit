@@ -6,15 +6,24 @@
  *
  */
 
-/**
- * Shared event listener references used to manage WalletKit callbacks.
- */
-export type BridgeEventListener = ((event: unknown) => void) | null;
+import type {
+    ConnectionRequestEvent,
+    DisconnectionEvent,
+    RequestErrorEvent,
+    SendTransactionRequestEvent,
+    SignDataRequestEvent,
+} from '@ton/walletkit';
+
+type ConnectEventListener = ((event: ConnectionRequestEvent) => void) | null;
+type TransactionEventListener = ((event: SendTransactionRequestEvent) => void) | null;
+type SignDataEventListener = ((event: SignDataRequestEvent) => void) | null;
+type DisconnectEventListener = ((event: DisconnectionEvent) => void) | null;
+type ErrorEventListener = ((event: RequestErrorEvent) => void) | null;
 
 export const eventListeners = {
-    onConnectListener: null as BridgeEventListener,
-    onTransactionListener: null as BridgeEventListener,
-    onSignDataListener: null as BridgeEventListener,
-    onDisconnectListener: null as BridgeEventListener,
-    onErrorListener: null as BridgeEventListener,
+    onConnectListener: null as ConnectEventListener,
+    onTransactionListener: null as TransactionEventListener,
+    onSignDataListener: null as SignDataEventListener,
+    onDisconnectListener: null as DisconnectEventListener,
+    onErrorListener: null as ErrorEventListener,
 };

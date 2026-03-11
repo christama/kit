@@ -114,11 +114,12 @@ export function getDeviceInfoForWallet(
     const baseDeviceInfo = getDeviceInfoWithDefaults(deviceInfoOptions);
 
     // If wallet adapter has getSupportedFeatures(), use those features
-    if (walletAdapter?.getSupportedFeatures) {
-        const adapterFeatures = walletAdapter.getSupportedFeatures();
+    const walletSupportedFeatures = walletAdapter?.getSupportedFeatures();
+
+    if (walletSupportedFeatures) {
         const deviceInfo = {
             ...baseDeviceInfo,
-            features: adapterFeatures,
+            features: walletSupportedFeatures,
         };
 
         return addLegacySendTransactionFeature(deviceInfo);
@@ -133,7 +134,7 @@ export function getDeviceInfoForWallet(
  * @param features - Array of wallet features from getSupportedFeatures()
  * @returns Maximum number of outgoing messages the wallet can handle (default: 1)
  */
-export const getMaxOutgoingMessages = (features: Feature[]) => {
+export function getMaxOutgoingMessages(features: Feature[]) {
     const sendTransactionFeature = features.find(
         (feature) => feature !== 'SendTransaction' && feature.name === 'SendTransaction',
     );
@@ -143,7 +144,7 @@ export const getMaxOutgoingMessages = (features: Feature[]) => {
     }
 
     return 1;
-};
+}
 
 function addLegacySendTransactionFeature(options: DeviceInfo): DeviceInfo {
     const features = options.features;

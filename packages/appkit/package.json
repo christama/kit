@@ -1,0 +1,110 @@
+{
+  "name": "@ton/appkit",
+  "version": "0.0.3",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ton-connect/kit"
+  },
+  "sideEffects": false,
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./queries": {
+      "import": {
+        "types": "./dist/esm/queries/index.d.ts",
+        "default": "./dist/esm/queries/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/queries/index.d.ts",
+        "default": "./dist/cjs/queries/index.js"
+      }
+    },
+    "./swap/omniston": {
+      "import": {
+        "types": "./dist/esm/swap/omniston/index.d.ts",
+        "default": "./dist/esm/swap/omniston/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/swap/omniston/index.d.ts",
+        "default": "./dist/cjs/swap/omniston/index.js"
+      }
+    },
+    "./swap/dedust": {
+      "import": {
+        "types": "./dist/esm/swap/dedust/index.d.ts",
+        "default": "./dist/esm/swap/dedust/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/swap/dedust/index.d.ts",
+        "default": "./dist/cjs/swap/dedust/index.js"
+      }
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "queries": [
+        "./dist/cjs/queries/index.d.ts"
+      ],
+      "swap/omniston": [
+        "./dist/cjs/swap/omniston/index.d.ts"
+      ],
+      "swap/dedust": [
+        "./dist/cjs/swap/dedust/index.d.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:esm",
+    "build:clean": "git clean -xdf dist",
+    "build:esm": "tsc -p tsconfig.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "quality": "pnpm test",
+    "typecheck": "tsc --noEmit",
+    "clean": "git clean -xdf .turbo dist node_modules",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ton/walletkit": "workspace:*"
+  },
+  "peerDependencies": {
+    "@tanstack/query-core": ">=5.0.0",
+    "@ton/core": "^0.62.0 || ^0.63.0",
+    "@ton/crypto": "^3.3.0",
+    "@tonconnect/ui": ">=2.4.1"
+  },
+  "peerDependenciesMeta": {
+    "@tonconnect/ui": {
+      "optional": true
+    },
+    "@ston-fi/omniston-sdk": {
+      "optional": true
+    },
+    "@tanstack/query-core": {
+      "optional": true
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.15.0",
+  "devDependencies": {
+    "@tanstack/query-core": "catalog:",
+    "@ton/core": "catalog:",
+    "@tonconnect/ui": "catalog:",
+    "typescript": "~5.8.3",
+    "vitest": "^4.0.17"
+  }
+}

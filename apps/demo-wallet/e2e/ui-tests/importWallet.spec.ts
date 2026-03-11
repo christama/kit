@@ -7,22 +7,22 @@
  */
 
 import { expect } from '@playwright/test';
+import type { NetworkType } from '@demo/wallet-core';
 
 import { testWithUIFixture } from './UITestFixture';
 
 const test = testWithUIFixture();
 
-const PASSWORD = 'tester@1234';
+const PASSWORD = 'Tester@1234';
 
 // Test mnemonic - this should be a valid test mnemonic for e2e tests
 const TEST_MNEMONIC = process.env.WALLET_MNEMONIC ?? '';
 
-type Network = 'mainnet' | 'testnet';
 type WalletVersion = 'v4r2' | 'v5r1';
 type InterfaceType = 'mnemonic' | 'signer';
 
 interface ImportWalletTestCase {
-    network: Network;
+    network: NetworkType;
     version: WalletVersion;
     interfaceType: InterfaceType;
 }

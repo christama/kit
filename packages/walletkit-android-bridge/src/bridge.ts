@@ -9,7 +9,7 @@
 import type { WalletKitBridgeApi } from './types';
 import { api } from './api';
 import { setBridgeApi, registerNativeCallHandler } from './transport/messaging';
-import { log } from './utils/logger';
+import { registerNativeResponseHandler } from './transport/nativeBridge';
 
 declare global {
     interface Window {
@@ -19,9 +19,6 @@ declare global {
 
 setBridgeApi(api as WalletKitBridgeApi);
 registerNativeCallHandler();
+registerNativeResponseHandler();
 
 window.walletkitBridge = api;
-log('[walletkitBridge] bootstrap complete');
-
-export { api };
-export type { WalletKitBridgeApi } from './types';

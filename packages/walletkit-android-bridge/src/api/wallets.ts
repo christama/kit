@@ -6,192 +6,231 @@
  *
  */
 
-/**
- * wallets.ts – Wallet management operations
- *
- * Pure pass-through bridge - returns raw JS objects/proxies.
- * Kotlin is responsible for adapting to whatever JS returns.
- */
-
-import type { Hex } from '@ton/walletkit';
-
 import type {
-    RemoveWalletArgs,
-    GetBalanceArgs,
-    CreateSignerArgs,
-    CreateAdapterArgs,
-    AddWalletArgs,
-    WalletKitSigner,
-    WalletKitAdapter,
-} from '../types';
-import { Signer, WalletV4R2Adapter, WalletV5R1Adapter } from '../core/moduleLoader';
-import { callBridge } from '../utils/bridgeWrapper';
-import { signWithCustomSigner } from './cryptography';
+    Hex,
+    Network,
+    WalletAdapter,
+    ApiClient,
+    Base64String,
+    UserFriendlyAddress,
+    Feature,
+} from '@ton/walletkit';
+import type { WalletId } from '@ton/walletkit';
+import type { TransactionRequest } from '@ton/walletkit';
+import type { PreparedSignData } from '@ton/walletkit';
+import type { ProofMessage } from '@ton/walletkit';
 
-type SignerInstance = WalletKitSigner;
-type AdapterInstance = WalletKitAdapter;
+import { Signer, WalletV4R2Adapter, WalletV5R1Adapter } from '../core/moduleLoader';
+import { kit, wallet, getKit } from '../utils/bridge';
+import { retain, retainWithId, get, release } from '../utils/registry';
+import { bridgeRequest, bridgeRequestSync } from '../transport/nativeBridge';
+
+// Wraps a Kotlin-side TONWalletAdapter. Sync getters call Kotlin synchronously
+// via @JavascriptInterface; signing/stateInit delegate via async reverse-RPC.
+class ProxyWalletAdapter implements WalletAdapter {
+    constructor(
+        private readonly adapterId: string,
+        private readonly apiClientProvider: (network: Network) => ApiClient,
+    ) {}
+
+    getPublicKey(): Hex {
+        return bridgeRequestSync('getPublicKey', { adapterId: this.adapterId }) as Hex;
+    }
+
+    getNetwork(): Network {
+        const raw = bridgeRequestSync('getNetwork', { adapterId: this.adapterId });
+        const parsed = JSON.parse(raw);
+        return parsed as Network;
+    }
+
+    getClient(): ApiClient {
+        return this.apiClientProvider(this.getNetwork());
+    }
+
+    getAddress(): UserFriendlyAddress {
+        return bridgeRequestSync('getAddress', { adapterId: this.adapterId }) as UserFriendlyAddress;
+    }
+
+    getWalletId(): WalletId {
+        return bridgeRequestSync('getWalletId', { adapterId: this.adapterId }) as WalletId;
+    }
+
+    async getStateInit(): Promise<Base64String> {
+        const result = await bridgeRequest('adapterGetStateInit', { adapterId: this.adapterId });
+        if (!result) throw new Error('adapterGetStateInit: no result from native');
+        return result as Base64String;
+    }
+
+    async getSignedSendTransaction(
+        input: TransactionRequest,
+        options?: { fakeSignature: boolean },
+    ): Promise<Base64String> {
+        const result = await bridgeRequest('adapterSignTransaction', {
+            adapterId: this.adapterId,
+            input: JSON.stringify(input),
+            fakeSignature: options?.fakeSignature ?? false,
+        });
+        if (!result) throw new Error('adapterSignTransaction: no result from native');
+        return result as Base64String;
+    }
+
+    async getSignedSignData(input: PreparedSignData, options?: { fakeSignature: boolean }): Promise<Hex> {
+        const result = await bridgeRequest('adapterSignData', {
+            adapterId: this.adapterId,
+            input: JSON.stringify(input),
+            fakeSignature: options?.fakeSignature ?? false,
+        });
+        if (!result) throw new Error('adapterSignData: no result from native');
+        return result as Hex;
+    }
+
+    async getSignedTonProof(input: ProofMessage, options?: { fakeSignature: boolean }): Promise<Hex> {
+        const result = await bridgeRequest('adapterSignTonProof', {
+            adapterId: this.adapterId,
+            input: JSON.stringify(input),
+            fakeSignature: options?.fakeSignature ?? false,
+        });
+        if (!result) throw new Error('adapterSignTonProof: no result from native');
+        return result as Hex;
+    }
+
+    getSupportedFeatures(): Feature[] | undefined {
+        const raw = bridgeRequestSync('getSupportedFeatures', { adapterId: this.adapterId });
+        if (!raw || raw === 'null') return undefined;
+        try {
+            return JSON.parse(raw) as Feature[];
+        } catch {
+            return undefined;
+        }
+    }
+}
 
 /**
  * Lists all wallets.
- * Returns walletId with each wallet since network can't be inferred from wallet properties.
  */
 export async function getWallets() {
-    return callBridge('getWallets', async (kit) => {
-        const wallets = kit.getWallets?.() ?? [];
-        // Include walletId since getNetwork()/getAddress() are methods that don't serialize
-        return wallets.map((w) => ({
-            walletId: w.getWalletId?.(),
-            wallet: w,
-        }));
-    });
+    const wallets = (await kit('getWallets')) as { getWalletId?: () => string }[];
+    return wallets.map((w) => ({ walletId: w.getWalletId?.(), wallet: w }));
 }
 
-/**
- * Get a single wallet by walletId.
- * Returns walletId with wallet since network can't be inferred from wallet properties.
- */
-export async function getWallet(args: { walletId: string }) {
-    return callBridge('getWallet', async (kit) => {
-        const w = kit.getWallet?.(args.walletId);
+export async function getWalletById(args: { walletId: string }) {
+    const w = await kit('getWallet', args.walletId);
+    if (!w) return null;
+    return { walletId: (w as { getWalletId?: () => string }).getWalletId?.(), wallet: w };
+}
+
+export async function getWalletAddress(args: { walletId: string }) {
+    return wallet(args.walletId, 'getAddress');
+}
+
+export async function removeWallet(args: { walletId: string }) {
+    return kit('removeWallet', args.walletId);
+}
+
+export async function getBalance(args: { walletId: string }) {
+    return wallet(args.walletId, 'getBalance');
+}
+
+export async function createSignerFromMnemonic(args: { mnemonic: string[]; mnemonicType?: string }) {
+    if (!Signer) throw new Error('Signer module not loaded');
+    const signer = await Signer.fromMnemonic(args.mnemonic, { type: args.mnemonicType ?? 'ton' });
+    const signerId = retain('signer', signer);
+    return { signerId, publicKey: signer.publicKey };
+}
+
+export async function createSignerFromPrivateKey(args: { secretKey: string }) {
+    if (!Signer) throw new Error('Signer module not loaded');
+    const signer = await Signer.fromPrivateKey(args.secretKey);
+    const signerId = retain('signer', signer);
+    return { signerId, publicKey: signer.publicKey };
+}
+
+export async function createSignerFromCustom(args: { signerId: string; publicKey: string }) {
+    const { signerId, publicKey } = args;
+    const proxySigner = {
+        publicKey: publicKey as Hex,
+        sign: async (bytes: Iterable<number>): Promise<Hex> => {
+            const result = await bridgeRequest('signWithCustomSigner', {
+                signerId,
+                data: Array.from(bytes),
+            });
+            if (!result) throw new Error('signWithCustomSigner: no result from native');
+            return result as Hex;
+        },
+    };
+    retainWithId(signerId, proxySigner);
+    return { signerId, publicKey };
+}
+
+export async function createV5R1WalletAdapter(args: {
+    signerId: string;
+    network: { chainId: string };
+    workchain?: number;
+    walletId?: number;
+}) {
+    const instance = await getKit();
+    const signer = get<{ publicKey: Hex; sign: (data: Iterable<number>) => Promise<Hex> }>(args.signerId);
+    if (!signer) throw new Error(`Signer not found in registry: ${args.signerId}`);
+
+    const network = args.network as unknown as Network;
+    if (!WalletV5R1Adapter) throw new Error('WalletV5R1Adapter module not loaded');
+    const adapter = await WalletV5R1Adapter.create(signer, {
+        client: instance.getApiClient(network),
+        network,
+        workchain: args.workchain ?? 0,
+        walletId: args.walletId,
+    });
+
+    const adapterId = retain('adapter', adapter);
+    return { adapterId, address: adapter.getAddress() };
+}
+
+export async function createV4R2WalletAdapter(args: {
+    signerId: string;
+    network: { chainId: string };
+    workchain?: number;
+    walletId?: number;
+}) {
+    const instance = await getKit();
+    const signer = get<{ publicKey: Hex; sign: (data: Iterable<number>) => Promise<Hex> }>(args.signerId);
+    if (!signer) throw new Error(`Signer not found in registry: ${args.signerId}`);
+
+    const network = args.network as unknown as Network;
+    if (!WalletV4R2Adapter) throw new Error('WalletV4R2Adapter module not loaded');
+    const adapter = await WalletV4R2Adapter.create(signer, {
+        client: instance.getApiClient(network),
+        network,
+        workchain: args.workchain ?? 0,
+        walletId: args.walletId,
+    });
+
+    const adapterId = retain('adapter', adapter);
+    return { adapterId, address: adapter.getAddress() };
+}
+
+export async function addWallet(args: { adapterId: string }) {
+    const instance = await getKit();
+
+    // Check if adapter exists in JS registry (BridgeWalletAdapter / JS-created adapter path)
+    const existingAdapter = get<WalletAdapter>(args.adapterId);
+    if (existingAdapter) {
+        const w = await instance.addWallet(existingAdapter as Parameters<typeof instance.addWallet>[0]);
         if (!w) return null;
         return { walletId: w.getWalletId?.(), wallet: w };
-    });
-}
-
-/**
- * Gets the address of a wallet.
- * Returns raw result - Kotlin adapts to the response.
- */
-export async function getWalletAddress(args: { walletId: string }) {
-    return callBridge('getWalletAddress', async (kit) => {
-        const wallet = kit.getWallet?.(args.walletId);
-        return wallet?.getAddress?.() ?? null;
-    });
-}
-
-/**
- * Removes a wallet from storage.
- * Returns raw result - Kotlin adapts to the response.
- */
-export async function removeWallet(args: RemoveWalletArgs) {
-    return callBridge('removeWallet', async (kit) => {
-        return await kit.removeWallet?.(args.walletId);
-    });
-}
-
-/**
- * Fetches wallet balance.
- * Returns raw balance - Kotlin adapts to the response.
- */
-export async function getBalance(args: GetBalanceArgs) {
-    return callBridge('getBalance', async (kit) => {
-        const wallet = kit.getWallet?.(args.walletId);
-        return await wallet?.getBalance?.();
-    });
-}
-
-// Store for signers and adapters
-const signerStore = new Map<string, SignerInstance>();
-const adapterStore = new Map<string, AdapterInstance>();
-
-/**
- * Retrieves or creates a signer instance based on the arguments.
- * Handles both custom signers (hardware wallets) and regular signers.
- */
-async function getSigner(args: CreateAdapterArgs): Promise<SignerInstance> {
-    // Handle custom signers (hardware wallets) that live in Kotlin
-    if (args.isCustom && args.publicKey) {
-        return {
-            sign: async (bytes: Iterable<number>): Promise<Hex> => {
-                return await signWithCustomSigner(args.signerId, Uint8Array.from(bytes));
-            },
-            publicKey: args.publicKey as Hex,
-        };
     }
 
-    // Handle regular signers stored in JavaScript
-    const storedSigner = signerStore.get(args.signerId);
-    if (!storedSigner) {
-        throw new Error(`Signer not found: ${args.signerId}`);
-    }
-    return storedSigner;
+    // Kotlin-side adapter — create proxy that calls Kotlin synchronously for getters
+    const proxyAdapter = new ProxyWalletAdapter(args.adapterId, (network) => instance.getApiClient(network));
+
+    const w = await instance.addWallet(proxyAdapter as Parameters<typeof instance.addWallet>[0]);
+    if (!w) return null;
+    return { walletId: w.getWalletId?.(), wallet: w };
 }
 
 /**
- * Creates a signer from mnemonic or secret key.
- * Returns raw signer object - Kotlin generates signerId and extracts publicKey.
+ * Releases a JS-side registry object (signer or adapter created by createV5R1/createV4R2).
  */
-export async function createSigner(args: CreateSignerArgs) {
-    return callBridge('createSigner', async (_kit) => {
-        const signer =
-            args.mnemonic && args.mnemonic.length > 0
-                ? ((await Signer!.fromMnemonic(args.mnemonic, { type: args.mnemonicType || 'ton' })) as SignerInstance)
-                : ((await Signer!.fromPrivateKey(args.secretKey!)) as SignerInstance);
-
-        // Store signer with temp ID for Kotlin to retrieve
-        const tempId = `signer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        signerStore.set(tempId, signer);
-
-        return { _tempId: tempId, signer };
-    });
-}
-
-/**
- * Creates a wallet adapter from a signer.
- * Supports both regular signers (from mnemonic/secretKey) and custom signers (hardware wallets).
- * Returns adapter ID - Kotlin is responsible for all mapping and transformation.
- */
-export async function createAdapter(args: CreateAdapterArgs) {
-    return callBridge('createAdapter', async (kit) => {
-        const signer = await getSigner(args);
-        const AdapterClass = args.walletVersion === 'v5r1' ? WalletV5R1Adapter : WalletV4R2Adapter;
-        const adapter = (await AdapterClass!.create(signer, {
-            client: kit.getApiClient(args.network),
-            network: args.network,
-            workchain: args.workchain,
-            walletId: args.walletId,
-        })) as AdapterInstance;
-
-        // Store adapter with temp ID for Kotlin to retrieve
-        const tempId = `adapter_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        adapterStore.set(tempId, adapter);
-
-        // Return only the temp ID and the raw adapter object
-        // Kotlin is responsible for extracting any needed properties
-        return { _tempId: tempId, adapter };
-    });
-}
-/**
- * Gets the address from a stored adapter.
- * Returns raw address - Kotlin adapts to the response.
- */
-export async function getAdapterAddress(args: { adapterId: string }) {
-    return callBridge('getAdapterAddress', async (_kit) => {
-        const adapter = adapterStore.get(args.adapterId);
-        if (!adapter) {
-            throw new Error(`Adapter not found: ${args.adapterId}`);
-        }
-        return adapter.getAddress();
-    });
-}
-
-/**
- * Adds a wallet to WalletKit using an adapter.
- * Returns walletId with wallet since getWalletId() is a method that doesn't serialize.
- */
-export async function addWallet(args: AddWalletArgs) {
-    return callBridge('addWallet', async (kit) => {
-        const adapter = adapterStore.get(args.adapterId);
-        if (!adapter) {
-            throw new Error(`Adapter not found: ${args.adapterId}`);
-        }
-
-        const wallet = await kit.addWallet(adapter);
-
-        // Clean up the adapter from store after use
-        adapterStore.delete(args.adapterId);
-
-        if (!wallet) return null;
-        return { walletId: wallet.getWalletId?.(), wallet };
-    });
+export function releaseRef(args: { id: string }) {
+    release(args.id);
+    return { ok: true };
 }

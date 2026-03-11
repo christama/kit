@@ -12,6 +12,7 @@ import { Address } from '@ton/core';
 import { OmnistonSwapProvider } from './OmnistonSwapProvider';
 import { Network } from '../../../api/models';
 import { isOmnistonQuoteMetadata } from './utils';
+import type { SwapToken } from '../../../api/models';
 
 // Skip integration tests
 describe.skip('OmnistonSwapProvider.getQuote', () => {
@@ -20,9 +21,9 @@ describe.skip('OmnistonSwapProvider.getQuote', () => {
         quoteTimeoutMs: 30000,
     });
     const usdtQuoteParams = {
-        fromToken: 'TON',
-        toToken: 'EQA2kCVNwVsil2EM2mB0SkXytxCqQjS4mttjDpnXmwG9T6bO', // USDT
-        amountFrom: '1000000000', // 1 TON
+        from: { address: 'ton', decimals: 9 } as SwapToken,
+        to: { address: 'EQA2kCVNwVsil2EM2mB0SkXytxCqQjS4mttjDpnXmwG9T6bO', decimals: 6 } as SwapToken, // USDT
+        amount: '1000000000', // 1 TON
         network: Network.mainnet(),
     };
 

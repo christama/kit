@@ -8,7 +8,7 @@
 
 import { Buffer as NodeBuffer } from 'buffer';
 
-import { log, warn, error } from '../utils/logger';
+import { warn, error } from '../utils/logger';
 
 type NativeStorageBridge = {
     storageGet: (key: string) => string | null | undefined;
@@ -30,18 +30,11 @@ function ensureBuffer(scope: GlobalWithBridge) {
             writable: true,
             configurable: true,
         });
-        log('[walletkitBridge] ✅ Buffer polyfill injected');
     }
 }
 
-/**
- * Sets up the native storage bridge that connects JavaScript to Android's secure storage.
- * Creates window.WalletKitNativeStorage that delegates to WalletKitNative.
- *
- * Note: Modern Android WebView (API 24+) already supports all standard Web APIs
- * (fetch, TextEncoder, URL, etc.), so no polyfills are needed.
- */
-export function setupNativeBridge() {
+// Sets up native storage bridge: window.WalletKitNativeStorage delegates to WalletKitNative.
+function setupNativeBridge() {
     const scope = window as GlobalWithBridge;
 
     ensureBuffer(scope);
@@ -109,7 +102,6 @@ export function setupNativeBridge() {
                 writable: false,
                 configurable: true,
             });
-            log('[walletkitBridge] ✅ WalletKitNativeStorage exposed for secure native storage');
         } else {
             warn('[walletkitBridge] WalletKitNativeStorage already present, not overriding');
         }

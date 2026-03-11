@@ -1,7 +1,7 @@
-node_modules
+*node_modules*
 .env
 .DS_Store
-dist
+*dist
 dist-android
 .idea
 .turbo
@@ -33,3 +33,6 @@ packages/walletkit-android-bridge/*.sh
 
 release-artifacts
 *.tgz
+
+.claude
+apps/appkit-minter/src/pages/example.tsx
