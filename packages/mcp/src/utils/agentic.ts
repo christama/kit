@@ -9,7 +9,7 @@
 import { randomBytes } from 'node:crypto';
 
 import { Address, Cell } from '@ton/core';
-import { CallForSuccess, getNftsFromClient, Signer } from '@ton/walletkit';
+import { Base64NormalizeUrl, CallForSuccess, getNftsFromClient, Signer, Uint8ArrayToBase64 } from '@ton/walletkit';
 import type { ApiClient, FullAccountState } from '@ton/walletkit';
 
 import { AgenticWalletCodeCell } from '../contracts/agentic_wallet/AgenticWallet.source.js';
@@ -196,17 +196,21 @@ export function buildAgenticCreateDeepLink(input: {
     tonDeposit?: string;
 }): string {
     const url = new URL('/create', AGENTIC_DASHBOARD_BASE_URL);
-    url.searchParams.set('operatorPublicKey', input.operatorPublicKey);
-    url.searchParams.set('callbackUrl', input.callbackUrl);
+    const payload: Record<string, string> = {
+        originOperatorPublicKey: input.operatorPublicKey,
+        callbackUrl: input.callbackUrl,
+    };
     if (input.agentName?.trim()) {
-        url.searchParams.set('agentName', input.agentName.trim());
+        payload.agentName = input.agentName.trim();
     }
     if (input.source?.trim()) {
-        url.searchParams.set('source', input.source.trim());
+        payload.source = input.source.trim();
     }
     if (input.tonDeposit?.trim()) {
-        url.searchParams.set('tonDeposit', input.tonDeposit.trim());
+        payload.tonDeposit = input.tonDeposit.trim();
     }
+    const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
+    url.searchParams.set('data', Base64NormalizeUrl(Uint8ArrayToBase64(payloadBytes)));
     return url.toString();
 }
 

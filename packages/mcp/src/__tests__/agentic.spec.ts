@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { ParseBase64 } from '@ton/walletkit';
 
 import { buildAgenticCreateDeepLink, buildAgenticDashboardLink } from '../utils/agentic.js';
 
@@ -24,11 +25,20 @@ describe('mcp agentic helpers', () => {
 
         expect(url.origin + '/').toBe('https://agentic-wallets-dashboard.vercel.app/');
         expect(url.pathname).toBe('/create');
-        expect(url.searchParams.get('operatorPublicKey')).toBe('0x1234');
-        expect(url.searchParams.get('callbackUrl')).toBe('http://127.0.0.1:4567/agentic/callback/setup-1');
-        expect(url.searchParams.get('agentName')).toBe('Alpha');
-        expect(url.searchParams.get('source')).toBe('mcp');
-        expect(url.searchParams.get('tonDeposit')).toBe('0.2');
+        expect(url.searchParams.has('operatorPublicKey')).toBe(false);
+        expect(url.searchParams.has('callbackUrl')).toBe(false);
+
+        const encodedPayload = url.searchParams.get('data');
+        expect(encodedPayload).toBeTruthy();
+
+        const payload = JSON.parse(ParseBase64(encodedPayload!));
+        expect(payload).toEqual({
+            originOperatorPublicKey: '0x1234',
+            callbackUrl: 'http://127.0.0.1:4567/agentic/callback/setup-1',
+            agentName: 'Alpha',
+            source: 'mcp',
+            tonDeposit: '0.2',
+        });
     });
 
     it('builds dashboard links', () => {
