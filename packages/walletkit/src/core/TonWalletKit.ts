@@ -710,12 +710,6 @@ export class TonWalletKit implements ITonWalletKit {
      * @throws WalletKitError if no client is configured for the network
      */
     getApiClient(network: Network): ApiClient {
-        if (!this.isInitialized) {
-            throw new WalletKitError(
-                ERROR_CODES.INITIALIZATION_ERROR,
-                'TonWalletKit not yet initialized - call initialize() first',
-            );
-        }
         return this.networkManager.getClient(network);
     }
 

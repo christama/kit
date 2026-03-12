@@ -18,11 +18,6 @@ export interface StakingBalance {
     stakedBalance: TokenAmount;
 
     /**
-     * Amount available to unstake
-     */
-    availableBalance: TokenAmount;
-
-    /**
      * Amount available for instant unstake
      */
     instantUnstakeAvailable: TokenAmount;

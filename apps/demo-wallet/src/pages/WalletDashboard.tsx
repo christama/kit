@@ -267,13 +267,17 @@ export const WalletDashboard: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="flex space-x-3">
+                        <div className="flex space-x-2">
                             <Button onClick={() => navigate('/send')} className="flex-1" data-testid="send-button">
                                 Send
                             </Button>
 
                             <Button variant="secondary" onClick={() => navigate('/swap')} className="flex-1">
                                 Swap
+                            </Button>
+
+                            <Button variant="secondary" onClick={() => navigate('/staking')} className="flex-1">
+                                Stake
                             </Button>
                         </div>
                     </div>

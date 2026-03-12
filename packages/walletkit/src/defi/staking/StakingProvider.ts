@@ -6,9 +6,7 @@
  *
  */
 
-import type { ApiClient } from '../../types/toncenter/ApiClient';
 import type { Network, TransactionRequest, UserFriendlyAddress } from '../../api/models';
-import type { NetworkManager } from '../../core/NetworkManager';
 import type {
     StakeParams,
     UnstakeParams,
@@ -18,6 +16,7 @@ import type {
     StakingQuote,
 } from '../../api/models';
 import type { StakingProviderInterface } from '../../api/interfaces';
+import { NetworkManager } from '../../core/NetworkManager';
 
 /**
  * Abstract base class for staking providers
@@ -29,11 +28,8 @@ export abstract class StakingProvider implements StakingProviderInterface {
     readonly type = 'swap';
     readonly providerId: string;
 
-    protected networkManager: NetworkManager;
-
-    constructor(providerId: string, networkManager: NetworkManager) {
+    constructor(providerId: string) {
         this.providerId = providerId;
-        this.networkManager = networkManager;
     }
 
     /**
@@ -68,13 +64,4 @@ export abstract class StakingProvider implements StakingProviderInterface {
      * @param network - Optional network to fetch info for
      */
     abstract getStakingProviderInfo(network?: Network): Promise<StakingProviderInfo>;
-
-    /**
-     * Get API client for a specific network
-     * @param network - The network to get client for
-     * @returns API client instance
-     */
-    protected getApiClient(network: Network): ApiClient {
-        return this.networkManager.getClient(network);
-    }
 }

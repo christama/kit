@@ -9,7 +9,6 @@
 import type { TransactionRequest, UserFriendlyAddress } from '../../../api/models';
 import { Network } from '../../../api/models';
 import { globalLogger } from '../../../core/Logger';
-import type { NetworkManager } from '../../../core/NetworkManager';
 import { StakingProvider } from '../StakingProvider';
 import type {
     StakeParams,
@@ -21,11 +20,12 @@ import type {
 } from '../../../api/models';
 import { StakingError, StakingErrorCode } from '../errors';
 import type { TonStakersProviderConfig } from './models/TonStakersProviderConfig';
-import { CONTRACT } from './constants';
+import { CONTRACT, STAKING_CONTRACT_ADDRESS } from './constants';
 import { PoolContract } from './PoolContract';
 import { StakingCache } from './StakingCache';
 import { ApiClientTonApi } from '../../../clients/tonapi/ApiClientTonApi';
 import { formatUnits, parseUnits } from '../../../utils/units';
+import type { ApiClient } from '../../../types/toncenter/ApiClient';
 
 const log = globalLogger.createChild('TonStakersStakingProvider');
 
@@ -38,34 +38,6 @@ const log = globalLogger.createChild('TonStakersStakingProvider');
  *   - Delayed: Standard withdrawal at end of round (~18 hours)
  *   - Instant: Immediate withdrawal if liquidity available
  *   - BestRate: Wait for best exchange rate at round end
- *
- * @example
- * ```typescript
- * const stakingManager = new StakingManager();
- * const provider = new TonStakersStakingProvider(
- *     walletKit.getNetworkManager(),
- *     walletKit.getEventEmitter()
- * );
- * stakingManager.registerProvider('tonstakers', provider);
- *
- * // Get staking info with APY
- * const info = await stakingManager.getStakingProviderInfo(Network.mainnet());
- *
- * // Stake TON
- * const stakeTx = await stakingManager.stake({
- *     amount: toNano('10').toString(),
- *     userAddress: wallet.getAddress(),
- *     network: Network.mainnet()
- * });
- *
- * // Unstake with instant mode
- * const unstakeTx = await stakingManager.unstake({
- *     amount: toNano('5').toString(),
- *     userAddress: wallet.getAddress(),
- *     network: Network.mainnet(),
- *     unstakeMode: 'instant'
- * });
- * ```
  */
 export class TonStakersStakingProvider extends StakingProvider {
     protected config: TonStakersProviderConfig;
@@ -74,20 +46,24 @@ export class TonStakersStakingProvider extends StakingProvider {
     /**
      * Create a new TonStakersStakingProvider instance.
      *
-     * @param networkManager - Network manager for API client access
      * @param config - Optional configuration with custom contract addresses per network
      */
-    constructor(networkManager: NetworkManager, config: TonStakersProviderConfig = {}) {
-        super('tonstakers', networkManager);
-        this.config = {
-            [Network.mainnet().chainId]: {
-                contractAddress: CONTRACT.STAKING_CONTRACT_ADDRESS,
-            },
-            [Network.testnet().chainId]: {
-                contractAddress: CONTRACT.STAKING_CONTRACT_ADDRESS_TESTNET,
-            },
-            ...config,
-        };
+    constructor(config: TonStakersProviderConfig = {}) {
+        super('tonstakers');
+
+        this.config = Object.entries(config).reduce((acc, [chainId, configByNetwork]) => {
+            if (!configByNetwork.contractAddress && !STAKING_CONTRACT_ADDRESS[chainId]) {
+                throw new Error(`Contract address not found for chain ${chainId}, provide it in config`);
+            }
+
+            acc[chainId] = {
+                ...configByNetwork,
+                contractAddress: configByNetwork.contractAddress || STAKING_CONTRACT_ADDRESS[chainId],
+            };
+
+            return acc;
+        }, {} as TonStakersProviderConfig);
+
         this.cache = new StakingCache();
         log.info('TonStakersStakingProvider initialized');
     }
@@ -246,12 +222,6 @@ export class TonStakersStakingProvider extends StakingProvider {
 
         try {
             const targetNetwork = network ?? Network.mainnet();
-            const apiClient = this.getApiClient(targetNetwork);
-            const tonBalance = await apiClient.getBalance(userAddress);
-            const availableBalance =
-                BigInt(tonBalance) > CONTRACT.RECOMMENDED_FEE_RESERVE
-                    ? BigInt(tonBalance) - CONTRACT.RECOMMENDED_FEE_RESERVE
-                    : 0n;
 
             let stakedBalance = '0';
             let instantUnstakeAvailable = 0n;
@@ -271,8 +241,7 @@ export class TonStakersStakingProvider extends StakingProvider {
             }
 
             return {
-                stakedBalance: stakedBalance,
-                availableBalance: availableBalance.toString(),
+                stakedBalance, // in tsTON
                 instantUnstakeAvailable: instantUnstakeAvailable.toString(),
                 providerId: 'tonstakers',
             };
@@ -343,6 +312,15 @@ export class TonStakersStakingProvider extends StakingProvider {
         return new PoolContract(contractAddress, apiClient);
     }
 
+    private getApiClient(network?: Network): ApiClient {
+        const targetNetwork = network ?? Network.mainnet();
+        const apiClient = this.config[targetNetwork.chainId].apiClient;
+        if (!apiClient) {
+            throw new Error(`API client not found for chain ${targetNetwork.chainId}`);
+        }
+        return apiClient;
+    }
+
     private async getApyFromTonApi(network: Network): Promise<number> {
         const networkConfig = this.config[network.chainId];
         const token = networkConfig?.tonApiToken;
@@ -355,6 +333,6 @@ export class TonStakersStakingProvider extends StakingProvider {
             throw new Error('Invalid APY data from TonAPI');
         }
 
-        return Number(poolInfo.pool.apy) / 100;
+        return Number(poolInfo.pool.apy);
     }
 }
