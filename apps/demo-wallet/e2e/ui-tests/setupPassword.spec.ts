@@ -68,10 +68,7 @@ test.describe('SetupPassword', () => {
             });
         });
 
-        test('page reload stays on /setup-password when no password is set', async ({
-            setupPassword,
-            page,
-        }) => {
+        test('page reload stays on /setup-password when no password is set', async ({ setupPassword, page }) => {
             await step('Reload the page', async () => {
                 await page.reload({ waitUntil: 'load' });
             });
