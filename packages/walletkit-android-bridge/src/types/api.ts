@@ -25,7 +25,7 @@ import type {
     WalletResponse,
     IntentRequestEvent,
     BatchedIntentEvent,
-    TransactionDraftRequestEvent,
+    TransactionIntentRequestEvent,
     SignDataIntentRequestEvent,
     ActionIntentRequestEvent,
     IntentTransactionResponse,
@@ -281,7 +281,7 @@ export interface IsIntentUrlArgs {
 }
 
 export interface ApproveTransactionDraftArgs {
-    event: TransactionDraftRequestEvent;
+    event: TransactionIntentRequestEvent;
     walletId: string;
 }
 
