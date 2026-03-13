@@ -38,7 +38,7 @@ export interface IntentRequestBase extends BridgeEvent {
 /**
  * Transaction intent request event.
  *
- * Covers both `txIntent` (send) and `signMsg` (signOnly) from the spec.
+ * Covers both `txDraft` (send) and `signMsgDraft` (signOnly) from the spec.
  * The `deliveryMode` field distinguishes them.
  */
 export interface TransactionIntentRequestEvent extends IntentRequestBase {
@@ -91,7 +91,11 @@ export interface ActionIntentRequestEvent extends IntentRequestBase {
      * Action URL to fetch
      * @format url
      */
-    actionUrl: string;
+    actionUrl?: string;
+    /**
+     * Optional action type.
+     */
+    actionType?: string;
 }
 
 /**

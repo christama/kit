@@ -126,7 +126,7 @@ export class IntentHandler {
 
     // -- Public: Approval -----------------------------------------------------
 
-    async approveTransactionIntent(
+    async approveTransactionDraft(
         event: TransactionIntentRequestEvent,
         walletId: string,
     ): Promise<IntentTransactionResponse> {
@@ -283,11 +283,18 @@ export class IntentHandler {
         return result;
     }
 
-    async approveActionIntent(
+    async approveActionDraft(
         event: ActionIntentRequestEvent,
         walletId: string,
     ): Promise<IntentTransactionResponse | IntentSignDataResponse> {
         const wallet = this.getWallet(walletId);
+
+        if (!event.actionUrl) {
+            throw new WalletKitError(
+                ERROR_CODES.VALIDATION_ERROR,
+                'Action intent missing actionUrl, cannot fetch action response.',
+            );
+        }
 
         const actionResponse = await this.resolver.fetchActionUrl(event.actionUrl, wallet.getAddress());
         const resolvedEvent = this.parser.parseActionResponse(actionResponse, event);
@@ -296,7 +303,7 @@ export class IntentHandler {
             if (resolvedEvent.resolvedTransaction) {
                 resolvedEvent.resolvedTransaction.fromAddress = wallet.getAddress();
             }
-            return this.approveTransactionIntent(resolvedEvent, walletId);
+            return this.approveTransactionDraft(resolvedEvent, walletId);
         } else if (resolvedEvent.type === 'signData') {
             return this.approveSignDataIntent(resolvedEvent, walletId);
         }

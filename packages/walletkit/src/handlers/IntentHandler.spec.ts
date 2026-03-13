@@ -15,7 +15,7 @@ import type { Wallet } from '../api/interfaces';
 import type { TonWalletKitOptions } from '../types';
 import type {
     IntentRequestEvent,
-    TransactionIntentRequestEvent,
+    TransactionDraftRequestEvent,
     SignDataIntentRequestEvent,
     SignDataPayload,
     BatchedIntentEvent,
@@ -71,11 +71,11 @@ describe('IntentHandler', () => {
         handler = new IntentHandler(defaultOptions, bridgeManager, walletManager);
     });
 
-    // ── approveTransactionIntent ─────────────────────────────────────────────
+    // ── approveTransactionDraft ─────────────────────────────────────────────
 
-    describe('approveTransactionIntent', () => {
+    describe('approveTransactionDraft', () => {
         /** Helper to build an event with resolvedTransaction so IntentResolver is bypassed. */
-        function txEvent(overrides: Partial<TransactionIntentRequestEvent> = {}): TransactionIntentRequestEvent {
+        function txEvent(overrides: Partial<TransactionDraftRequestEvent> = {}): TransactionDraftRequestEvent {
             return {
                 type: 'transaction',
                 id: 'tx-1',
@@ -92,7 +92,7 @@ describe('IntentHandler', () => {
         }
 
         it('signs and sends a transaction, returns boc', async () => {
-            const result = await handler.approveTransactionIntent(txEvent(), 'wallet-1');
+            const result = await handler.approveTransactionDraft(txEvent(), 'wallet-1');
 
             expect(result.boc).toBe('signed-boc-base64');
             expect(mockWallet.getSignedSendTransaction).toHaveBeenCalled();
@@ -103,7 +103,7 @@ describe('IntentHandler', () => {
         });
 
         it('does not send boc when deliveryMode is signOnly', async () => {
-            const result = await handler.approveTransactionIntent(
+            const result = await handler.approveTransactionDraft(
                 txEvent({ id: 'tx-2', deliveryMode: 'signOnly' }),
                 'wallet-1',
             );
@@ -121,14 +121,14 @@ describe('IntentHandler', () => {
                 walletManager,
             );
 
-            await devHandler.approveTransactionIntent(txEvent({ id: 'tx-3' }), 'wallet-1');
+            await devHandler.approveTransactionDraft(txEvent({ id: 'tx-3' }), 'wallet-1');
             expect(
                 (mockWallet.getClient() as unknown as { sendBoc: ReturnType<typeof vi.fn> }).sendBoc,
             ).not.toHaveBeenCalled();
         });
 
         it('skips bridge send when clientId is absent', async () => {
-            await handler.approveTransactionIntent(txEvent({ id: 'tx-4', clientId: '' }), 'wallet-1');
+            await handler.approveTransactionDraft(txEvent({ id: 'tx-4', clientId: '' }), 'wallet-1');
             expect(bridgeManager.sendIntentResponse).not.toHaveBeenCalled();
         });
     });
@@ -219,7 +219,7 @@ describe('IntentHandler', () => {
 
             const url = buildInlineUrl('c1', {
                 id: 'tx-pcr',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [{ t: 'ton', a: 'EQAddr', am: '100' }],
                 c: { manifestUrl: 'https://dapp.com/m.json', items: [{ name: 'ton_addr' }] },
             });
@@ -237,7 +237,7 @@ describe('IntentHandler', () => {
     // ── handleIntentUrl batching ────────────────────────────────────────────
 
     describe('handleIntentUrl batching', () => {
-        it('emits BatchedIntentEvent for multi-item txIntent', async () => {
+        it('emits BatchedIntentEvent for multi-item txDraft', async () => {
             let emitted: IntentRequestEvent | BatchedIntentEvent | undefined;
             handler.onIntentRequest((e) => {
                 emitted = e;
@@ -245,7 +245,7 @@ describe('IntentHandler', () => {
 
             const url = buildInlineUrl('c-batch', {
                 id: 'tx-batch',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [
                     { t: 'ton', a: 'EQAddr1', am: '100' },
                     { t: 'ton', a: 'EQAddr2', am: '200' },
@@ -267,14 +267,14 @@ describe('IntentHandler', () => {
             // Each inner event is a transaction with one item
             expect(batch.intents[0].type).toBe('transaction');
             expect(batch.intents[0].id).toBe('tx-batch_0');
-            expect((batch.intents[0] as TransactionIntentRequestEvent).items).toHaveLength(1);
+            expect((batch.intents[0] as TransactionDraftRequestEvent).items).toHaveLength(1);
 
             expect(batch.intents[1].type).toBe('transaction');
             expect(batch.intents[1].id).toBe('tx-batch_1');
-            expect((batch.intents[1] as TransactionIntentRequestEvent).items).toHaveLength(1);
+            expect((batch.intents[1] as TransactionDraftRequestEvent).items).toHaveLength(1);
         });
 
-        it('emits regular IntentRequestEvent for single-item txIntent', async () => {
+        it('emits regular IntentRequestEvent for single-item txDraft', async () => {
             let emitted: IntentRequestEvent | BatchedIntentEvent | undefined;
             handler.onIntentRequest((e) => {
                 emitted = e;
@@ -282,7 +282,7 @@ describe('IntentHandler', () => {
 
             const url = buildInlineUrl('c-single', {
                 id: 'tx-single',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [{ t: 'ton', a: 'EQAddr1', am: '100' }],
             });
 
@@ -302,7 +302,7 @@ describe('IntentHandler', () => {
 
             const url = buildInlineUrl('c-conn', {
                 id: 'tx-conn',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [
                     { t: 'ton', a: 'EQAddr1', am: '100' },
                     { t: 'ton', a: 'EQAddr2', am: '200' },
@@ -365,7 +365,7 @@ describe('IntentHandler', () => {
 
         it('uses signOnly when any inner event has signOnly delivery', async () => {
             const batch = makeBatch();
-            (batch.intents[1] as TransactionIntentRequestEvent).deliveryMode = 'signOnly';
+            (batch.intents[1] as TransactionDraftRequestEvent).deliveryMode = 'signOnly';
 
             await handler.approveBatchedIntent(batch, 'wallet-1');
 
@@ -486,7 +486,7 @@ describe('IntentHandler', () => {
             } as unknown as WalletManager;
             const h = new IntentHandler(defaultOptions, bridgeManager, noWalletManager);
 
-            const event: TransactionIntentRequestEvent = {
+            const event: TransactionDraftRequestEvent = {
                 type: 'transaction',
                 id: 'tx-nw',
                 origin: 'deepLink',
@@ -499,18 +499,18 @@ describe('IntentHandler', () => {
                 },
             };
 
-            await expect(h.approveTransactionIntent(event, 'missing-wallet')).rejects.toThrow('Wallet not found');
+            await expect(h.approveTransactionDraft(event, 'missing-wallet')).rejects.toThrow('Wallet not found');
         });
     });
 });
 
 /**
- * Helper: Build a tc://intent_inline URL from a wire request object.
+ * Helper: Build a tc://?m=intent URL from a wire request object.
  */
 function buildInlineUrl(clientId: string, request: Record<string, unknown>, opts?: { traceId?: string }): string {
     const json = JSON.stringify(request);
     const b64 = Buffer.from(json, 'utf-8').toString('base64url');
-    let url = `tc://intent_inline?id=${clientId}&r=${b64}`;
+    let url = `tc://?m=intent&id=${clientId}&mp=${b64}`;
     if (opts?.traceId) url += `&trace_id=${opts.traceId}`;
     return url;
 }

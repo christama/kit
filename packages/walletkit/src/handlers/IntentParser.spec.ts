@@ -11,14 +11,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { IntentParser } from './IntentParser';
 
 /**
- * Helper: Build a tc://intent_inline URL from a wire request object.
- * Encodes the request as base64url in the `r` parameter.
+ * Helper: Build a tc://?m=intent URL from a wire request object.
+ * Encodes the request as base64url in the `mp` parameter.
  */
 function buildInlineUrl(clientId: string, request: Record<string, unknown>, opts?: { traceId?: string }): string {
     const json = JSON.stringify(request);
     // base64url encode
     const b64 = Buffer.from(json, 'utf-8').toString('base64url');
-    let url = `tc://intent_inline?id=${clientId}&r=${b64}`;
+    let url = `tc://?m=intent&id=${clientId}&mp=${b64}`;
     if (opts?.traceId) url += `&trace_id=${opts.traceId}`;
     return url;
 }
@@ -33,33 +33,33 @@ describe('IntentParser', () => {
     // ── isIntentUrl ──────────────────────────────────────────────────────────
 
     describe('isIntentUrl', () => {
-        it('returns true for tc://intent_inline URLs', () => {
-            expect(parser.isIntentUrl('tc://intent_inline?id=abc&r=data')).toBe(true);
+        it('returns true for m=intent URLs', () => {
+            expect(parser.isIntentUrl('tc://?m=intent&id=abc&mp=data')).toBe(true);
         });
 
-        it('returns true for tc://intent URLs', () => {
-            expect(parser.isIntentUrl('tc://intent?id=abc&pk=key&get_url=http://example.com')).toBe(true);
+        it('returns true for m=intent_remote URLs', () => {
+            expect(parser.isIntentUrl('tc://?m=intent_remote&id=abc&pk=key&get_url=http://example.com')).toBe(true);
         });
 
         it('is case-insensitive', () => {
-            expect(parser.isIntentUrl('TC://INTENT_INLINE?id=abc')).toBe(true);
-            expect(parser.isIntentUrl('  TC://INTENT?id=abc  ')).toBe(true);
+            expect(parser.isIntentUrl('TC://?M=INTENT&id=abc')).toBe(true);
+            expect(parser.isIntentUrl('  TC://?M=INTENT_REMOTE&id=abc  ')).toBe(true);
         });
 
         it('returns false for non-intent URLs', () => {
             expect(parser.isIntentUrl('https://example.com')).toBe(false);
-            expect(parser.isIntentUrl('tc://connect?id=abc')).toBe(false);
+            expect(parser.isIntentUrl('tc://?m=connect&id=abc')).toBe(false);
             expect(parser.isIntentUrl('')).toBe(false);
         });
     });
 
-    // ── parse – inline txIntent ──────────────────────────────────────────────
+    // ── parse – inline txDraft ──────────────────────────────────────────────
 
-    describe('parse – txIntent (inline)', () => {
+    describe('parse – txDraft (inline)', () => {
         it('parses a transaction intent with TON items', async () => {
             const url = buildInlineUrl('client-123', {
                 id: 'tx-1',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [
                     { t: 'ton', a: 'EQAddr1', am: '1000000000' },
                     { t: 'ton', a: 'EQAddr2', am: '2000000000', p: 'payload-b64' },
@@ -96,10 +96,10 @@ describe('IntentParser', () => {
             }
         });
 
-        it('parses signMsg as signOnly delivery mode', async () => {
+        it('parses signMsgDraft as signOnly delivery mode', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'sm-1',
-                m: 'signMsg',
+                m: 'signMsgDraft',
                 i: [{ t: 'ton', a: 'EQ1', am: '100' }],
             });
 
@@ -113,7 +113,7 @@ describe('IntentParser', () => {
         it('parses jetton items', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'j-1',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [
                     {
                         t: 'jetton',
@@ -146,7 +146,7 @@ describe('IntentParser', () => {
         it('parses NFT items', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'n-1',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [
                     {
                         t: 'nft',
@@ -171,13 +171,13 @@ describe('IntentParser', () => {
         });
     });
 
-    // ── parse – inline signIntent ────────────────────────────────────────────
+    // ── parse – inline signData ────────────────────────────────────────────
 
-    describe('parse – signIntent (inline)', () => {
+    describe('parse – signData (inline)', () => {
         it('parses a text sign data intent', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'si-1',
-                m: 'signIntent',
+                m: 'signData',
                 mu: 'https://example.com/manifest.json',
                 p: { type: 'text', text: 'Hello world' },
             });
@@ -198,7 +198,7 @@ describe('IntentParser', () => {
         it('parses a binary sign data intent', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'si-2',
-                m: 'signIntent',
+                m: 'signData',
                 mu: 'https://example.com/manifest.json',
                 p: { type: 'binary', bytes: 'AQID' },
             });
@@ -215,7 +215,7 @@ describe('IntentParser', () => {
         it('parses a cell sign data intent', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'si-3',
-                m: 'signIntent',
+                m: 'signData',
                 mu: 'https://example.com/manifest.json',
                 p: { type: 'cell', cell: 'te6cckEBAQEA', schema: 'MySchema' },
             });
@@ -233,7 +233,7 @@ describe('IntentParser', () => {
         it('uses manifestUrl from connect request when mu is absent', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'si-4',
-                m: 'signIntent',
+                m: 'signData',
                 c: {
                     manifestUrl: 'https://dapp.com/manifest.json',
                     items: [{ name: 'ton_addr' }],
@@ -249,14 +249,14 @@ describe('IntentParser', () => {
         });
     });
 
-    // ── parse – inline actionIntent ──────────────────────────────────────────
+    // ── parse – inline actionDraft ──────────────────────────────────────────
 
-    describe('parse – actionIntent (inline)', () => {
+    describe('parse – actionDraft (inline)', () => {
         it('parses an action intent', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'a-1',
-                m: 'actionIntent',
-                a: 'https://api.example.com/action',
+                m: 'actionDraft',
+                url: 'https://api.example.com/action',
             });
 
             const { event } = await parser.parse(url);
@@ -272,9 +272,9 @@ describe('IntentParser', () => {
 
     describe('parse – validation', () => {
         it('allows inline URL without client ID (fire-and-forget)', async () => {
-            const json = JSON.stringify({ id: 'x', m: 'txIntent', i: [{ t: 'ton', a: 'A', am: '1' }] });
+            const json = JSON.stringify({ id: 'x', m: 'txDraft', i: [{ t: 'ton', a: 'A', am: '1' }] });
             const b64 = Buffer.from(json).toString('base64url');
-            const url = `tc://intent_inline?r=${b64}`;
+            const url = `tc://?m=intent&mp=${b64}`;
 
             const { event } = await parser.parse(url);
             expect(event.type).toBe('transaction');
@@ -282,12 +282,12 @@ describe('IntentParser', () => {
         });
 
         it('rejects object storage URL without client ID', async () => {
-            const url = 'tc://intent?pk=abc123&get_url=https%3A%2F%2Fexample.com%2Fpayload';
+            const url = 'tc://?m=intent_remote&pk=abc123&get_url=https%3A%2F%2Fexample.com%2Fpayload';
             await expect(parser.parse(url)).rejects.toThrow('Missing client ID');
         });
 
         it('rejects URL without payload', async () => {
-            const url = 'tc://intent_inline?id=c1';
+            const url = 'tc://?m=intent&id=c1';
             await expect(parser.parse(url)).rejects.toThrow('Missing payload');
         });
 
@@ -296,30 +296,30 @@ describe('IntentParser', () => {
             await expect(parser.parse(url)).rejects.toThrow('Invalid intent method');
         });
 
-        it('rejects txIntent without items', async () => {
-            const url = buildInlineUrl('c1', { id: 'x', m: 'txIntent' });
+        it('rejects txDraft without items', async () => {
+            const url = buildInlineUrl('c1', { id: 'x', m: 'txDraft' });
             await expect(parser.parse(url)).rejects.toThrow('missing items');
         });
 
-        it('rejects txIntent with invalid item type', async () => {
-            const url = buildInlineUrl('c1', { id: 'x', m: 'txIntent', i: [{ t: 'unknown' }] });
+        it('rejects txDraft with invalid item type', async () => {
+            const url = buildInlineUrl('c1', { id: 'x', m: 'txDraft', i: [{ t: 'unknown' }] });
             await expect(parser.parse(url)).rejects.toThrow('Invalid intent item type');
         });
 
         it('rejects ton item missing address', async () => {
-            const url = buildInlineUrl('c1', { id: 'x', m: 'txIntent', i: [{ t: 'ton', am: '100' }] });
+            const url = buildInlineUrl('c1', { id: 'x', m: 'txDraft', i: [{ t: 'ton', am: '100' }] });
             await expect(parser.parse(url)).rejects.toThrow('missing address');
         });
 
         it('rejects ton item missing amount', async () => {
-            const url = buildInlineUrl('c1', { id: 'x', m: 'txIntent', i: [{ t: 'ton', a: 'A' }] });
+            const url = buildInlineUrl('c1', { id: 'x', m: 'txDraft', i: [{ t: 'ton', a: 'A' }] });
             await expect(parser.parse(url)).rejects.toThrow('missing amount');
         });
 
         it('rejects jetton item missing master address', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'x',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [{ t: 'jetton', ja: '100', d: 'D' }],
             });
             await expect(parser.parse(url)).rejects.toThrow('missing master address');
@@ -328,7 +328,7 @@ describe('IntentParser', () => {
         it('rejects jetton item missing amount', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'x',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [{ t: 'jetton', ma: 'MA', d: 'D' }],
             });
             await expect(parser.parse(url)).rejects.toThrow('missing amount');
@@ -337,7 +337,7 @@ describe('IntentParser', () => {
         it('rejects jetton item missing destination', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'x',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [{ t: 'jetton', ma: 'MA', ja: '100' }],
             });
             await expect(parser.parse(url)).rejects.toThrow('missing destination');
@@ -346,7 +346,7 @@ describe('IntentParser', () => {
         it('rejects NFT item missing address', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'x',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [{ t: 'nft', no: 'NO' }],
             });
             await expect(parser.parse(url)).rejects.toThrow('missing address');
@@ -355,44 +355,44 @@ describe('IntentParser', () => {
         it('rejects NFT item missing new owner', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'x',
-                m: 'txIntent',
+                m: 'txDraft',
                 i: [{ t: 'nft', na: 'NA' }],
             });
             await expect(parser.parse(url)).rejects.toThrow('missing new owner');
         });
 
-        it('rejects signIntent without manifest URL', async () => {
+        it('rejects signData without manifest URL', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'x',
-                m: 'signIntent',
+                m: 'signData',
                 p: { type: 'text', text: 'hello' },
             });
             await expect(parser.parse(url)).rejects.toThrow('missing manifest URL');
         });
 
-        it('rejects signIntent without payload', async () => {
+        it('rejects signData without payload', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'x',
-                m: 'signIntent',
+                m: 'signData',
                 mu: 'https://example.com/m.json',
             });
             await expect(parser.parse(url)).rejects.toThrow('missing payload');
         });
 
-        it('rejects actionIntent without action URL', async () => {
-            const url = buildInlineUrl('c1', { id: 'x', m: 'actionIntent' });
-            await expect(parser.parse(url)).rejects.toThrow('missing action URL');
+        it('rejects actionDraft without action URL', async () => {
+            const url = buildInlineUrl('c1', { id: 'x', m: 'actionDraft' });
+            await expect(parser.parse(url)).rejects.toThrow('missing url or action_type');
         });
 
         it('rejects request without id', async () => {
-            const url = buildInlineUrl('c1', { m: 'txIntent', i: [{ t: 'ton', a: 'A', am: '1' }] });
+            const url = buildInlineUrl('c1', { m: 'txDraft', i: [{ t: 'ton', a: 'A', am: '1' }] });
             await expect(parser.parse(url)).rejects.toThrow('missing id');
         });
 
         it('rejects unsupported sign data type', async () => {
             const url = buildInlineUrl('c1', {
                 id: 'x',
-                m: 'signIntent',
+                m: 'signData',
                 mu: 'https://example.com/m.json',
                 p: { type: 'unsupported' },
             });

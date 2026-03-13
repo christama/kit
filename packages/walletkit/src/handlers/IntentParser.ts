@@ -24,15 +24,14 @@ import type {
     Network,
 } from '../api/models';
 
-const INTENT_INLINE_SCHEME = 'tc://intent_inline';
-const INTENT_SCHEME = 'tc://intent';
+const TC_SCHEME = 'tc://';
 
 /**
  * Wire-format intent method identifiers from the TonConnect spec.
  */
-type WireIntentMethod = 'txIntent' | 'signMsg' | 'signIntent' | 'actionIntent';
+type WireIntentMethod = 'txDraft' | 'signMsgDraft' | 'signData' | 'actionDraft';
 
-const VALID_METHODS: WireIntentMethod[] = ['txIntent', 'signMsg', 'signIntent', 'actionIntent'];
+const VALID_METHODS: WireIntentMethod[] = ['txDraft', 'signMsgDraft', 'signData', 'actionDraft'];
 
 /**
  * Wire-format intent item types.
@@ -71,15 +70,16 @@ interface WireIntentRequest {
     id: string;
     m: WireIntentMethod;
     c?: ConnectRequest;
-    // txIntent / signMsg
+    // txDraft / signMsgDraft
     i?: WireIntentItem[];
     vu?: number;
     n?: string;
-    // signIntent
+    // signData
     mu?: string;
     p?: { type: string; text?: string; bytes?: string; schema?: string; cell?: string };
-    // actionIntent
-    a?: string;
+    // actionDraft
+    action_type?: string;
+    url?: string;
 }
 
 /**
@@ -118,12 +118,19 @@ export class IntentParser {
      */
     isIntentUrl(url: string): boolean {
         const normalized = url.trim().toLowerCase();
-        return normalized.startsWith(INTENT_INLINE_SCHEME) || normalized.startsWith(INTENT_SCHEME);
+        if (!normalized.startsWith(TC_SCHEME)) return false;
+        try {
+            const parsedUrl = new URL(url);
+            const method = parsedUrl.searchParams.get('m') || parsedUrl.searchParams.get('M');
+            return method?.toLowerCase() === 'intent' || method?.toLowerCase() === 'intent_remote';
+        } catch {
+            return false;
+        }
     }
 
     /**
      * Parse an intent URL into a typed IntentRequestEvent.
-     * Supports both `tc://intent_inline` (URL-embedded) and `tc://intent` (object storage).
+     * Supports both `m=intent` (URL-embedded) and `m=intent_remote` (object storage).
      */
     async parse(url: string): Promise<{ event: IntentRequestEvent; connectRequest?: ConnectRequest }> {
         const parsed = await this.parseUrl(url);
@@ -138,12 +145,18 @@ export class IntentParser {
             const clientId = parsedUrl.searchParams.get('id') || undefined;
 
             const normalized = url.trim().toLowerCase();
+            if (!normalized.startsWith(TC_SCHEME)) {
+                throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Unknown intent URL scheme');
+            }
 
-            if (normalized.startsWith(INTENT_INLINE_SCHEME)) {
+            const methodKey = Array.from(parsedUrl.searchParams.keys()).find((k) => k.toLowerCase() === 'm');
+            const method = methodKey ? parsedUrl.searchParams.get(methodKey)?.toLowerCase() : null;
+
+            if (method === 'intent') {
                 return this.parseInlinePayload(parsedUrl, clientId);
             }
 
-            if (normalized.startsWith(INTENT_SCHEME)) {
+            if (method === 'intent_remote') {
                 if (!clientId) {
                     throw new WalletKitError(
                         ERROR_CODES.VALIDATION_ERROR,
@@ -153,7 +166,7 @@ export class IntentParser {
                 return this.parseObjectStoragePayload(parsedUrl, clientId);
             }
 
-            throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Unknown intent URL scheme');
+            throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Unknown intent URL method');
         } catch (error) {
             if (error instanceof WalletKitError) throw error;
             throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Invalid intent URL format', error as Error);
@@ -161,9 +174,9 @@ export class IntentParser {
     }
 
     private parseInlinePayload(parsedUrl: URL, clientId: string | undefined): ParsedIntentUrl {
-        const encoded = parsedUrl.searchParams.get('r');
+        const encoded = parsedUrl.searchParams.get('mp');
         if (!encoded) {
-            throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Missing payload (r) in intent URL');
+            throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Missing payload (mp) in intent URL');
         }
         const traceId = parsedUrl.searchParams.get('trace_id') || undefined;
 
@@ -362,14 +375,14 @@ export class IntentParser {
         }
 
         switch (request.m) {
-            case 'txIntent':
-            case 'signMsg':
+            case 'txDraft':
+            case 'signMsgDraft':
                 this.validateTransactionItems(request);
                 break;
-            case 'signIntent':
+            case 'signData':
                 this.validateSignData(request);
                 break;
-            case 'actionIntent':
+            case 'actionDraft':
                 this.validateAction(request);
                 break;
         }
@@ -420,8 +433,8 @@ export class IntentParser {
     }
 
     private validateAction(request: WireIntentRequest): void {
-        if (!request.a) {
-            throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Action intent missing action URL (a)');
+        if (!request.url && !request.action_type) {
+            throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Action intent missing url or action_type');
         }
     }
 
@@ -453,7 +466,7 @@ export class IntentParser {
             case 'sendTransaction':
                 return this.parseActionTransaction(base, action);
             case 'signData':
-                return this.parseActionSignData(base, action, sourceEvent.actionUrl);
+                return this.parseActionSignData(base, action, sourceEvent.actionUrl || '');
             default:
                 throw new WalletKitError(
                     ERROR_CODES.VALIDATION_ERROR,
@@ -537,9 +550,9 @@ export class IntentParser {
         let event: IntentRequestEvent;
 
         switch (request.m) {
-            case 'txIntent':
-            case 'signMsg': {
-                const deliveryMode: IntentDeliveryMode = request.m === 'txIntent' ? 'send' : 'signOnly';
+            case 'txDraft':
+            case 'signMsgDraft': {
+                const deliveryMode: IntentDeliveryMode = request.m === 'txDraft' ? 'send' : 'signOnly';
                 event = {
                     type: 'transaction' as const,
                     ...base,
@@ -550,7 +563,7 @@ export class IntentParser {
                 };
                 break;
             }
-            case 'signIntent': {
+            case 'signData': {
                 const manifestUrl = request.mu || request.c?.manifestUrl || '';
                 event = {
                     type: 'signData' as const,
@@ -561,11 +574,12 @@ export class IntentParser {
                 };
                 break;
             }
-            case 'actionIntent': {
+            case 'actionDraft': {
                 event = {
                     type: 'action' as const,
                     ...base,
-                    actionUrl: request.a!,
+                    actionUrl: request.url || '',
+                    actionType: request.action_type,
                 };
                 break;
             }
