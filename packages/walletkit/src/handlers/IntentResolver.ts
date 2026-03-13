@@ -81,7 +81,23 @@ export class IntentResolver {
             );
         }
 
-        return response.json();
+        try {
+            return await response.json();
+        } catch (error) {
+            const rawBody = await response.text().catch(() => '');
+            if (rawBody.trim().startsWith('<')) {
+                throw new WalletKitError(
+                    ERROR_CODES.VALIDATION_ERROR,
+                    `Action URL returned HTML instead of JSON. Ensure the Action dApp endpoint returns a valid JSON payload.`,
+                    error as Error,
+                );
+            }
+            throw new WalletKitError(
+                ERROR_CODES.VALIDATION_ERROR,
+                `Action URL returned invalid JSON. ${(error as Error).message}`,
+                error as Error,
+            );
+        }
     }
 
     // -- Item resolution ------------------------------------------------------
