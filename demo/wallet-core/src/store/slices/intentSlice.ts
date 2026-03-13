@@ -10,8 +10,6 @@ import type {
     IntentRequestEvent,
     BatchedIntentEvent,
     TransactionIntentRequestEvent,
-    SignDataIntentRequestEvent,
-    ActionIntentRequestEvent,
     IntentTransactionResponse,
     IntentSignDataResponse,
 } from '@ton/walletkit';
@@ -128,16 +126,10 @@ export const createIntentSlice: IntentSliceCreator = (set: SetState, get) => ({
                     );
                     break;
                 case 'signData':
-                    result = await walletKit.approveSignDataIntent(
-                        cloneEvent(event),
-                        activeWallet.kitWalletId,
-                    );
+                    result = await walletKit.approveSignDataIntent(cloneEvent(event), activeWallet.kitWalletId);
                     break;
                 case 'action':
-                    result = await walletKit.approveActionDraft(
-                        cloneEvent(event),
-                        activeWallet.kitWalletId,
-                    );
+                    result = await walletKit.approveActionDraft(cloneEvent(event), activeWallet.kitWalletId);
                     break;
                 default:
                     throw new Error(`Unknown intent type: ${(event as IntentRequestEvent).type}`);
