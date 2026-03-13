@@ -16,7 +16,6 @@ import type {
     StakingQuote,
 } from '../../api/models';
 import type { StakingProviderInterface } from '../../api/interfaces';
-import { NetworkManager } from '../../core/NetworkManager';
 
 /**
  * Abstract base class for staking providers
@@ -25,7 +24,7 @@ import { NetworkManager } from '../../core/NetworkManager';
  * Users can extend this class to create custom staking providers.
  */
 export abstract class StakingProvider implements StakingProviderInterface {
-    readonly type = 'swap';
+    readonly type = 'staking';
     readonly providerId: string;
 
     constructor(providerId: string) {

@@ -8,7 +8,6 @@
 
 import type { FC } from 'react';
 import { useStaking } from '@demo/wallet-core';
-import { formatUnits } from '@ton/walletkit';
 
 import { Card } from '../Card';
 
@@ -22,7 +21,7 @@ export const StakingInfo: FC = () => {
                     <div>
                         <p className="text-sm text-gray-500 mb-1">Balance</p>
                         <p className="text-2xl font-bold text-gray-900">
-                            {stakedBalance?.stakedBalance ? formatUnits(stakedBalance?.stakedBalance, 9) : '0.00'} tsTON
+                            {stakedBalance?.stakedBalance ? stakedBalance?.stakedBalance : '0.00'} tsTON
                         </p>
                     </div>
                 </div>
@@ -44,7 +43,7 @@ export const StakingInfo: FC = () => {
                         <span className="text-sm text-gray-500">Instant Unstake Available</span>
                         <span className="text-sm font-medium">
                             {providerInfo?.instantUnstakeAvailable
-                                ? Number(formatUnits(providerInfo?.instantUnstakeAvailable, 9)).toFixed(4)
+                                ? Number(providerInfo?.instantUnstakeAvailable).toFixed(4)
                                 : '0.00'}{' '}
                             TON
                         </span>

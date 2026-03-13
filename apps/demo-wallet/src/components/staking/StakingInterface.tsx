@@ -8,7 +8,7 @@
 
 import type { FC, ChangeEvent } from 'react';
 import { useState } from 'react';
-import { formatUnits, useStaking } from '@demo/wallet-core';
+import { useStaking } from '@demo/wallet-core';
 import { useNavigate } from 'react-router-dom';
 
 import { Card } from '../Card';
@@ -121,7 +121,7 @@ export const StakingInterface: FC = () => {
                         <div className="flex justify-between text-sm">
                             <span className="text-blue-600">You will receive</span>
                             <span className="font-bold text-blue-900">
-                                {formatUnits(currentQuote.amountOut, 9)} {tab === 'stake' ? 'tsTON' : 'TON'}
+                                {currentQuote.amountOut} {tab === 'stake' ? 'tsTON' : 'TON'}
                             </span>
                         </div>
                     </div>

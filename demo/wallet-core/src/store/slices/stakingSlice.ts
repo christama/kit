@@ -6,7 +6,6 @@
  *
  */
 
-import { parseUnits } from '@ton/walletkit';
 import type { StakeParams, StakingQuoteParams, UnstakeParams } from '@ton/walletkit';
 
 import { createComponentLogger } from '../../utils/logger';
@@ -95,16 +94,7 @@ export const createStakingSlice: StakingSliceCreator = (set: SetState, get) => (
         });
 
         try {
-            const amount = parseUnits(params.amount, 9).toString();
-
-            const quote = await state.walletCore.walletKit.staking.getQuote(
-                {
-                    ...params,
-                    amount,
-                    network,
-                },
-                providerId,
-            );
+            const quote = await state.walletCore.walletKit.staking.getQuote({ ...params, network }, providerId);
 
             set((state) => {
                 state.staking.currentQuote = quote;

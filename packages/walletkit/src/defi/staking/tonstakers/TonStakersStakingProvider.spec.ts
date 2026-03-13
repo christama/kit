@@ -13,21 +13,12 @@ import { TonStakersStakingProvider } from './TonStakersStakingProvider';
 import { PoolContract } from './PoolContract';
 import { CONTRACT } from './constants';
 import { Network } from '../../../api/models';
-import type { Base64String, UnstakeMode } from '../../../api/models';
+import type { Base64String, UnstakeMode, UserFriendlyAddress } from '../../../api/models';
+import type { ApiClient } from '../../../types/toncenter/ApiClient';
 
 const mockApiClient = {
     runGetMethod: vi.fn(),
     getBalance: vi.fn(),
-};
-
-const mockNetworkManager = {
-    getClient: vi.fn(() => mockApiClient),
-};
-
-const mockEventEmitter = {
-    emit: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
 };
 
 describe('TonStakersStakingProvider', () => {
@@ -56,7 +47,12 @@ describe('TonStakersStakingProvider', () => {
             tsTONTONProjected: 1.1,
         });
 
-        provider = new TonStakersStakingProvider(mockNetworkManager as never, mockEventEmitter as never);
+        provider = new TonStakersStakingProvider({
+            [Network.mainnet().chainId]: {
+                apiClient: mockApiClient as unknown as ApiClient,
+                contractAddress: 'EQCkWxfyhAkim3g2DjKQQg8T5P4g-Q1-K_jErGcDJZ4i-vqR' as UserFriendlyAddress,
+            },
+        });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         getApyFromTonApiSpy = vi.spyOn(provider as any, 'getApyFromTonApi').mockResolvedValue(0.05);
@@ -64,7 +60,7 @@ describe('TonStakersStakingProvider', () => {
 
     describe('getQuote', () => {
         it('should return correct quote with APY for stake direction', async () => {
-            const amount = '1000000000';
+            const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'stake',
                 amount,
@@ -74,15 +70,15 @@ describe('TonStakersStakingProvider', () => {
 
             expect(quote.direction).toBe('stake');
             expect(quote.amountIn).toBe(amount);
-            // amountOut = 1000000000 / 1.1 = 909090909
-            expect(quote.amountOut).toBe('909090909');
+            // amountOut = 1 / 1.1 = 0.909090909
+            expect(quote.amountOut).toBe('0.909090909');
             expect(quote.providerId).toBe('tonstakers');
             expect(quote.apy).toBe(0.05);
             expect(getApyFromTonApiSpy).toHaveBeenCalled();
         });
 
         it('should return correct quote with unstakeMode for unstake direction', async () => {
-            const amount = '1000000000';
+            const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount,
@@ -93,8 +89,8 @@ describe('TonStakersStakingProvider', () => {
 
             expect(quote.direction).toBe('unstake');
             expect(quote.amountIn).toBe(amount);
-            // amountOut = 1000000000 * 1.05 = 1050000000
-            expect(quote.amountOut).toBe('1050000000');
+            // amountOut = 1 * 1.05 = 1.05
+            expect(quote.amountOut).toBe('1.050000000');
             expect(quote.providerId).toBe('tonstakers');
             expect(quote.unstakeMode).toBe('instant');
         });
@@ -102,7 +98,7 @@ describe('TonStakersStakingProvider', () => {
         it('should default to Delayed unstakeMode when not specified', async () => {
             const quote = await provider.getQuote({
                 direction: 'unstake',
-                amount: '1000000000',
+                amount: '1',
                 network: Network.mainnet(),
             });
 
@@ -112,7 +108,7 @@ describe('TonStakersStakingProvider', () => {
 
     describe('stake', () => {
         it('should build correct transaction with stake payload', async () => {
-            const amount = '1000000000';
+            const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'stake',
                 amount,
@@ -130,10 +126,10 @@ describe('TonStakersStakingProvider', () => {
             expect(tx.messages).toHaveLength(1);
 
             const message = tx.messages[0];
-            expect(message.address).toBe(CONTRACT.STAKING_CONTRACT_ADDRESS);
+            expect(message.address).toBe('EQCkWxfyhAkim3g2DjKQQg8T5P4g-Q1-K_jErGcDJZ4i-vqR');
             expect(message.payload).toBe('mock-stake-payload');
 
-            const expectedAmount = BigInt(amount) + CONTRACT.STAKE_FEE_RES;
+            const expectedAmount = CONTRACT.STAKE_FEE_RES + 1000000000n;
             expect(message.amount).toBe(expectedAmount.toString());
 
             expect(buildStakePayloadSpy).toHaveBeenCalledWith(1n);
@@ -142,7 +138,7 @@ describe('TonStakersStakingProvider', () => {
 
     describe('unstake', () => {
         it('should build correct transaction for Delayed mode', async () => {
-            const amount = '1000000000';
+            const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount,
@@ -170,7 +166,7 @@ describe('TonStakersStakingProvider', () => {
         });
 
         it('should build correct transaction for Instant mode', async () => {
-            const amount = '1000000000';
+            const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount,
@@ -193,7 +189,7 @@ describe('TonStakersStakingProvider', () => {
         });
 
         it('should build correct transaction for BestRate mode', async () => {
-            const amount = '1000000000';
+            const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount,
@@ -216,7 +212,7 @@ describe('TonStakersStakingProvider', () => {
         });
 
         it('should default to Delayed mode when unstakeMode not specified in quote', async () => {
-            const amount = '1000000000';
+            const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount,
@@ -244,7 +240,7 @@ describe('TonStakersStakingProvider', () => {
             { mode: 'instant', waitTillRoundEnd: false, fillOrKill: true },
             { mode: 'bestRate', waitTillRoundEnd: true, fillOrKill: false },
         ])('should set correct flags for $mode mode', async ({ mode, waitTillRoundEnd, fillOrKill }) => {
-            const amount = '1000000000';
+            const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount,
@@ -272,7 +268,7 @@ describe('TonStakersStakingProvider', () => {
             const info = await provider.getStakingProviderInfo(Network.mainnet());
 
             expect(info.apy).toBe(0.05);
-            expect(info.instantUnstakeAvailable).toBe('500000000000');
+            expect(info.instantUnstakeAvailable).toBe('500');
             expect(info.providerId).toBe('tonstakers');
             // Ensure exchange rates are NOT in the response
             expect(info).not.toHaveProperty('tsTONTON');
@@ -287,21 +283,9 @@ describe('TonStakersStakingProvider', () => {
 
             const balance = await provider.getStakedBalance(testUserAddress, Network.mainnet());
 
-            expect(balance.stakedBalance).toBe('1000000000');
-            // availableBalance = 2 TON - 1.1 TON reserve = 0.9 TON
-            expect(balance.availableBalance).toBe('900000000');
-            expect(balance.instantUnstakeAvailable).toBe('500000000000');
+            expect(balance.stakedBalance).toBe('1');
+            expect(balance.instantUnstakeAvailable).toBe('500');
             expect(balance.providerId).toBe('tonstakers');
-            expect(mockApiClient.getBalance).toHaveBeenCalledWith(testUserAddress);
-        });
-
-        it('should return 0 available balance if TON balance is below reserve', async () => {
-            mockApiClient.getBalance.mockResolvedValue('500000000'); // 0.5 TON
-            vi.spyOn(PoolContract.prototype, 'getStakedBalance').mockResolvedValue('0');
-
-            const balance = await provider.getStakedBalance(testUserAddress, Network.mainnet());
-
-            expect(balance.availableBalance).toBe('0');
         });
     });
 });

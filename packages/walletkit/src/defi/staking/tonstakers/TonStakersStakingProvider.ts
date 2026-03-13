@@ -87,9 +87,9 @@ export class TonStakersStakingProvider extends StakingProvider {
 
         if (params.direction === 'stake') {
             // User deposits TON, receives tsTON: tsTON = TON / rate
-            const amountInTokens = Number(formatUnits(params.amount, 9));
+            const amountInTokens = Number(params.amount);
             const amountOutTokens = amountInTokens / rates.tsTONTONProjected;
-            const amountOut = parseUnits(amountOutTokens.toFixed(9), 9).toString();
+            const amountOut = amountOutTokens.toFixed(9);
 
             return {
                 direction: 'stake',
@@ -101,12 +101,12 @@ export class TonStakersStakingProvider extends StakingProvider {
             };
         } else {
             // User burns tsTON, receives TON: TON = tsTON * rate
-            const amountInTokens = Number(formatUnits(params.amount, 9));
+            const amountInTokens = Number(params.amount);
             const amountOutTokens =
                 params.unstakeMode === 'instant'
                     ? amountInTokens * rates.tsTONTON
                     : amountInTokens * rates.tsTONTONProjected;
-            const amountOut = parseUnits(amountOutTokens.toFixed(9), 9).toString();
+            const amountOut = amountOutTokens.toFixed(9);
 
             return {
                 direction: 'unstake',
@@ -134,7 +134,7 @@ export class TonStakersStakingProvider extends StakingProvider {
 
         const network = params.quote.network;
         const contractAddress = this.getStakingContractAddress(network);
-        const amount = BigInt(params.quote.amountIn);
+        const amount = parseUnits(params.quote.amountIn, 9);
         const totalAmount = amount + CONTRACT.STAKE_FEE_RES;
 
         const contract = this.getContract(network);
@@ -168,7 +168,7 @@ export class TonStakersStakingProvider extends StakingProvider {
         log.debug('TonStakers unstake requested', { amount: params.quote.amountIn, userAddress: params.userAddress });
 
         const network = params.quote.network;
-        const amount = BigInt(params.quote.amountIn);
+        const amount = parseUnits(params.quote.amountIn, 9);
         const unstakeMode = params.quote.unstakeMode || 'delayed';
 
         let waitTillRoundEnd = false;
@@ -241,8 +241,8 @@ export class TonStakersStakingProvider extends StakingProvider {
             }
 
             return {
-                stakedBalance, // in tsTON
-                instantUnstakeAvailable: instantUnstakeAvailable.toString(),
+                stakedBalance: formatUnits(stakedBalance, 9), // in tsTON tokens
+                instantUnstakeAvailable: formatUnits(instantUnstakeAvailable, 9),
                 providerId: 'tonstakers',
             };
         } catch (error) {
@@ -276,7 +276,7 @@ export class TonStakersStakingProvider extends StakingProvider {
 
             return {
                 apy,
-                instantUnstakeAvailable: instantLiquidity.toString(),
+                instantUnstakeAvailable: formatUnits(instantLiquidity, 9),
                 providerId: 'tonstakers',
             };
         });
