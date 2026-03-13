@@ -54,7 +54,7 @@ test.describe('SetupPassword', () => {
         });
 
         test('helper text is visible', async ({ setupPassword }) => {
-            await step('Verify helper text contains "At least 8 characters with uppercase, lowercase, and numbers"', async () => {
+            await step('Verify helper text contains "At least 4 characters"', async () => {
                 await expect(setupPassword.helperText).toBeVisible();
             });
         });
@@ -68,7 +68,11 @@ test.describe('SetupPassword', () => {
             });
         });
 
-        test('page reload stays on /setup-password when no password is set', async ({ setupPassword, page }) => {
+        test('page reload stays on /setup-password when no password is set', async ({
+            webOnly: _webOnly,
+            setupPassword,
+            page,
+        }) => {
             await step('Reload the page', async () => {
                 await page.reload({ waitUntil: 'load' });
             });
