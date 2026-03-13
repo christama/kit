@@ -216,7 +216,7 @@ export type EventType =
     | 'disconnect'
     | 'restoreConnection'
     | 'txDraft'
-    | 'signMsg'
+    | 'signMsgDraft'
     | 'actionDraft';
 
 export interface EventHandler<T extends BridgeEvent = BridgeEvent, V extends RawBridgeEvent = RawBridgeEvent> {

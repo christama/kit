@@ -405,8 +405,8 @@ export class StorageEventStore implements EventStore {
             // Draft intent methods delivered via bridge when already connected
             case 'txDraft':
                 return 'txDraft';
-            case 'signMsg':
-                return 'signMsg';
+            case 'signMsgDraft':
+                return 'signMsgDraft';
             case 'actionDraft':
                 return 'actionDraft';
             default:
