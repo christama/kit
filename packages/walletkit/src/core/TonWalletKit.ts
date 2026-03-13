@@ -566,12 +566,12 @@ export class TonWalletKit implements ITonWalletKit {
         this.intentHandler.removeIntentRequestCallback(cb);
     }
 
-    async approveTransactionIntent(
+    async approveTransactionDraft(
         event: TransactionIntentRequestEvent,
         walletId: string,
     ): Promise<IntentTransactionResponse> {
         await this.ensureInitialized();
-        return this.intentHandler.approveTransactionIntent(event, walletId);
+        return this.intentHandler.approveTransactionDraft(event, walletId);
     }
 
     async approveSignDataIntent(event: SignDataIntentRequestEvent, walletId: string): Promise<IntentSignDataResponse> {
@@ -579,12 +579,12 @@ export class TonWalletKit implements ITonWalletKit {
         return this.intentHandler.approveSignDataIntent(event, walletId);
     }
 
-    async approveActionIntent(
+    async approveActionDraft(
         event: ActionIntentRequestEvent,
         walletId: string,
     ): Promise<IntentTransactionResponse | IntentSignDataResponse> {
         await this.ensureInitialized();
-        return this.intentHandler.approveActionIntent(event, walletId);
+        return this.intentHandler.approveActionDraft(event, walletId);
     }
 
     async approveBatchedIntent(
