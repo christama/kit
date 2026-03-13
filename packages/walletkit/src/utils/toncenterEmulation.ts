@@ -13,7 +13,6 @@ import type { EmulationTokenInfoWallets, ToncenterEmulationResponse } from '../t
 import { toTransactionEmulatedTrace } from '../types/toncenter/emulation';
 import type { ErrorInfo } from '../errors/WalletKitError';
 import { ERROR_CODES } from '../errors/codes';
-import { CallForSuccess } from './retry';
 import type {
     TransactionEmulatedPreview,
     TransactionTraceMoneyFlow,
@@ -297,7 +296,7 @@ export async function createTransactionPreview(
 
     let emulationResult: ToncenterEmulationResponse;
     try {
-        const emulatedResult = await CallForSuccess(() => client.fetchEmulation(txData, true));
+        const emulatedResult = await client.fetchEmulation(txData, true);
         if (emulatedResult.result === 'success') {
             emulationResult = emulatedResult.emulationResult;
         } else {
