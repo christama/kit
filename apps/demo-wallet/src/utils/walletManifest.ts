@@ -40,6 +40,7 @@ export function getTonConnectDeviceInfo(): DeviceInfo {
 }
 
 export function getTonConnectFeatures(): Feature[] {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return [
         'SendTransaction',
         {
@@ -50,6 +51,7 @@ export function getTonConnectFeatures(): Feature[] {
             name: 'SignData',
             types: ['text', 'binary', 'cell'],
         },
+        // Intent features (new in protocol — cast until @tonconnect/protocol types are updated)
         {
             name: 'SendTransactionDraft',
             types: ['ton', 'jetton', 'nft'],
@@ -65,5 +67,5 @@ export function getTonConnectFeatures(): Feature[] {
             name: 'Intents',
             types: ['txDraft', 'signMsgDraft', 'actionDraft', 'signData'],
         },
-    ];
+    ] as unknown as Feature[];
 }
