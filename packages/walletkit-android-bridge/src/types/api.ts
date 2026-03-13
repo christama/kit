@@ -25,7 +25,7 @@ import type {
     WalletResponse,
     IntentRequestEvent,
     BatchedIntentEvent,
-    TransactionIntentRequestEvent,
+    TransactionDraftRequestEvent,
     SignDataIntentRequestEvent,
     ActionIntentRequestEvent,
     IntentTransactionResponse,
@@ -280,8 +280,8 @@ export interface IsIntentUrlArgs {
     url: string;
 }
 
-export interface ApproveTransactionIntentArgs {
-    event: TransactionIntentRequestEvent;
+export interface ApproveTransactionDraftArgs {
+    event: TransactionDraftRequestEvent;
     walletId: string;
 }
 
@@ -373,9 +373,9 @@ export interface WalletKitBridgeApi {
     // Intent API
     isIntentUrl(args: IsIntentUrlArgs): PromiseOrValue<boolean>;
     handleIntentUrl(args: HandleIntentUrlArgs): PromiseOrValue<void>;
-    approveTransactionIntent(args: ApproveTransactionIntentArgs): PromiseOrValue<IntentTransactionResponse>;
+    approveTransactionDraft(args: ApproveTransactionDraftArgs): PromiseOrValue<IntentTransactionResponse>;
     approveSignDataIntent(args: ApproveSignDataIntentArgs): PromiseOrValue<IntentSignDataResponse>;
-    approveActionIntent(
+    approveActionDraft(
         args: ApproveActionIntentArgs,
     ): PromiseOrValue<IntentTransactionResponse | IntentSignDataResponse>;
     approveBatchedIntent(args: ApproveBatchedIntentArgs): PromiseOrValue<IntentTransactionResponse>;

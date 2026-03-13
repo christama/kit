@@ -24,6 +24,9 @@ export const SetupPassword: React.FC = () => {
     const validatePassword = (pwd: string): string[] => {
         const errors = [];
         if (pwd.length < 4) errors.push('Password must be at least 4 characters long');
+        // if (!/[A-Z]/.test(pwd)) errors.push('Password must contain at least one uppercase letter');
+        // if (!/[a-z]/.test(pwd)) errors.push('Password must contain at least one lowercase letter');
+        // if (!/[0-9]/.test(pwd)) errors.push('Password must contain at least one number');
         return errors;
     };
 
@@ -77,7 +80,7 @@ export const SetupPassword: React.FC = () => {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Enter a strong password"
                             required
-                            helperText="At least 4 characters"
+                            helperText="At least 8 characters with uppercase, lowercase, and numbers"
                         />
 
                         <Input

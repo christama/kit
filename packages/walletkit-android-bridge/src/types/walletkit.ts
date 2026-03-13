@@ -29,7 +29,7 @@ import type {
     SignDataIntentRequestEvent,
     SignDataRequestEvent,
     TONConnectSession,
-    TransactionIntentRequestEvent,
+    TransactionDraftRequestEvent,
     TransactionRequest,
     Wallet,
     WalletAdapter,
@@ -128,12 +128,12 @@ export interface WalletKitInstance {
     handleIntentUrl(url: string, walletId: string): Promise<void>;
     onIntentRequest(cb: (event: IntentRequestEvent | BatchedIntentEvent) => void): void;
     removeIntentRequestCallback(cb: (event: IntentRequestEvent | BatchedIntentEvent) => void): void;
-    approveTransactionIntent(
-        event: TransactionIntentRequestEvent,
+    approveTransactionDraft(
+        event: TransactionDraftRequestEvent,
         walletId: string,
     ): Promise<IntentTransactionResponse>;
     approveSignDataIntent(event: SignDataIntentRequestEvent, walletId: string): Promise<IntentSignDataResponse>;
-    approveActionIntent(
+    approveActionDraft(
         event: ActionIntentRequestEvent,
         walletId: string,
     ): Promise<IntentTransactionResponse | IntentSignDataResponse>;
