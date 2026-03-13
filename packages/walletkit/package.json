@@ -97,7 +97,7 @@
   "dependencies": {
     "@noble/curves": "^1.9.7",
     "@scure/bip39": "^2.0.1",
-    "@tonconnect/bridge-sdk": "^0.2.4",
+    "@tonconnect/bridge-sdk": "^0.2.8",
     "@tonconnect/protocol": "catalog:",
     "@tonconnect/sdk": "catalog:",
     "lru-cache": "^11.2.4",

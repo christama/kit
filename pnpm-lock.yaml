@@ -782,8 +782,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       '@tonconnect/bridge-sdk':
-        specifier: ^0.2.4
-        version: 0.2.4
+        specifier: ^0.2.8
+        version: 0.2.8
       '@tonconnect/protocol':
         specifier: 'catalog:'
         version: 2.4.0
@@ -3786,6 +3786,9 @@ packages:
   '@tonconnect/bridge-sdk@0.2.4':
     resolution: {integrity: sha512-W7fDoo8aT9FYnGPPLqh4Giiu1M5FP3GW4A+AeDB/xfTzM9XsO9aoWoSfrR1+QuNl2OmvtvneCFv4MnowM9+feg==}
 
+  '@tonconnect/bridge-sdk@0.2.8':
+    resolution: {integrity: sha512-bii7xs8+jeoBCXQM/VTA83EWGVnDhURrxI9YPGR3RQdSoA+EcxEiX2AGW6god3Ar8mk989eMXRCxcAVLGGHeLw==}
+
   '@tonconnect/isomorphic-eventsource@0.0.2':
     resolution: {integrity: sha512-B4UoIjPi0QkvIzZH5fV3BQLWrqSYABdrzZQSI9sJA9aA+iC0ohOzFwVVGXanlxeDAy1bcvPbb29f6sVUk0UnnQ==}
 
@@ -4619,6 +4622,9 @@ packages:
 
   bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
+
+  blakejs@1.2.1:
+    resolution: {integrity: sha512-QXUSXI3QVc/gJME0dBpXrag1kbzOqCjCX8/b54ntNyW6sjtoqxqRk3LTmXzaJoh71zMsDCjM+47jS7XiwN/+fQ==}
 
   bluebird@3.7.2:
     resolution: {integrity: sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==}
@@ -13726,6 +13732,16 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  '@tonconnect/bridge-sdk@0.2.8':
+    dependencies:
+      '@tonconnect/isomorphic-eventsource': 0.0.2
+      '@tonconnect/isomorphic-fetch': 0.0.3
+      '@tonconnect/protocol': 2.4.0
+      blakejs: 1.2.1
+      tweetnacl: 1.0.3
+    transitivePeerDependencies:
+      - encoding
+
   '@tonconnect/isomorphic-eventsource@0.0.2':
     dependencies:
       eventsource: 2.0.2
@@ -14791,6 +14807,8 @@ snapshots:
       buffer: 5.7.1
       inherits: 2.0.4
       readable-stream: 3.6.2
+
+  blakejs@1.2.1: {}
 
   bluebird@3.7.2: {}
 
