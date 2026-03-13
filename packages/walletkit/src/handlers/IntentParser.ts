@@ -184,7 +184,11 @@ export class IntentParser {
         let connectRequest: ConnectRequest | undefined;
         const rParam = parsedUrl.searchParams.get('r');
         if (rParam) {
-            try { connectRequest = JSON.parse(rParam) as ConnectRequest; } catch { /* optional */ }
+            try {
+                connectRequest = JSON.parse(rParam) as ConnectRequest;
+            } catch {
+                /* optional */
+            }
         }
 
         const json = this.decodePayload(encoded);
@@ -219,7 +223,11 @@ export class IntentParser {
         let connectRequest: ConnectRequest | undefined;
         const rParam = parsedUrl.searchParams.get('r');
         if (rParam) {
-            try { connectRequest = JSON.parse(rParam) as ConnectRequest; } catch { /* optional */ }
+            try {
+                connectRequest = JSON.parse(rParam) as ConnectRequest;
+            } catch {
+                /* optional */
+            }
         }
 
         const encryptedPayload = await this.fetchObjectStoragePayload(getUrl);
@@ -588,7 +596,11 @@ export class IntentParser {
             case 'signData': {
                 const params = request.params as SignDataParams;
                 let raw: Record<string, unknown> = {};
-                try { raw = JSON.parse(params[0]) as Record<string, unknown>; } catch { /* validated earlier */ }
+                try {
+                    raw = JSON.parse(params[0]) as Record<string, unknown>;
+                } catch {
+                    /* validated earlier */
+                }
                 event = {
                     type: 'signData' as const,
                     ...base,
