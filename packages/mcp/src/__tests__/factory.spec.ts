@@ -12,6 +12,7 @@ import { join } from 'node:path';
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { Network, Signer } from '@ton/walletkit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -25,7 +26,9 @@ vi.mock('../runtime/wallet-runtime.js', () => ({
 }));
 
 import { createStandardWalletRecord, createEmptyConfig, saveConfig } from '../registry/config.js';
+import { AgenticWalletAdapter } from '../contracts/agentic_wallet/AgenticWalletAdapter.js';
 import { createTonWalletMCP } from '../factory.js';
+import { createApiClient } from '../utils/ton-client.js';
 
 function parseToolResult(result: Awaited<ReturnType<Client['callTool']>>) {
     const first = result.content[0];
@@ -272,6 +275,9 @@ describe('createTonWalletMCP registry mode', () => {
         try {
             const listed = parseToolResult(await client.callTool({ name: 'list_wallets', arguments: {} }));
             const current = parseToolResult(await client.callTool({ name: 'get_current_wallet', arguments: {} }));
+            // const network = parseToolResult(
+            //     await client.callTool({ name: 'get_network_config', arguments: { network: 'mainnet' } }),
+            // );
 
             expect(listed.wallets[0]).toMatchObject({
                 id: wallet.id,
@@ -382,6 +388,63 @@ describe('createTonWalletMCP registry mode', () => {
             const text = result.content[0] && 'text' in result.content[0] ? result.content[0].text : '';
             expect(text).toContain('operator_private_key');
             expect(mocks.createMcpWalletServiceFromStoredWallet).not.toHaveBeenCalled();
+        } finally {
+            await client.close();
+            await server.close();
+        }
+    });
+});
+
+describe('createTonWalletMCP single-wallet mode', () => {
+    it('accepts a WalletKit signer directly', async () => {
+        const signer = await Signer.fromPrivateKey(Buffer.alloc(32, 7));
+        const server = await createTonWalletMCP({
+            signer,
+            network: 'mainnet',
+        });
+        const client = new Client({ name: 'mcp-test', version: '1.0.0' });
+        const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+        await server.connect(serverTransport);
+        await client.connect(clientTransport);
+
+        try {
+            const tools = await client.listTools();
+            const names = tools.tools.map((tool) => tool.name);
+            expect(names).toContain('get_wallet');
+            expect(names).not.toContain('list_wallets');
+
+            const wallet = parseToolResult(await client.callTool({ name: 'get_wallet', arguments: {} }));
+            expect(wallet).toMatchObject({
+                success: true,
+                network: 'mainnet',
+            });
+            expect(typeof wallet.address).toBe('string');
+        } finally {
+            await client.close();
+            await server.close();
+        }
+    });
+
+    it('detects agentic wallet version from the adapter when walletVersion is omitted', async () => {
+        const signer = await Signer.fromPrivateKey(Buffer.alloc(32, 9));
+        const clientApi = createApiClient('mainnet');
+        const adapter = await AgenticWalletAdapter.create(signer, {
+            client: clientApi,
+            network: Network.mainnet(),
+            walletAddress: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
+        });
+        const server = await createTonWalletMCP({ wallet: adapter });
+        const client = new Client({ name: 'mcp-test', version: '1.0.0' });
+        const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+        await server.connect(serverTransport);
+        await client.connect(clientTransport);
+
+        try {
+            const tools = await client.listTools();
+            const names = tools.tools.map((tool) => tool.name);
+            expect(names).toContain('agentic_deploy_subwallet');
         } finally {
             await client.close();
             await server.close();
