@@ -25,6 +25,7 @@ import type {
     Base64String,
     GetMethodResult,
     JettonsResponse,
+    MasterchainInfo,
     NFTsRequest,
     NFTsResponse,
     RawStackItem,
@@ -49,6 +50,7 @@ import type { TonApiJettonInfo, TonApiJettonsBalances } from './types/jettons';
 import type { TonApiNftItems, TonApiNftItem } from './types/nfts';
 import type { TonApiDnsResolveResponse, TonApiDnsBackresolveResponse } from './types/dns';
 import type { TonApiMethodExecutionResult } from './types/methods';
+import type { TonApiMasterchainHeadResponse } from './types/masterchain';
 import { mapTonApiGetMethodArgs, mapTonApiTvmStackRecord } from './mappers/map-methods';
 import { Base64Normalize, Base64ToBigInt, Base64ToHex, getNormalizedExtMessageHash, isHex } from '../../utils';
 import type { TonApiTransactionsResponse, TonApiTransaction } from './types/transactions';
@@ -57,6 +59,7 @@ import type { TonApiAccountEventsResponse } from './types/events';
 import { mapTonApiTransaction } from './mappers/map-transactions';
 import { mapTonApiTrace, mapTonApiTraceTransaction } from './mappers/map-traces';
 import { mapTonApiEvent } from './mappers/map-events';
+import { mapMasterchainInfo } from './mappers/map-masterchain-info';
 
 /**
  * @experimental
@@ -337,6 +340,11 @@ export class ApiClientTonApi extends BaseApiClient implements ApiClient {
             limit,
             hasNext: Number(response.next_from ?? 0) > 0 || pageEvents.length >= limit,
         };
+    }
+
+    async getMasterchainInfo(): Promise<MasterchainInfo> {
+        const raw = await this.getJson<TonApiMasterchainHeadResponse>(`/v2/blockchain/masterchain-head`);
+        return mapMasterchainInfo(raw);
     }
 
     protected appendAuthHeaders(headers: Headers): void {
