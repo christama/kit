@@ -373,9 +373,9 @@ export interface WalletKitBridgeApi {
     // Intent API
     isIntentUrl(args: IsIntentUrlArgs): PromiseOrValue<boolean>;
     handleIntentUrl(args: HandleIntentUrlArgs): PromiseOrValue<void>;
-    approveTransactionIntent(args: ApproveTransactionDraftArgs): PromiseOrValue<IntentTransactionResponse>;
+    approveTransactionDraft(args: ApproveTransactionDraftArgs): PromiseOrValue<IntentTransactionResponse>;
     approveSignDataIntent(args: ApproveSignDataIntentArgs): PromiseOrValue<IntentSignDataResponse>;
-    approveActionIntent(
+    approveActionDraft(
         args: ApproveActionIntentArgs,
     ): PromiseOrValue<IntentTransactionResponse | IntentSignDataResponse>;
     approveBatchedIntent(args: ApproveBatchedIntentArgs): PromiseOrValue<IntentTransactionResponse>;

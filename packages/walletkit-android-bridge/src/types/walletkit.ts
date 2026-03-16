@@ -130,7 +130,7 @@ export interface WalletKitInstance {
     removeIntentRequestCallback(cb: (event: IntentRequestEvent | BatchedIntentEvent) => void): void;
     approveTransactionDraft(event: TransactionIntentRequestEvent, walletId: string): Promise<IntentTransactionResponse>;
     approveSignDataIntent(event: SignDataIntentRequestEvent, walletId: string): Promise<IntentSignDataResponse>;
-    approveActionIntent(
+    approveActionDraft(
         event: ActionIntentRequestEvent,
         walletId: string,
     ): Promise<IntentTransactionResponse | IntentSignDataResponse>;
