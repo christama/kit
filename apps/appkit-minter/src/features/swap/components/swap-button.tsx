@@ -38,8 +38,6 @@ export const SwapButton: FC<SwapButtonProps> = ({ amount, direction, providerId 
         providerId,
     });
 
-    console.log(quote)
-
     const { mutateAsync: buildSwapTransaction } = useBuildSwapTransaction();
 
     const handleBuildSwapTransaction = () => {
