@@ -6,7 +6,7 @@
  *
  */
 
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
 import type {
@@ -21,6 +21,7 @@ import type {
 import { chmodIfExists, getConfigDir } from './config-path.js';
 import { LEGACY_AGENTIC_PRIVATE_KEY_FIELD, readPrivateKeyField } from './private-key-field.js';
 import type { LegacyPrivateKeyCompatible } from './private-key-field.js';
+import { readFileSync, writeFileSync } from './protected-file.js';
 
 export type SecretReadableValue = {
     secret_file?: string;
@@ -64,7 +65,6 @@ function persistSecretFile(
     mkdirSync(dirname(targetPath), { recursive: true, mode: 0o700 });
     chmodIfExists(dirname(targetPath), 0o700);
     writeFileSync(targetPath, normalizedValue + '\n', {
-        encoding: 'utf-8',
         mode: 0o600,
     });
     chmodIfExists(targetPath, 0o600);
@@ -82,7 +82,7 @@ function readSecretFile(filePath: string | undefined): string | undefined {
         return undefined;
     }
 
-    return trimSecret(readFileSync(resolvedPath, 'utf-8'));
+    return trimSecret(readFileSync(resolvedPath));
 }
 
 export function omitSecretRefFields<T extends { secret_file?: string; secret_type?: SecretType }>(

@@ -6,7 +6,7 @@
  *
  */
 
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
 
 import {
     MemoryStorageAdapter,
@@ -27,6 +27,7 @@ import {
 } from './private-key-files.js';
 import type { SecretMaterializationInput } from './private-key-files.js';
 import { chmodIfExists, getConfigDir, getConfigPath } from './config-path.js';
+import { readFileSync, writeFileSync } from './protected-file.js';
 import { parsePrivateKeyInput } from '../utils/private-key.js';
 import { createApiClient } from '../utils/ton-client.js';
 
@@ -149,7 +150,6 @@ function writeConfigFile(config: TonConfig): TonConfig {
     mkdirSync(getConfigDir(), { recursive: true, mode: 0o700 });
     chmodIfExists(getConfigDir(), 0o700);
     writeFileSync(getConfigPath(), JSON.stringify(config, null, 2) + '\n', {
-        encoding: 'utf-8',
         mode: 0o600,
     });
     chmodIfExists(getConfigDir(), 0o700);
@@ -180,7 +180,7 @@ function parseConfigFile(): { configPath: string; raw: unknown } | null {
     try {
         return {
             configPath,
-            raw: JSON.parse(readFileSync(configPath, 'utf-8')),
+            raw: JSON.parse(readFileSync(configPath)),
         };
     } catch (error) {
         throw new ConfigError(

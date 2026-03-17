@@ -6,7 +6,15 @@
  *
  */
 
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+    chmodSync,
+    existsSync,
+    mkdtempSync,
+    readFileSync as rawReadFileSync,
+    rmSync,
+    statSync,
+    writeFileSync as rawWriteFileSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -37,6 +45,7 @@ import {
     saveConfig,
     saveConfigTransition,
 } from '../registry/config-persistence.js';
+import { readFileSync } from '../registry/protected-file.js';
 import { LEGACY_AGENTIC_PRIVATE_KEY_FIELD } from '../registry/private-key-field.js';
 
 describe('mcp config registry', () => {
@@ -96,6 +105,12 @@ describe('mcp config registry', () => {
                 'utf-8',
             ).trim(),
         ).toBe('a '.repeat(24).trim());
+        expect(
+            rawReadFileSync(
+                loaded?.wallets[0]?.type === 'standard' ? resolveSecretPath(loaded.wallets[0].secret_file!) : '',
+                'utf-8',
+            ),
+        ).not.toContain('a '.repeat(24).trim());
 
         const fileMode = statSync(process.env.TON_CONFIG_PATH!).mode & 0o777;
         expect(fileMode).toBe(0o600);
@@ -105,7 +120,7 @@ describe('mcp config registry', () => {
     });
 
     it('migrates legacy config payloads to the current version on first read', async () => {
-        writeFileSync(
+        rawWriteFileSync(
             process.env.TON_CONFIG_PATH!,
             JSON.stringify({
                 mnemonic: 'abandon '.repeat(23) + 'about',
@@ -130,7 +145,7 @@ describe('mcp config registry', () => {
     });
 
     it('reads inline secrets from v2 payloads without writing files on load', () => {
-        writeFileSync(
+        rawWriteFileSync(
             process.env.TON_CONFIG_PATH!,
             JSON.stringify({
                 version: 2,
@@ -215,7 +230,7 @@ describe('mcp config registry', () => {
         expect(loaded?.pending_agentic_deployments?.[0]).not.toHaveProperty('secret_file');
         expect(loaded?.pending_agentic_key_rotations?.[0]).not.toHaveProperty('secret_file');
 
-        const persisted = JSON.parse(readFileSync(process.env.TON_CONFIG_PATH!, 'utf-8')) as Record<string, unknown>;
+        const persisted = JSON.parse(rawReadFileSync(process.env.TON_CONFIG_PATH!, 'utf-8')) as Record<string, unknown>;
         expect(persisted.version).toBe(2);
         const wallets = persisted.wallets as Array<Record<string, unknown>>;
         const deployments = persisted.pending_agentic_deployments as Array<Record<string, unknown>>;
@@ -227,7 +242,7 @@ describe('mcp config registry', () => {
     });
 
     it('upgrades a v2 config file to the current version on migration load', async () => {
-        writeFileSync(
+        rawWriteFileSync(
             process.env.TON_CONFIG_PATH!,
             JSON.stringify({
                 version: 2,
@@ -253,14 +268,15 @@ describe('mcp config registry', () => {
         const loaded = await loadConfigWithMigration();
         expect(loaded?.version).toBe(CURRENT_TON_CONFIG_VERSION);
 
-        const persisted = JSON.parse(readFileSync(process.env.TON_CONFIG_PATH!, 'utf-8')) as Record<string, unknown>;
+        const persisted = JSON.parse(readFileSync(process.env.TON_CONFIG_PATH!)) as Record<string, unknown>;
         expect(persisted.version).toBe(CURRENT_TON_CONFIG_VERSION);
         expect((persisted.wallets as Array<Record<string, unknown>>)[0]).not.toHaveProperty('mnemonic');
         expect((persisted.wallets as Array<Record<string, unknown>>)[0]).toHaveProperty('secret_file');
+        expect(rawReadFileSync(process.env.TON_CONFIG_PATH!, 'utf-8')).not.toContain('"version":');
     });
 
     it('materializes inline secrets from loaded v2 configs on explicit save', () => {
-        writeFileSync(
+        rawWriteFileSync(
             process.env.TON_CONFIG_PATH!,
             JSON.stringify({
                 version: 2,
@@ -342,13 +358,22 @@ describe('mcp config registry', () => {
             readFileSync(resolveSecretPath((saved.wallets[0] as { secret_file: string }).secret_file), 'utf-8').trim(),
         ).toBe('abandon '.repeat(23) + 'about');
         expect(
+            rawReadFileSync(resolveSecretPath((saved.wallets[0] as { secret_file: string }).secret_file), 'utf-8'),
+        ).not.toContain('abandon '.repeat(23) + 'about');
+        expect(
             readFileSync(
                 resolveSecretPath((saved.pending_agentic_key_rotations?.[0] as { secret_file: string }).secret_file),
                 'utf-8',
             ).trim(),
         ).toBe('0x' + '44'.repeat(32));
+        expect(
+            rawReadFileSync(
+                resolveSecretPath((saved.pending_agentic_key_rotations?.[0] as { secret_file: string }).secret_file),
+                'utf-8',
+            ),
+        ).not.toContain('0x' + '44'.repeat(32));
 
-        const persisted = JSON.parse(readFileSync(process.env.TON_CONFIG_PATH!, 'utf-8')) as Record<string, unknown>;
+        const persisted = JSON.parse(readFileSync(process.env.TON_CONFIG_PATH!)) as Record<string, unknown>;
         const wallets = persisted.wallets as Array<Record<string, unknown>>;
         const deployments = persisted.pending_agentic_deployments as Array<Record<string, unknown>>;
         const rotations = persisted.pending_agentic_key_rotations as Array<Record<string, unknown>>;
@@ -469,6 +494,15 @@ describe('mcp config registry', () => {
                 'utf-8',
             ).trim(),
         ).toBe('0x1111');
+        expect(
+            rawReadFileSync(
+                resolveSecretPath(
+                    ((loaded ?? createEmptyConfig()).pending_agentic_deployments[0] as { secret_file: string })
+                        .secret_file,
+                ),
+                'utf-8',
+            ),
+        ).not.toContain('0x1111');
     });
 
     it('stores generated secret file paths relative to the config directory', () => {
@@ -587,16 +621,14 @@ describe('mcp config registry', () => {
                 ),
             ).toThrow();
             expect(existsSync(secretPath)).toBe(true);
-            expect(readFileSync(process.env.TON_CONFIG_PATH!, 'utf-8')).toContain(
-                (loaded?.wallets[0] as { id: string }).id,
-            );
+            expect(readFileSync(process.env.TON_CONFIG_PATH!)).toContain((loaded?.wallets[0] as { id: string }).id);
         } finally {
             chmodSync(process.env.TON_CONFIG_PATH!, 0o600);
         }
     });
 
     it('throws for unsupported config version', () => {
-        writeFileSync(
+        rawWriteFileSync(
             process.env.TON_CONFIG_PATH!,
             JSON.stringify({
                 version: 999,

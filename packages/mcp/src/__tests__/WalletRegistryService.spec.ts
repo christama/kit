@@ -6,7 +6,13 @@
  *
  */
 
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+    existsSync,
+    mkdtempSync,
+    readFileSync as rawReadFileSync,
+    rmSync,
+    writeFileSync as rawWriteFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 
@@ -51,6 +57,7 @@ import {
     createStandardWalletRecord,
 } from '../registry/config.js';
 import { loadConfig, saveConfig } from '../registry/config-persistence.js';
+import { readFileSync } from '../registry/protected-file.js';
 import { WalletRegistryService } from '../services/WalletRegistryService.js';
 
 describe('WalletRegistryService', () => {
@@ -187,7 +194,7 @@ describe('WalletRegistryService', () => {
     });
 
     it('supports inline v2 secrets before creating a signing service', async () => {
-        writeFileSync(
+        rawWriteFileSync(
             process.env.TON_CONFIG_PATH!,
             JSON.stringify({
                 version: 2,
@@ -490,6 +497,9 @@ describe('WalletRegistryService', () => {
                 'utf-8',
             ).trim(),
         ).toBe('0xold-private');
+        expect(
+            rawReadFileSync(resolveSecretPath((stored?.wallets[0] as { secret_file: string }).secret_file), 'utf-8'),
+        ).not.toContain('0xold-private');
         expect(stored?.pending_agentic_key_rotations).toEqual([
             expect.objectContaining({
                 id: result.pendingRotation.id,
@@ -504,6 +514,12 @@ describe('WalletRegistryService', () => {
                 'utf-8',
             ).trim(),
         ).toBe('0xgenerated-private');
+        expect(
+            rawReadFileSync(
+                resolveSecretPath((stored?.pending_agentic_key_rotations?.[0] as { secret_file: string }).secret_file),
+                'utf-8',
+            ),
+        ).not.toContain('0xgenerated-private');
     });
 
     it('completes an agentic key rotation after the on-chain operator public key changes', async () => {
