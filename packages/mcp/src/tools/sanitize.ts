@@ -13,7 +13,7 @@ import type {
     StoredAgenticWallet,
     StoredWallet,
 } from '../registry/config.js';
-import { omitInlineSecretFields, omitSecretRefFields, readSecretMaterial } from '../registry/private-key-files.js';
+import { omitInlineSecretFields, omitSecretRefFields, readSecretMaterial, hasSecretFile } from '../registry/private-key-files.js';
 import type { AgenticRootWalletSetupStatus } from '../services/AgenticOnboardingService.js';
 
 interface PublicNetworkConfig {
@@ -24,10 +24,9 @@ interface PublicNetworkConfig {
 export function sanitizePrivateKeyBackedValue(
     value: StoredAgenticWallet | PendingAgenticDeployment | PendingAgenticKeyRotation,
 ) {
-    const secret = readSecretMaterial(value);
     return {
         ...(omitSecretRefFields(omitInlineSecretFields(value)) as Omit<typeof value, 'sign_method' | 'secret_type'>),
-        has_private_key: Boolean(secret),
+        has_private_key: hasSecretFile(value)
     };
 }
 

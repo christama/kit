@@ -186,6 +186,27 @@ export async function createMcpWalletServiceFromStoredWallet(input: {
     toncenterApiKey?: string;
     requiresSigning?: boolean;
 }): Promise<WalletServiceContext> {
+    if (!input.requiresSigning) {
+        const network = getKitNetwork(input.wallet.network);
+        const kit = await getSharedTonWalletKit(input.wallet.network, input.toncenterApiKey);
+        const service = await McpWalletService.createReadOnly({
+            address: input.wallet.address,
+            network,
+            client: kit.getApiClient(network),
+            contacts: input.contacts,
+            networks: {
+                [input.wallet.network]: input.toncenterApiKey ? { apiKey: input.toncenterApiKey } : undefined,
+            },
+        });
+
+        return {
+            service,
+            close: async () => {
+                await service.cleanup();
+            },
+        };
+    }
+
     return input.wallet.type === 'standard'
         ? createServiceFromStoredStandard(input.wallet, input.contacts, input.toncenterApiKey)
         : createServiceFromStoredAgentic(input.wallet, input.contacts, input.toncenterApiKey, input.requiresSigning);

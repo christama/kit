@@ -94,6 +94,11 @@ function readSecretFile(filePath: string | undefined): string | undefined {
     return trimSecret(readFileSync(resolvedPath));
 }
 
+export function hasSecretFile(value: { sign_method?: SignMethod }): boolean {
+    const filePath = getLocalFilePath(value.sign_method);
+    return Boolean(filePath && existsSync(resolvePrivateKeyPath(filePath)));
+}
+
 export function omitSecretRefFields<T extends { sign_method?: SignMethod; secret_type?: SecretType }>(
     value: T,
 ): Omit<T, 'sign_method' | 'secret_type'> {

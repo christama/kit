@@ -284,6 +284,53 @@ describe('WalletRegistryService', () => {
                 address: agentAddress,
                 ownerAddress,
             }),
+        },
+        {
+            name: 'standard wallets with an unreadable sign_method file',
+            wallet: createStandardWalletRecord({
+                name: 'Read-only standard',
+                network: 'mainnet',
+                walletVersion: 'v5r1',
+                address: mainAddress,
+                signMethod: { type: 'local_file', file_path: 'private-keys/missing.private-key' },
+                secretType: 'private_key',
+            }),
+        },
+    ])('allows read-only access without loading signing credentials for $name', async ({ wallet }) => {
+        saveConfig({
+            ...createEmptyConfig(),
+            active_wallet_id: wallet.id,
+            wallets: [wallet],
+        });
+
+        const close = vi.fn();
+        mocks.createMcpWalletServiceFromStoredWallet.mockResolvedValue({
+            service: { getAddress: () => wallet.address },
+            close,
+        });
+
+        const registry = new WalletRegistryService();
+        const context = await registry.createWalletService();
+
+        expect(context.wallet).toMatchObject({ id: wallet.id, address: wallet.address });
+        expect(context.close).toBe(close);
+        expect(mocks.createMcpWalletServiceFromStoredWallet).toHaveBeenCalledWith({
+            wallet: expect.objectContaining({ id: wallet.id }),
+            contacts: undefined,
+            toncenterApiKey: undefined,
+            requiresSigning: undefined,
+        });
+    });
+
+    it.each([
+        {
+            name: 'agentic wallets without operator key',
+            wallet: createAgenticWalletRecord({
+                name: 'Read-only agent',
+                network: 'mainnet',
+                address: agentAddress,
+                ownerAddress,
+            }),
             expectedError: /missing private_key/i,
         },
         {
