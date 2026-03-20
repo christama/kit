@@ -23,16 +23,6 @@ export { SwapManager, SwapProvider, SwapError } from './defi/swap';
 export { EventEmitter } from './core/EventEmitter';
 export type { EventListener } from './core/EventEmitter';
 export { ApiClientToncenter } from './clients/toncenter';
-export { ToncenterWebSocketClient, getGlobalWebSocketClient } from './core/ToncenterWebSocketClient';
-export type {
-    WebSocketSubscriptionConfig,
-    WebSocketEventHandlers,
-    TransactionEvent,
-    ActionEvent,
-    AccountStateChangeEvent,
-    JettonChangeEvent,
-    TraceInvalidatedEvent,
-} from './core/ToncenterWebSocketClient';
 export { ApiClientTonApi } from './clients/tonapi';
 export type { NetworkManager } from './core/NetworkManager';
 export { KitNetworkManager } from './core/NetworkManager';
@@ -107,7 +97,7 @@ export { DefaultSignature, DefaultDomainSignature, FakeSignature } from './utils
 export { wrapWalletInterface } from './core/Initializer';
 export type { NftTransferParamsHuman, NftTransferParamsRaw } from './types/nfts';
 
-export { isValidAddress } from './utils/address';
+export { isValidAddress, compareAddress } from './utils/address';
 export { validateTransactionMessage } from './validation';
 export { createDeviceInfo, createWalletManifest, getMaxOutgoingMessages } from './utils/getDefaultWalletConfig';
 export { Signer } from './utils/Signer';
@@ -172,3 +162,16 @@ export { formatUnits, parseUnits } from './utils/units';
 // API Interfaces
 export type * from './api/interfaces';
 export * from './api/models';
+
+export { TonCenterStreamingProvider, createTonCenterStreamingProviderFactory } from './streaming/toncenter';
+export type { TonCenterStreamingProviderConfig } from './streaming/toncenter';
+export { StreamingManager } from './streaming';
+export type {
+    StreamingProvider,
+    StreamingProviderListener,
+    BalanceUpdate,
+    TransactionsUpdate,
+    JettonUpdate,
+    TraceUpdate,
+    StreamingFinality,
+} from './streaming';

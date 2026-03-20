@@ -12,79 +12,92 @@ import { globalLogger } from './Logger';
 
 const log = globalLogger.createChild('EventEmitter');
 
-export type EventListener<T = unknown> = (data: T) => void;
+export type EventPayload = object;
+
+export interface KitEvent<T extends EventPayload = EventPayload> {
+    type: string;
+    payload: T;
+    source?: string;
+    timestamp: number;
+}
+
+export type EventListener<T extends EventPayload = EventPayload> = (event: KitEvent<T>) => void | Promise<void>;
 
 /**
  * Global event emitter for the TonWalletKit
- * Allows components to send and receive events throughout the kit
+ * Allows components to send and receive events throughout the kit.
  */
-export class EventEmitter {
-    private listeners: Map<string, Set<EventListener>> = new Map();
+export class EventEmitter<Events extends { [K in keyof Events]: EventPayload }> {
+    private listeners: Map<keyof Events, Set<EventListener>> = new Map();
+    // private listeners = new Map<keyof Events, Set<unknown>>();
 
     /**
-     * Subscribe to an event
+     * Subscribe to an event.
+     * Returns an unsubscribe function.
      */
-    on<T = unknown>(eventName: string, listener: EventListener<T>): void {
+    on<K extends keyof Events>(eventName: K, listener: EventListener<Events[K]>): () => void {
         if (!this.listeners.has(eventName)) {
             this.listeners.set(eventName, new Set());
         }
 
-        this.listeners.get(eventName)!.add(listener as EventListener);
-        log.debug('Event listener added', { eventName, totalListeners: this.listeners.get(eventName)!.size });
+        const eventListeners = this.listeners.get(eventName)!;
+
+        eventListeners.add(listener as EventListener);
+        log.debug('Event listener added', {
+            eventName: String(eventName),
+            totalListeners: eventListeners.size,
+        });
+
+        return () => this.off(eventName, listener);
     }
 
     /**
-     * Subscribe to an event once (automatically removes after first emission)
+     * Subscribe to an event once (automatically removes after first emission).
+     * Returns an unsubscribe function.
      */
-    once<T = unknown>(eventName: string, listener: EventListener<T>): void {
-        const onceListener = (data: T) => {
-            this.off(eventName, onceListener);
-            listener(data);
+    once<K extends keyof Events>(type: K, listener: EventListener<Events[K]>): () => void {
+        const wrapper = (event: KitEvent<Events[K]>) => {
+            this.off(type, wrapper);
+            listener(event);
         };
-        this.on(eventName, onceListener);
+
+        return this.on(type, wrapper);
     }
 
     /**
      * Unsubscribe from an event
      */
-    off<T = unknown>(eventName: string, listener: EventListener<T>): void {
-        const eventListeners = this.listeners.get(eventName);
-        if (eventListeners) {
-            eventListeners.delete(listener as EventListener);
-            log.debug('Event listener removed', { eventName, totalListeners: eventListeners.size });
-
-            // Clean up empty event sets
-            if (eventListeners.size === 0) {
-                this.listeners.delete(eventName);
-            }
-        }
+    off<K extends keyof Events>(type: K, listener: EventListener<Events[K]>): void {
+        this.listeners.get(type)?.delete(listener as EventListener);
     }
 
     /**
-     * Emit an event to all subscribers
+     * Emit an event to all subscribers.
      */
-    emit<T = unknown>(eventName: string, data?: T): void {
-        const eventListeners = this.listeners.get(eventName);
-        if (eventListeners) {
-            log.debug('Emitting event', { eventName, listenerCount: eventListeners.size });
+    emit<K extends keyof Events>(eventName: K, payload: Events[K], source: string): void {
+        const event: KitEvent<Events[K]> = {
+            type: eventName as string,
+            timestamp: Date.now(),
+            source,
+            payload,
+        };
 
-            eventListeners.forEach((listener) => {
-                try {
-                    listener(data);
-                } catch (error) {
-                    log.error('Error in event listener', { eventName, error });
-                }
+        const listeners = this.listeners.get(eventName);
+
+        if (listeners) {
+            listeners.forEach((listener) => {
+                (listener as EventListener<Events[K]>)(event);
             });
         }
     }
 
     /**
-     * Remove all listeners for a specific event
+     * Remove all listeners for a specific event or all events
      */
-    removeAllListeners(eventName?: string): void {
+    removeAllListeners(eventName?: keyof Events): void {
         if (eventName) {
             this.listeners.delete(eventName);
-            log.debug('All listeners removed for event', { eventName });
+            log.debug('All listeners removed for event', { eventName: String(eventName) });
         } else {
             this.listeners.clear();
             log.debug('All event listeners cleared');
@@ -94,7 +107,7 @@ export class EventEmitter {
     /**
      * Get the number of listeners for an event
      */
-    listenerCount(eventName: string): number {
+    listenerCount(eventName: keyof Events): number {
         return this.listeners.get(eventName)?.size || 0;
     }
 
@@ -102,7 +115,7 @@ export class EventEmitter {
      * Get all event names that have listeners
      */
     eventNames(): string[] {
-        return Array.from(this.listeners.keys());
+        return Array.from(this.listeners.keys()).map((k) => String(k));
     }
 }
 

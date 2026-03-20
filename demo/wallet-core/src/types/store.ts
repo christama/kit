@@ -12,6 +12,7 @@ import type {
     JettonTransfer,
     JettonInfo,
     ITonWalletKit,
+    TransactionsUpdate,
     NFT,
     Jetton,
     ConnectionRequestEvent,
@@ -70,9 +71,6 @@ export interface WalletManagementSlice {
         balance?: string;
         publicKey?: string;
 
-        /** Per-address local seqno for fast send */
-        localSeqnoByAddress: Record<string, LocalSeqnoEntry>;
-
         // Event history for active wallet
         events: unknown[];
         hasNextEvents: boolean;
@@ -125,6 +123,7 @@ export interface WalletManagementSlice {
     startWebSocketStreaming: () => Promise<void>;
     stopWebSocketStreaming: () => Promise<void>;
     updateWebSocketSubscription: () => Promise<void>;
+    handleStreamingTransactions: (update: TransactionsUpdate) => void;
 
     // Events-based history
     // addEvent: (event: unknown) => void;
@@ -202,7 +201,7 @@ export interface JettonsSlice {
 
     loadUserJettons: (userAddress?: string) => Promise<void>;
     refreshJettons: (userAddress?: string) => Promise<void>;
-    updateJettonBalanceFromStream: (walletAddress: string, balance: string) => void;
+    updateJettonBalanceFromStream: (walletAddress: string, balance: string, decimals?: number) => void;
     validateJettonAddress: (address: string) => boolean;
     clearJettons: () => void;
     getJettonByAddress: (jettonAddress: string) => Jetton | undefined;

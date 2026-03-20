@@ -20,8 +20,6 @@ import {
 import type { ITonWalletKit, ToncenterTransaction } from '@ton/walletkit';
 import { createWalletInitConfigLedger, createLedgerPath, createWalletV4R2Ledger } from '@demo/v4ledger-adapter';
 
-import type { LocalSeqnoEntry } from '../adapters/WalletV5SeqnoAdapter';
-import { WalletV5SeqnoAdapter } from '../adapters/WalletV5SeqnoAdapter';
 import type { CreateLedgerTransportFunction, LedgerConfig, PreviewTransaction, SavedWallet } from '../types/wallet';
 import type { NetworkType } from './network';
 import { createComponentLogger } from './logger';
@@ -44,12 +42,6 @@ export interface CreateWalletAdapterParams {
      * For React Native: () => TransportBLE.open(deviceId)
      */
     createLedgerTransport?: CreateLedgerTransportFunction;
-    /** For v5r1: wallet address for local seqno storage (uses WalletV5SeqnoAdapter) */
-    walletAddress?: string;
-    /** For v5r1: get local seqno for address */
-    getLocalSeqno?: (address: string) => LocalSeqnoEntry | undefined;
-    /** For v5r1: persist seqno after use */
-    setLocalSeqno?: (address: string, seqno: number) => void;
 }
 
 /**
@@ -65,16 +57,9 @@ export async function createWalletAdapter(params: CreateWalletAdapterParams): Pr
         walletKit,
         version = 'v5r1',
         createLedgerTransport,
-        walletAddress,
-        getLocalSeqno,
-        setLocalSeqno,
     } = params;
 
     let chainNetwork = getChainNetwork(network);
-    const baseAdapterOptions = {
-        client: walletKit.getApiClient(chainNetwork),
-        network: chainNetwork,
-    };
     let domain: SignatureDomain | undefined =
         network == 'tetra'
             ? {
@@ -103,18 +88,17 @@ export async function createWalletAdapter(params: CreateWalletAdapterParams): Pr
                 publicKey: Uint8ArrayToHex(keyPair.publicKey),
             };
 
-            if (version === 'v5r1' && walletAddress && getLocalSeqno) {
-                return await WalletV5SeqnoAdapter.create(customSigner, {
-                    ...baseAdapterOptions,
-                    walletAddress,
-                    getLocalSeqno,
-                    setLocalSeqno,
+            if (version === 'v5r1') {
+                return await WalletV5R1Adapter.create(customSigner, {
+                    client: walletKit.getApiClient(chainNetwork),
+                    network: chainNetwork,
+                });
+            } else {
+                return await WalletV4R2Adapter.create(customSigner, {
+                    client: walletKit.getApiClient(chainNetwork),
+                    network: chainNetwork,
                 });
             }
-            if (version === 'v5r1') {
-                return await WalletV5R1Adapter.create(customSigner, baseAdapterOptions);
-            }
-            return await WalletV4R2Adapter.create(customSigner, baseAdapterOptions);
         }
         case 'mnemonic': {
             if (!mnemonic) {
@@ -123,18 +107,17 @@ export async function createWalletAdapter(params: CreateWalletAdapterParams): Pr
 
             const signer = await Signer.fromMnemonic(mnemonic, { type: 'ton' }, domain);
 
-            if (version === 'v5r1' && walletAddress && getLocalSeqno) {
-                return await WalletV5SeqnoAdapter.create(signer, {
-                    ...baseAdapterOptions,
-                    walletAddress,
-                    getLocalSeqno,
-                    setLocalSeqno,
+            if (version === 'v5r1') {
+                return await WalletV5R1Adapter.create(signer, {
+                    client: walletKit.getApiClient(chainNetwork),
+                    network: chainNetwork,
+                });
+            } else {
+                return await WalletV4R2Adapter.create(signer, {
+                    client: walletKit.getApiClient(chainNetwork),
+                    network: chainNetwork,
                 });
             }
-            if (version === 'v5r1') {
-                return await WalletV5R1Adapter.create(signer, baseAdapterOptions);
-            }
-            return await WalletV4R2Adapter.create(signer, baseAdapterOptions);
         }
         case 'ledger': {
             if (!createLedgerTransport) {

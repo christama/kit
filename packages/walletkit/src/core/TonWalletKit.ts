@@ -41,6 +41,8 @@ import type { StorageEventProcessor } from './EventProcessor';
 import type { BridgeManager } from './BridgeManager';
 import type { BridgeEventMessageInfo, InjectedToExtensionBridgeRequestPayload } from '../types/jsBridge';
 import type { ApiClient } from '../types/toncenter/ApiClient';
+import { StreamingManager } from '../streaming/StreamingManager';
+import type { KitEvents, WalletKitEventEmitter } from '../types/emitter';
 import { AnalyticsManager } from '../analytics';
 import { getDeviceInfoForWallet } from '../utils/getDefaultWalletConfig';
 import { WalletKitError, ERROR_CODES } from '../errors';
@@ -88,6 +90,7 @@ export class TonWalletKit implements ITonWalletKit {
     private networkManager: NetworkManager;
     private jettonsManager!: JettonsManager;
     private swapManager: SwapManager;
+    private streamingManager: StreamingManager;
     private initializer: Initializer;
     private eventProcessor!: StorageEventProcessor;
     private bridgeManager!: BridgeManager;
@@ -95,7 +98,7 @@ export class TonWalletKit implements ITonWalletKit {
     private config: TonWalletKitOptions;
 
     // Event emitter for this kit instance
-    private eventEmitter: EventEmitter;
+    private eventEmitter: WalletKitEventEmitter;
 
     // State
     private isInitialized = false;
@@ -119,7 +122,8 @@ export class TonWalletKit implements ITonWalletKit {
         // Initialize NetworkManager for multi-network support
         this.networkManager = new KitNetworkManager(options);
 
-        this.eventEmitter = new EventEmitter();
+        this.eventEmitter = new EventEmitter<KitEvents>();
+        this.streamingManager = new StreamingManager(this.eventEmitter);
         this.initializer = new Initializer(options, this.eventEmitter, this.analyticsManager);
         // Auto-initialize (lazy)
         this.initializationPromise = this.initialize();
@@ -130,12 +134,11 @@ export class TonWalletKit implements ITonWalletKit {
         // Initialize SwapManager
         this.swapManager = new SwapManager();
 
-        this.eventEmitter.on('restoreConnection', async (event: RawBridgeEventRestoreConnection) => {
+        this.eventEmitter.on('restoreConnection', async ({ payload: event }) => {
             if (!event.domain) {
                 log.error('Domain is required for restore connection');
                 return this.sendErrorConnectResponse(event);
             }
-
             // We are passing isJsBridge true because restoreConnection is only performed
             // in an code that injected into web view or browser extension (e.g. injected bridge)
             const sessions = await this.sessionManager.getSessions({
@@ -791,10 +794,17 @@ export class TonWalletKit implements ITonWalletKit {
     }
 
     /**
+     * Streaming API access
+     */
+    get streaming(): StreamingManager {
+        return this.streamingManager;
+    }
+
+    /**
      * Get the event emitter for this kit instance
      * Allows external components to listen to and emit events
      */
-    getEventEmitter(): EventEmitter {
+    getEventEmitter(): WalletKitEventEmitter {
         return this.eventEmitter;
     }
 

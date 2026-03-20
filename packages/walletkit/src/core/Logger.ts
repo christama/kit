@@ -67,7 +67,7 @@ export interface LogContext {
 
 function getDefaultLogLevel(): LogLevel {
     if (typeof process === 'undefined' || typeof process?.env === 'undefined') {
-        return LogLevel.ERROR;
+        return LogLevel.INFO;
     }
     return process?.env?.WALLETKIT_LOG_LEVEL === 'debug'
         ? LogLevel.DEBUG
