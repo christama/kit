@@ -532,23 +532,7 @@ export class TonWalletKit implements ITonWalletKit {
         await this.ensureInitialized();
 
         try {
-            const parsedUrl = this.parseTonConnectUrl(url);
-            if (!parsedUrl) {
-                throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Invalid TON Connect URL format', undefined, {
-                    url,
-                });
-            }
-
-            const bridgeEvent = this.createConnectEventFromUrl(parsedUrl);
-            if (!bridgeEvent) {
-                throw new WalletKitError(
-                    ERROR_CODES.VALIDATION_ERROR,
-                    'Invalid TON Connect URL - unable to create bridge event',
-                    undefined,
-                    { parsedUrl },
-                );
-            }
-
+            const bridgeEvent = this.parseBridgeConnectEventFromUrl(url);
             const handler = new ConnectHandler(() => {}, this.config, this.analyticsManager);
             return await handler.handle(bridgeEvent);
         } catch (error) {
@@ -567,25 +551,7 @@ export class TonWalletKit implements ITonWalletKit {
         await this.ensureInitialized();
 
         try {
-            // Parse and validate the TON Connect URL
-            const parsedUrl = this.parseTonConnectUrl(url);
-            if (!parsedUrl) {
-                throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Invalid TON Connect URL format', undefined, {
-                    url,
-                });
-            }
-
-            // Create a bridge event from the parsed URL
-            const bridgeEvent = this.createConnectEventFromUrl(parsedUrl);
-            if (!bridgeEvent) {
-                throw new WalletKitError(
-                    ERROR_CODES.VALIDATION_ERROR,
-                    'Invalid TON Connect URL - unable to create bridge event',
-                    undefined,
-                    { parsedUrl },
-                );
-            }
-
+            const bridgeEvent = this.parseBridgeConnectEventFromUrl(url);
             await this.eventRouter.routeEvent(bridgeEvent);
         } catch (error) {
             log.error('Failed to handle TON Connect URL', { error, url });
@@ -611,6 +577,30 @@ export class TonWalletKit implements ITonWalletKit {
             walletAddress: asAddressFriendly(wallet.getAddress()),
         };
         await this.eventRouter.routeEvent(bridgeEvent);
+    }
+
+    /**
+     * Parse and validate TON Connect URL into a RawBridgeEventConnect
+     */
+    private parseBridgeConnectEventFromUrl(url: string): RawBridgeEventConnect {
+        const parsedUrl = this.parseTonConnectUrl(url);
+        if (!parsedUrl) {
+            throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Invalid TON Connect URL format', undefined, {
+                url,
+            });
+        }
+
+        const bridgeEvent = this.createConnectEventFromUrl(parsedUrl);
+        if (!bridgeEvent) {
+            throw new WalletKitError(
+                ERROR_CODES.VALIDATION_ERROR,
+                'Invalid TON Connect URL - unable to create bridge event',
+                undefined,
+                { parsedUrl },
+            );
+        }
+
+        return bridgeEvent;
     }
 
     /**
