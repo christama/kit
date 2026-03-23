@@ -69,7 +69,7 @@ export function readMaybeEncryptedFile(path: PathOrFileDescriptor): ProtectedFil
     return decodeProtectedText(raw);
 }
 
-export function writeMaybeEncryptedFile(
+export function writeEncryptedFile(
     path: PathOrFileDescriptor,
     data: string,
     options?: ProtectedFileWriteOptions,
