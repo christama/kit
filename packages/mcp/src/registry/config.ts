@@ -6,7 +6,7 @@
  *
  */
 
-import { chmodSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -22,6 +22,7 @@ import {
 import { formatAssetAddress, formatWalletAddress, normalizeAddressForComparison } from '../utils/address.js';
 import { parsePrivateKeyInput } from '../utils/private-key.js';
 import { createApiClient } from '../utils/ton-client.js';
+import { readFileSync, writeFileSync } from './protected-file.js';
 
 export type TonNetwork = 'mainnet' | 'testnet';
 export type StandardWalletVersion = 'v5r1' | 'v4r2';
