@@ -6,6 +6,7 @@
  *
  */
 
+import { Address } from '@ton/core';
 import type { ChainId, WalletResponseTemplateError } from '@tonconnect/protocol';
 import { SEND_TRANSACTION_ERROR_CODES } from '@tonconnect/protocol';
 
@@ -27,7 +28,6 @@ import type { EventEmitter } from '../core/EventEmitter';
 import type { WalletManager } from '../core/WalletManager';
 import type { ReturnWithValidationResult } from '../validation/types';
 import { WalletKitError, ERROR_CODES } from '../errors';
-import { Address } from '@ton/core';
 import type { Wallet } from '../api/interfaces';
 import type { TransactionEmulatedPreview, TransactionRequest, SignMessageRequestEvent } from '../api/models';
 import { Result } from '../api/models';
@@ -67,9 +67,7 @@ export class SignMessageHandler
         return event.method === 'signMessage';
     }
 
-    async handle(
-        event: RawBridgeEventSignMessage,
-    ): Promise<SignMessageRequestEvent | WalletResponseTemplateError> {
+    async handle(event: RawBridgeEventSignMessage): Promise<SignMessageRequestEvent | WalletResponseTemplateError> {
         const walletId = event.walletId;
         const walletAddress = event.walletAddress;
 

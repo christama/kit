@@ -48,10 +48,7 @@ export type {
     SendTransactionRequestEventPreview,
 } from './bridge/SendTransactionRequestEvent';
 export type { SignMessageApprovalResponse } from './bridge/SignMessageApprovalResponse';
-export type {
-    SignMessageRequestEvent,
-    SignMessageRequestEventPreview,
-} from './bridge/SignMessageRequestEvent';
+export type { SignMessageRequestEvent, SignMessageRequestEventPreview } from './bridge/SignMessageRequestEvent';
 export type { RequestErrorEvent } from './bridge/RequestErrorEvent';
 export type { TONConnectSession } from './sessions/TONConnectSession';
 
