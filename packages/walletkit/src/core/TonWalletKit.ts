@@ -60,9 +60,11 @@ import type {
     RequestErrorEvent,
     DisconnectionEvent,
     SignDataRequestEvent,
+    SignMessageRequestEvent,
     ConnectionRequestEvent,
     SendTransactionApprovalResponse,
     SignDataApprovalResponse,
+    SignMessageApprovalResponse,
     TONConnectSession,
     ConnectionApprovalResponse,
     IntentRequestEvent,
@@ -536,6 +538,20 @@ export class TonWalletKit implements ITonWalletKit {
         this.eventRouter.removeSignDataRequestCallback();
     }
 
+    onSignMessageRequest(cb: (event: SignMessageRequestEvent) => void): void {
+        if (this.eventRouter) {
+            this.eventRouter.onSignMessageRequest(cb);
+        } else {
+            this.ensureInitialized().then(() => {
+                this.eventRouter.onSignMessageRequest(cb);
+            });
+        }
+    }
+
+    removeSignMessageRequestCallback(): void {
+        this.eventRouter.removeSignMessageRequestCallback();
+    }
+
     removeDisconnectCallback(): void {
         this.eventRouter.removeDisconnectCallback();
     }
@@ -817,6 +833,19 @@ export class TonWalletKit implements ITonWalletKit {
     async rejectSignDataRequest(event: SignDataRequestEvent, reason?: string): Promise<void> {
         await this.ensureInitialized();
         return this.requestProcessor.rejectSignDataRequest(event, reason);
+    }
+
+    async approveSignMessageRequest(
+        event: SignMessageRequestEvent,
+        response?: SignMessageApprovalResponse,
+    ): Promise<SignMessageApprovalResponse> {
+        await this.ensureInitialized();
+        return this.requestProcessor.approveSignMessageRequest(event, response);
+    }
+
+    async rejectSignMessageRequest(event: SignMessageRequestEvent, reason?: string): Promise<void> {
+        await this.ensureInitialized();
+        return this.requestProcessor.rejectSignMessageRequest(event, reason);
     }
 
     // === TON Client Access ===
