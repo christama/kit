@@ -596,7 +596,7 @@ export const createWalletManagementSlice =
             });
 
             const unwatchJettons = streaming.watchJettons(network, address, (update) => {
-                get().updateJettonBalanceFromStream(update.walletAddress, update.balance, update.decimals);
+                get().updateJettonBalanceFromStream(update.walletAddress, update.rawBalance, update.decimals);
 
                 const hasJetton = get().jettons.userJettons.some((j) =>
                     compareAddress(j.walletAddress, update.walletAddress),
@@ -658,7 +658,7 @@ export const createWalletManagementSlice =
                 return;
             }
 
-            if (update.invalidated && update.traceHash) {
+            if (update.status === 'invalidated' && update.traceHash) {
                 set((s) => {
                     s.walletManagement.pendingTransactions = s.walletManagement.pendingTransactions.filter(
                         (p) => p.externalHash !== update.traceHash && p.traceId !== update.traceHash,
@@ -708,7 +708,7 @@ export const createWalletManagementSlice =
                     traceId,
                     externalHash,
                     action: undefined,
-                    finality: update.finality ?? 'pending',
+                    finality: update.status,
                     preview: {
                         type: previewType,
                         amount: previewAmount,
@@ -728,7 +728,7 @@ export const createWalletManagementSlice =
             });
 
             // On confirmed/finalized, refresh events and balance from REST
-            if (update.finality === 'confirmed' || update.finality === 'finalized') {
+            if (update.status === 'confirmed' || update.status === 'finalized') {
                 void get().loadEvents();
             }
         },

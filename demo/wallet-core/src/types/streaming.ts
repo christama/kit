@@ -88,5 +88,5 @@ export interface PendingTransaction {
     /** Parsed action from trace (jetton/TON/etc) - used when available for correct display */
     action?: Action;
     /** Set when WebSocket reports confirmed/finalized - show as done, not pending */
-    finality?: 'pending' | 'confirmed' | 'finalized';
+    finality?: 'pending' | 'confirmed' | 'finalized' | 'invalidated';
 }

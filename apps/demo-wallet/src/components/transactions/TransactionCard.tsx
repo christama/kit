@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 
 import { formatTimestamp } from '../../utils';
 
-export type TxFinality = 'pending' | 'confirmed' | 'finalized' | 'done';
+export type TxFinality = 'pending' | 'confirmed' | 'finalized' | 'invalidated' | 'done';
 
 export interface TransactionCardProps {
     description: string;
@@ -65,6 +65,15 @@ const StatusBadge: React.FC<{ finality: TxFinality; isFailed?: boolean }> = ({ f
                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                         clipRule="evenodd"
                     />
+                </svg>
+            </div>
+        );
+    }
+    if (finality === 'invalidated') {
+        return (
+            <div className={`${base} bg-red-400`} title="Invalidated">
+                <svg className="w-1.5 h-1.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </div>
         );
@@ -133,9 +142,11 @@ export const TransactionCard: React.FC<TransactionCardProps> = memo(
                   ? 'Confirmed'
                   : finality === 'finalized'
                     ? 'Finalized'
-                    : isFailed
-                      ? 'Failed'
-                      : formatTimestamp(timestamp);
+                    : finality === 'invalidated'
+                      ? 'Invalidated'
+                      : isFailed
+                        ? 'Failed'
+                        : formatTimestamp(timestamp);
 
         const statusColor =
             finality === 'pending'
@@ -144,9 +155,11 @@ export const TransactionCard: React.FC<TransactionCardProps> = memo(
                   ? 'text-blue-600'
                   : finality === 'finalized'
                     ? 'text-indigo-600'
-                    : isFailed
-                      ? 'text-red-500'
-                      : 'text-gray-400';
+                    : finality === 'invalidated'
+                      ? 'text-red-600'
+                      : isFailed
+                        ? 'text-red-500'
+                        : 'text-gray-400';
 
         const inner = (
             <>

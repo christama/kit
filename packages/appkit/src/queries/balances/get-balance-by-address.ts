@@ -72,9 +72,14 @@ export const handleBalanceUpdate = (
     { address, network }: { address: string; network: Network },
     update: BalanceUpdate,
 ) => {
-    if (update.finality === 'finalized') {
+    if (update.status === 'finalized') {
         const queryKey = getBalanceByAddressQueryKey({ address, network });
         queryClient.setQueryData(queryKey, update.balance);
         sleep(5000).then(() => queryClient.invalidateQueries({ queryKey }));
+    }
+
+    if (update.status === 'invalidated') {
+        const queryKey = getBalanceByAddressQueryKey({ address, network });
+        queryClient.invalidateQueries({ queryKey });
     }
 };

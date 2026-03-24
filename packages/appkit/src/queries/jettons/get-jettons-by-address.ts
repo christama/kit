@@ -73,7 +73,7 @@ export const handleJettonsUpdate = (
     { address, network }: { address: string; network: Network },
     update: JettonUpdate,
 ) => {
-    if (update.finality === 'finalized') {
+    if (update.status === 'finalized') {
         const queryKey = getJettonsByAddressQueryKey({ address, network });
         const currentData = queryClient.getQueryData(queryKey) as GetJettonsByAddressData | undefined;
 
@@ -84,7 +84,7 @@ export const handleJettonsUpdate = (
             if (jetton && decimals) {
                 const updatedJetton = {
                     ...jetton,
-                    balance: formatUnits(update.balance, decimals),
+                    balance: formatUnits(update.rawBalance, decimals),
                 };
                 const newJettons = currentData.jettons.map((j) =>
                     compareAddress(j.address, update.masterAddress) ? updatedJetton : j,
@@ -96,5 +96,10 @@ export const handleJettonsUpdate = (
             }
         }
         sleep(5000).then(() => queryClient.invalidateQueries({ queryKey }));
+    }
+
+    if (update.status === 'invalidated') {
+        const queryKey = getJettonsByAddressQueryKey({ address, network });
+        queryClient.invalidateQueries({ queryKey });
     }
 };

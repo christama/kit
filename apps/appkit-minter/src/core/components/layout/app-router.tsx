@@ -25,13 +25,13 @@ export const AppRouter: React.FC = () => {
                 const hash = update.traceHash;
                 const shortHash = `${hash.slice(0, 6)}...${hash.slice(-4)}`;
 
-                if (update.finality === 'finalized') {
-                    toast.success(`Transaction ${shortHash} finalized`, {
-                        id: hash,
-                    });
+                if (update.status === 'invalidated') {
+                    toast.error(`Transaction ${shortHash} invalidated`, { id: hash });
+                } else if (update.status === 'finalized') {
+                    toast.success(`Transaction ${shortHash} finalized`, { id: hash });
                 } else {
                     const message =
-                        update.finality === 'confirmed'
+                        update.status === 'confirmed'
                             ? `Transaction ${shortHash} confirmed`
                             : `Transaction ${shortHash} pending...`;
 
