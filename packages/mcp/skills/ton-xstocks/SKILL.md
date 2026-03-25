@@ -27,7 +27,7 @@ Backed **xStocks** are jettons on TON. Resolve the **jetton master** from the pu
 
 2. In the JSON, find `deployments[]` where **`network` is `"Ton"`**. Use that object's **`address`** as the jetton master for MCP (`fromToken` / `toToken`).
 
-3. Optional: `GET .../public/assets` returns all assets with the same `deployments` shape.
+3. Optional: `GET https://api.xstocks.fi/api/v2/public/assets` returns all assets with the same `deployments` shape.
 
 4. Call `get_jetton_info` with that address to confirm **name / symbol / decimals** before swapping.
 
