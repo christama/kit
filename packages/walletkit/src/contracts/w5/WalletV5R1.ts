@@ -14,6 +14,9 @@ import type { WalletOptions } from '../Wallet';
 import { defaultWalletIdV5R1 } from './WalletV5R1Adapter';
 import { ParseStack } from '../../utils/tvmStack';
 import { asAddressFriendly } from '../../utils';
+import { globalLogger } from '../../core/Logger';
+
+const log = globalLogger.createChild('WalletV5R1');
 
 export type WalletV5Config = {
     signatureAllowed: boolean;
@@ -166,8 +169,16 @@ export class WalletV5 implements Contract {
             if (state.status === 'non-existing' || state.status === 'uninitialized' || !state.data) {
                 return 0;
             }
-            const dataCell = Cell.fromBase64(state.data);
-            return dataCell.asSlice().skip(1).loadUint(32);
+            try {
+                const dataCell = Cell.fromBase64(state.data);
+                if (dataCell.bits.length < 33) {
+                    return 0;
+                }
+                return dataCell.asSlice().skip(1).loadUint(32);
+            } catch (error) {
+                log.error('Failed to get seqno', { error });
+                return 0;
+            }
         });
     }
 
