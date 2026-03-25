@@ -1,5 +1,11 @@
 # @ton/mcp
 
+## 0.1.15-alpha.12
+
+### Patch Changes
+
+- Updated agentic dashboard URL from `agentic-wallets-dashboard.vercel.app` to `agents.ton.org`
+
 ## 0.1.15-alpha.11
 
 ### Patch Changes

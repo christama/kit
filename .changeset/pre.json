@@ -21,6 +21,7 @@
     "cli-help-flag",
     "fix-jetton-param-naming",
     "short-kings-flow",
-    "tricky-bags-retire"
+    "tricky-bags-retire",
+    "update-agentic-dashboard-url"
   ]
 }
