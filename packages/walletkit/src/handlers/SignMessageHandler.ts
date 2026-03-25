@@ -21,16 +21,13 @@ import type {
 import { validateTransactionMessages as validateTonConnectTransactionMessages } from '../validation/transaction';
 import { globalLogger } from '../core/Logger';
 import { isValidAddress } from '../utils/address';
-import { createTransactionPreview as createTransactionPreviewHelper } from '../utils/toncenterEmulation';
 import { BasicHandler } from './BasicHandler';
-import { CallForSuccess } from '../utils/retry';
 import type { EventEmitter } from '../core/EventEmitter';
 import type { WalletManager } from '../core/WalletManager';
 import type { ReturnWithValidationResult } from '../validation/types';
 import { WalletKitError, ERROR_CODES } from '../errors';
 import type { Wallet } from '../api/interfaces';
-import type { TransactionEmulatedPreview, TransactionRequest, SignMessageRequestEvent } from '../api/models';
-import { Result } from '../api/models';
+import type { TransactionRequest, SignMessageRequestEvent } from '../api/models';
 import type { Analytics, AnalyticsManager } from '../analytics';
 import type { TONConnectSessionManager } from '../api/interfaces/TONConnectSessionManager';
 
@@ -51,7 +48,7 @@ export class SignMessageHandler
 
     constructor(
         notify: (event: SignMessageRequestEvent) => void,
-        private readonly config: TonWalletKitOptions,
+        _config: TonWalletKitOptions,
         eventEmitter: EventEmitter,
         private readonly walletManager: WalletManager,
         private readonly sessionManager: TONConnectSessionManager,
@@ -108,34 +105,11 @@ export class SignMessageHandler
         }
         const request = requestValidation.result;
 
-        let preview: TransactionEmulatedPreview | undefined;
-        if (!this.config.eventProcessor?.disableTransactionEmulation) {
-            try {
-                preview = await CallForSuccess(() => createTransactionPreviewHelper(wallet.client, request, wallet));
-                if (preview.result === Result.success && preview.trace) {
-                    try {
-                        this.eventEmitter.emit('emulation:result', preview.trace);
-                    } catch (error) {
-                        log.warn('Error emitting emulation result event', { error });
-                    }
-                }
-            } catch (error) {
-                log.error('Failed to create transaction preview', { error });
-                preview = {
-                    error: {
-                        code: ERROR_CODES.UNKNOWN_EMULATION_ERROR,
-                        message: 'Unknown emulation error',
-                    },
-                    result: Result.failure,
-                };
-            }
-        }
-
         const signMessageEvent: SignMessageRequestEvent = {
             ...event,
             request,
             preview: {
-                data: preview,
+                data: undefined,
             },
             dAppInfo: event.dAppInfo ?? {},
             walletId: walletId ?? this.walletManager.getWalletId(wallet),
