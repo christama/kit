@@ -13,8 +13,12 @@ import './index.css';
 import App from './App.tsx';
 
 async function enableMocking() {
-    const { worker } = await import('./mocks/browser');
-    return worker.start({ onUnhandledRequest: 'bypass' });
+    try {
+        const { worker } = await import('./mocks/browser');
+        await worker.start({ onUnhandledRequest: 'bypass' });
+    } catch {
+        // MSW failed to start (e.g. service worker unavailable) — app still renders
+    }
 }
 
 enableMocking().then(() => {
