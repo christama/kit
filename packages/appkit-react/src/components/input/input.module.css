@@ -60,7 +60,7 @@
 }
 
 .error .field {
-  border-color: #FF3B30; /* iOS Red */
+  border-color: var(--ta-color-error);
 }
 
 .loading .field::after {
@@ -126,5 +126,5 @@
 }
 
 .errorText {
-  color: #FF3B30;
+  color: var(--ta-color-error);
 }

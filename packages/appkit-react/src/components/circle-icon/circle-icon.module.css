@@ -8,7 +8,7 @@
 	width: 45px;
 	height: 45px;
 	border-radius: 100%;
-	background-color: var(--ta-color-block);
+	background-color: var(--ta-color-background);
 }
 
 .avatarImage {
@@ -24,8 +24,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background-color: white;
-	color: var(--ta-color-block-foreground);
+	background-color: var(--ta-color-background-secondary);
+	color: var(--ta-color-text);
 	font-size: 15px;
 	line-height: 1;
 	font-weight: 500;

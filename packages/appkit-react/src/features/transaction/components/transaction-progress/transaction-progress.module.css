@@ -21,11 +21,11 @@
 }
 
 .success {
-    color: #4caf50;
+    color: var(--ta-color-success);
 }
 
 .failed {
-    color: #f44336;
+    color: var(--ta-color-error);
 }
 
 .message {

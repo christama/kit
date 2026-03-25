@@ -53,7 +53,7 @@ export const Large: Story = {
 export const CustomColor: Story = {
     args: {
         size: 32,
-        style: { color: '#0098EB' },
+        style: { color: 'var(--ta-color-primary)' },
     },
 };
 

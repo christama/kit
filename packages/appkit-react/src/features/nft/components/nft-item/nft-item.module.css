@@ -68,5 +68,5 @@
     padding: 2px 6px;
     border-radius: var(--ta-border-radius-s);
     background-color: var(--ta-color-primary);
-    color: var(--ta-color-text-on-primary, #fff);
+    color: var(--ta-color-primary-foreground);
 }

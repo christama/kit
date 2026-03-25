@@ -31,9 +31,9 @@ export const Column: Story = {
         direction: 'column',
         children: (
             <>
-                <div style={{ padding: '8px', background: '#0098EB', color: 'white' }}>Item 1</div>
-                <div style={{ padding: '8px', background: '#0098EB', color: 'white' }}>Item 2</div>
-                <div style={{ padding: '8px', background: '#0098EB', color: 'white' }}>Item 3</div>
+                <div style={{ padding: '8px', background: 'var(--ta-color-primary)', color: 'var(--ta-color-white)' }}>Item 1</div>
+                <div style={{ padding: '8px', background: 'var(--ta-color-primary)', color: 'var(--ta-color-white)' }}>Item 2</div>
+                <div style={{ padding: '8px', background: 'var(--ta-color-primary)', color: 'var(--ta-color-white)' }}>Item 3</div>
             </>
         ),
     },
@@ -44,9 +44,9 @@ export const Row: Story = {
         direction: 'row',
         children: (
             <>
-                <div style={{ padding: '8px', background: '#0098EB', color: 'white' }}>Item 1</div>
-                <div style={{ padding: '8px', background: '#0098EB', color: 'white' }}>Item 2</div>
-                <div style={{ padding: '8px', background: '#0098EB', color: 'white' }}>Item 3</div>
+                <div style={{ padding: '8px', background: 'var(--ta-color-primary)', color: 'var(--ta-color-white)' }}>Item 1</div>
+                <div style={{ padding: '8px', background: 'var(--ta-color-primary)', color: 'var(--ta-color-white)' }}>Item 2</div>
+                <div style={{ padding: '8px', background: 'var(--ta-color-primary)', color: 'var(--ta-color-white)' }}>Item 3</div>
             </>
         ),
     },
