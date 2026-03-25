@@ -1,5 +1,5 @@
 .button {
-  composes: bodyMedium from "../../styles/typography.module.css";
+  composes: bodySemibold from "../../styles/typography.module.css";
   appearance: none;
   border: none;
   outline: none;

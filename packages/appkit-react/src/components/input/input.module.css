@@ -13,7 +13,7 @@
 }
 
 .title {
-  composes: bodyMedium from "../../styles/typography.module.css";
+  composes: footnoteRegular from "../../styles/typography.module.css";
   color: var(--ta-color-text-secondary);
 }
 
@@ -120,7 +120,7 @@
 }
 
 .caption {
-  composes: caption1 from "../../styles/typography.module.css";
+  composes: footnoteRegular from "../../styles/typography.module.css";
   padding: 0 4px;
   color: var(--ta-color-text-secondary);
 }

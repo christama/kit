@@ -45,7 +45,7 @@
 }
 
 .name {
-    composes: bodyBold from "../../../../styles/typography.module.css";
+    composes: bodySemibold from "../../../../styles/typography.module.css";
 
     color: var(--ta-color-text);
     white-space: nowrap;
@@ -62,7 +62,7 @@
 }
 
 .ticker {
-    composes: bodyMedium from "../../../../styles/typography.module.css";
+    composes: labelMedium from "../../../../styles/typography.module.css";
 
     color: var(--ta-color-text-secondary);
     margin: 0;

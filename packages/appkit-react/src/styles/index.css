@@ -4,33 +4,62 @@
   --ta-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   
   /* Typography */
-  /* Body */
-  --ta-body-font-size: 14px;
-  --ta-body-line-height: 20px;
-  --ta-body-font-weight: 400;
-  --ta-body-medium-font-weight: 500;
-  --ta-body-bold-font-weight: 700;
+  /* display */
+  --ta-display-large-size: 64px;
+  --ta-display-large-weight: 800;
+  --ta-display-large-line-height: 70px;
 
-  /* Caption */
-  --ta-caption1-font-size: 12px;
-  --ta-caption1-line-height: 16px;
-  --ta-caption1-font-weight: 400;
+  --ta-display-size: 40px;
+  --ta-display-weight: 800;
+  --ta-display-line-height: 44px;
 
-  --ta-caption2-font-size: 10px;
-  --ta-caption2-line-height: 12px;
-  --ta-caption2-font-weight: 400;
+  /* headline */
+  --ta-headline-size: 28px;
+  --ta-headline-weight: 700;
+  --ta-headline-line-height: 32px;
 
-  /* Input Sizes */
-  --ta-input-s-font-size: 16px;
-  --ta-input-s-font-weight: 400;
+  /* title */
+  --ta-title-size: 20px;
+  --ta-title-weight: 700;
+  --ta-title-line-height: 24px;
+
+  /* body */
+  --ta-body-size: 16px;
+  --ta-body-medium-weight: 500;
+  --ta-body-regular-weight: 400;
+  --ta-body-semibold-weight: 600;
+  --ta-body-medium-line-height: 20px;
+  --ta-body-regular-line-height: 24px;
+
+  /* label */
+  --ta-label-size: 14px;
+  --ta-label-regular-weight: 400;
+  --ta-label-semibold-weight: 600;
+  --ta-label-medium-weight: 500;
+  --ta-label-line-height: 18px;
+
+  /* footnote */
+  --ta-footnote-size: 12px;
+  --ta-footnote-regular-weight: 400;
+  --ta-footnote-caps-weight: 600;
+  --ta-footnote-line-height: 16px;
+
+  /* caption */
+  --ta-caption-size: 11px;
+  --ta-caption-weight: 600;
+  --ta-caption-line-height: 12px;
+
+  /* input */
+  --ta-input-s-size: 16px;
+  --ta-input-s-weight: 400;
   --ta-input-s-line-height: 24px;
 
-  --ta-input-m-font-size: 24px;
-  --ta-input-m-font-weight: 600;
+  --ta-input-m-size: 24px;
+  --ta-input-m-weight: 600;
   --ta-input-m-line-height: 30px;
 
-  --ta-input-l-font-size: 32px;
-  --ta-input-l-font-weight: 700;
+  --ta-input-l-size: 32px;
+  --ta-input-l-weight: 700;
   --ta-input-l-line-height: 40px;
 
   /* Colors */
