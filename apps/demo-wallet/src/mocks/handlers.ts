@@ -19,15 +19,10 @@ export const handlers = [
         const address = url.searchParams.get('address') ?? '';
 
         return HttpResponse.json({
-            action_type: 'sendTransaction',
+            action_type: 'signData',
             action: {
-                messages: [
-                    {
-                        address,
-                        amount: '100000000', // 0.1 TON
-                    },
-                ],
-                valid_until: Math.floor(Date.now() / 1000) + 600,
+                type: 'text',
+                text: `Demo action intent for address ${address}`,
             },
         });
     }),
