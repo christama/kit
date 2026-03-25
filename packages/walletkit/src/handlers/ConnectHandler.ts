@@ -260,7 +260,7 @@ export class ConnectHandler
             | CONNECT_EVENT_ERROR_CODES.MANIFEST_CONTENT_ERROR;
     }> {
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
             if (!response.ok) {
                 log.error('Failed to fetch manifest not ok', { url, status: response.status });
                 return {
