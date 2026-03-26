@@ -101,7 +101,7 @@
   border: none;
   outline: none;
   color: var(--ta-color-text);
-  font-family: inherit;
+  font-family: var(--ta-font-family);
   width: 100%;
   padding: 0;
 }

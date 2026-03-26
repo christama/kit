@@ -12,6 +12,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills';
 const config: StorybookConfig = {
     stories: ['../src/**/*.stories.@(ts|tsx)'],
     addons: ['@storybook/addon-docs'],
+    staticDirs: ['./public'],
     framework: {
         name: '@storybook/react-vite',
         options: {},

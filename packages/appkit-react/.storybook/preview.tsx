@@ -12,6 +12,7 @@ import React from 'react';
 
 import { I18nProvider } from '../src/providers/i18n-provider';
 import '../src/styles/index.css';
+import theme from './theme';
 
 const withI18n: Decorator = (Story) => (
     <I18nProvider>
@@ -21,11 +22,12 @@ const withI18n: Decorator = (Story) => (
 
 const withTheme: Decorator = (Story, context) => {
     const theme = context.globals.theme;
-    return (
-        <div data-ta-theme={theme} style={{ padding: '16px' }}>
-            <Story />
-        </div>
-    );
+
+    React.useEffect(() => {
+        document.documentElement.setAttribute('data-ta-theme', theme);
+    }, [theme]);
+
+    return <Story />;
 };
 
 const preview: Preview = {
@@ -45,6 +47,9 @@ const preview: Preview = {
         },
     },
     parameters: {
+        docs: {
+            theme,
+        },
         actions: { argTypesRegex: '^on[A-Z].*' },
         controls: {
             matchers: {
@@ -55,7 +60,7 @@ const preview: Preview = {
         backgrounds: {
             default: 'dark',
             values: [
-                { name: 'dark', value: '#000000' },
+                { name: 'dark', value: '#141416' },
                 { name: 'light', value: '#ffffff' },
             ],
         },
