@@ -129,6 +129,10 @@ export abstract class WebsocketStreamingProvider implements StreamingProvider {
 
         this.ws.onmessage = this.onMessage.bind(this);
 
+        this.ws.onerror = (error) => {
+            log.error('WebSocket error', { error });
+        };
+
         this.ws.onclose = () => {
             log.info('WebSocket closed');
             this.isConnected = false;

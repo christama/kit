@@ -136,12 +136,13 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
         }
 
         const currentCount = networkWatch.get(resourceKey) || 0;
-        networkWatch.set(resourceKey, currentCount + 1);
 
         const provider = this.getProvider(network);
         if (currentCount === 0) {
             this.callProviderWatch(provider, type, id);
         }
+
+        networkWatch.set(resourceKey, currentCount + 1);
 
         const networkWatchSnapshot = networkWatch;
         return () => {

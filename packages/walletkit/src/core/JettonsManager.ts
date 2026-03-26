@@ -58,13 +58,10 @@ export class JettonsManager implements JettonsAPI {
 
         // Set up event listener for emulation results for jetton caching
         // TODO Fix network in emulation result
-        this.eventEmitter.on('emulationResult', (emulationResult) => {
-            if (
-                emulationResult &&
-                typeof emulationResult === 'object' &&
-                'metadata' in emulationResult &&
-                'network' in emulationResult
-            ) {
+        this.eventEmitter.on('emulationResult', ({ payload: emulationResult }) => {
+            console.log('emulationResult', emulationResult);
+
+            if (emulationResult && emulationResult.metadata) {
                 const network = (emulationResult as { network: ChainId }).network;
                 this.addJettonsFromEmulationMetadata(
                     Network.custom(network),

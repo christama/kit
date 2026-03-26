@@ -59,7 +59,7 @@ export function toTransactionEmulatedTrace(response: ToncenterEmulationResponse)
             Object.entries(response.data_cells ?? {}).map(([hash, cell]) => [Base64ToHex(hash), cell as Base64String]),
         ),
         metadata: {}, // to be filled later
-        addressBook: {}, // to be filled later
+        addressBook: toAddressBook(response.address_book),
     };
 }
 
