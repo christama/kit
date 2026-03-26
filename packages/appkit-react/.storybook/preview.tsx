@@ -27,7 +27,18 @@ const withTheme: Decorator = (Story, context) => {
         document.documentElement.setAttribute('data-ta-theme', theme);
     }, [theme]);
 
-    return <Story />;
+    return (
+        <div
+            style={{
+                padding: '24px',
+                borderRadius: '16px',
+                backgroundColor: theme === 'dark' ? '#141416' : '#e2e2e2',
+                color: 'var(--ta-color-text)',
+            }}
+        >
+            <Story />
+        </div>
+    );
 };
 
 const preview: Preview = {
@@ -56,13 +67,6 @@ const preview: Preview = {
                 color: /(background|color)$/i,
                 date: /Date$/,
             },
-        },
-        backgrounds: {
-            default: 'dark',
-            values: [
-                { name: 'dark', value: '#141416' },
-                { name: 'light', value: '#ffffff' },
-            ],
         },
     },
     decorators: [withTheme, withI18n],

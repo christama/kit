@@ -46,7 +46,8 @@ export const LargeContent: Story = {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {Array.from({ length: 20 }).map((_, i) => (
                             <p key={i}>
-                                This is paragraph {i + 1} of a very long text. Modals should be scrollable when the content exceeds the screen height.
+                                This is paragraph {i + 1} of a very long text. Modals should be scrollable when the
+                                content exceeds the screen height.
                             </p>
                         ))}
                     </div>
