@@ -115,7 +115,8 @@ export const SignMessageRequestModal: React.FC<SignMessageRequestModalProps> = (
                         {/* Messages */}
                         <div className="border rounded-lg p-3 bg-gray-50">
                             <p className="text-sm font-medium text-gray-700 mb-2">
-                                {request.request.messages.length} message{request.request.messages.length !== 1 ? 's' : ''} to sign
+                                {request.request.messages.length} message
+                                {request.request.messages.length !== 1 ? 's' : ''} to sign
                             </p>
                             {request.request.messages.map((msg, i) => (
                                 <div key={i} className="mt-2 text-xs text-gray-500 space-y-0.5">
