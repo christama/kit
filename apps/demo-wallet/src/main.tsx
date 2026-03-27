@@ -12,19 +12,8 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
 
-async function enableMocking() {
-    try {
-        const { worker } = await import('./mocks/browser');
-        await worker.start({ onUnhandledRequest: 'bypass' });
-    } catch {
-        // MSW failed to start (e.g. service worker unavailable) — app still renders
-    }
-}
-
-enableMocking().then(() => {
-    createRoot(document.getElementById('root')!).render(
-        <StrictMode>
-            <App />
-        </StrictMode>,
-    );
-});
+createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+        <App />
+    </StrictMode>,
+);
