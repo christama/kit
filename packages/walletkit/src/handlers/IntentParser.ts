@@ -510,6 +510,8 @@ export class IntentParser {
         switch (action_type) {
             case 'sendTransaction':
                 return this.parseActionTransaction(base, action);
+            case 'signMessage':
+                return this.parseActionTransaction(base, action, 'signOnly');
             case 'signData':
                 return this.parseActionSignData(base, action, sourceEvent.actionUrl);
             default:
@@ -520,7 +522,11 @@ export class IntentParser {
         }
     }
 
-    private parseActionTransaction(base: IntentRequestBase, action: Record<string, unknown>): IntentRequestEvent {
+    private parseActionTransaction(
+        base: IntentRequestBase,
+        action: Record<string, unknown>,
+        deliveryMode: IntentDeliveryMode = 'send',
+    ): IntentRequestEvent {
         const rawMessages = action.messages as Array<Record<string, unknown>> | undefined;
         if (!rawMessages || !Array.isArray(rawMessages) || rawMessages.length === 0) {
             throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Action sendTransaction missing messages');
@@ -545,7 +551,7 @@ export class IntentParser {
         return {
             type: 'transaction' as const,
             ...base,
-            deliveryMode: 'send' as IntentDeliveryMode,
+            deliveryMode,
             network,
             validUntil: resolvedTransaction.validUntil,
             items: [],
