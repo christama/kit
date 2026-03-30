@@ -108,9 +108,6 @@ export class SignMessageHandler
         const signMessageEvent: SignMessageRequestEvent = {
             ...event,
             request,
-            preview: {
-                data: undefined,
-            },
             dAppInfo: event.dAppInfo ?? {},
             walletId: walletId ?? this.walletManager.getWalletId(wallet),
             walletAddress: walletAddress ?? wallet.getAddress(),

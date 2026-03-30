@@ -6,7 +6,6 @@
  *
  */
 
-import type { TransactionEmulatedPreview } from '../transactions/emulation/TransactionEmulatedPreview';
 import type { TransactionRequest } from '../transactions/TransactionRequest';
 import type { BridgeEvent } from './BridgeEvent';
 
@@ -17,21 +16,7 @@ import type { BridgeEvent } from './BridgeEvent';
  */
 export interface SignMessageRequestEvent extends BridgeEvent {
     /**
-     * Preview information for UI display
-     */
-    preview: SignMessageRequestEventPreview;
-    /**
      * Raw transaction request data
      */
     request: TransactionRequest;
-}
-
-/**
- * Preview data for displaying sign-message request in the wallet UI.
- */
-export interface SignMessageRequestEventPreview {
-    /**
-     * Emulated transaction preview with actions and traces
-     */
-    data?: TransactionEmulatedPreview;
 }
