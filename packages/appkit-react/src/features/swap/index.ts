@@ -7,6 +7,7 @@
  */
 
 export * from './components/swap-widget';
+export * from './components/swap-provider';
 
 export * from './hooks/use-swap-quote';
 export * from './hooks/use-build-swap-transaction';
