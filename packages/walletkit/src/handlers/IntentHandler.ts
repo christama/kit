@@ -209,8 +209,10 @@ export class IntentHandler {
 
         const actionIntent = batch.intents.find((i) => i.type === 'action');
         if (actionIntent?.type === 'action') {
-            const result = await this.resolveAndApproveAction(actionIntent, wallet);
-            await this.sendBatchResponse(batch, result, result.type === 'transaction' ? deliveryMode : undefined);
+            const { result, resolvedEvent } = await this.resolveAndApproveAction(actionIntent, wallet);
+            const actionDeliveryMode =
+                resolvedEvent.type === 'transaction' ? resolvedEvent.deliveryMode : undefined;
+            await this.sendBatchResponse(batch, result, actionDeliveryMode);
             return result;
         }
 
@@ -229,8 +231,8 @@ export class IntentHandler {
         walletId: string,
     ): Promise<IntentTransactionResponse | IntentSignDataResponse> {
         const wallet = this.getWallet(walletId);
-        const result = await this.resolveAndApproveAction(event, wallet);
-        await this.sendResponse(event, result);
+        const { result, resolvedEvent } = await this.resolveAndApproveAction(event, wallet);
+        await this.sendResponse(resolvedEvent, result);
         return result;
     }
 
@@ -431,7 +433,10 @@ export class IntentHandler {
     private async resolveAndApproveAction(
         event: ActionIntentRequestEvent,
         wallet: Wallet,
-    ): Promise<IntentTransactionResponse | IntentSignDataResponse> {
+    ): Promise<{
+        result: IntentTransactionResponse | IntentSignDataResponse;
+        resolvedEvent: Extract<IntentRequestEvent, { type: 'transaction' }> | Extract<IntentRequestEvent, { type: 'signData' }>;
+    }> {
         const actionResponse = await this.resolver.fetchActionUrl(event.actionUrl, wallet.getAddress());
         const resolvedEvent = this.parser.parseActionResponse(actionResponse, event);
 
@@ -439,10 +444,12 @@ export class IntentHandler {
             if (resolvedEvent.resolvedTransaction) {
                 resolvedEvent.resolvedTransaction.fromAddress = wallet.getAddress();
             }
-            return this.signAndSendTransaction(resolvedEvent, wallet);
+            const result = await this.signAndSendTransaction(resolvedEvent, wallet);
+            return { result, resolvedEvent };
         }
         if (resolvedEvent.type === 'signData') {
-            return this.signSignData(resolvedEvent, wallet);
+            const result = await this.signSignData(resolvedEvent, wallet);
+            return { result, resolvedEvent };
         }
 
         throw new WalletKitError(
