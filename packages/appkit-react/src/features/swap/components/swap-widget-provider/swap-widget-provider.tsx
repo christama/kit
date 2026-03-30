@@ -12,7 +12,9 @@ import type { Network } from '@ton/appkit';
 import type { GetSwapQuoteData } from '@ton/appkit/queries';
 
 import { useSwapQuote } from '../../hooks/use-swap-quote';
-import { useSelectedWallet } from '../../../wallets';
+import { useBuildSwapTransaction } from '../../hooks/use-build-swap-transaction';
+import { useSelectedWallet, useAddress } from '../../../wallets';
+import { useSendTransaction } from '../../../transaction/hooks/use-send-transaction';
 import { useDebounceValue } from '../../../../hooks/use-debounce-value';
 
 export interface SwapWidgetToken {
@@ -69,6 +71,8 @@ export interface SwapContextType {
     setSlippage: (slippage: number) => void;
     onFlip: () => void;
     onMaxClick: () => void;
+    sendSwapTransaction: () => Promise<void>;
+    isSendingTransaction: boolean;
 }
 
 export const SwapContext = createContext<SwapContextType>({
@@ -93,6 +97,8 @@ export const SwapContext = createContext<SwapContextType>({
     setSlippage: () => {},
     onFlip: () => {},
     onMaxClick: () => {},
+    sendSwapTransaction: () => Promise.resolve(),
+    isSendingTransaction: false,
 });
 
 export function useSwapContext() {
@@ -201,6 +207,18 @@ export const SwapWidgetProvider: FC<SwapProviderProps> = ({
 
     const [wallet] = useSelectedWallet();
     const isWalletConnected = wallet !== null;
+    const address = useAddress();
+
+    const { mutateAsync: buildTransaction } = useBuildSwapTransaction();
+    const { mutateAsync: sendTransaction, isPending: isSendingTransaction } = useSendTransaction();
+
+    const sendSwapTransaction = useCallback(async () => {
+        if (!quote || !address) return;
+
+        const transactionParams = await buildTransaction({ quote, userAddress: address });
+
+        await sendTransaction(transactionParams);
+    }, [quote, address, buildTransaction, sendTransaction]);
 
     const canSubmit = (parseFloat(fromAmount) || 0) > 0 && fromToken !== null && toToken !== null;
 
@@ -227,6 +245,8 @@ export const SwapWidgetProvider: FC<SwapProviderProps> = ({
             setSlippage,
             onFlip: handleFlip,
             onMaxClick: handleMaxClick,
+            sendSwapTransaction,
+            isSendingTransaction,
         }),
         [
             tokens,
@@ -246,6 +266,8 @@ export const SwapWidgetProvider: FC<SwapProviderProps> = ({
             slippage,
             handleFlip,
             handleMaxClick,
+            sendSwapTransaction,
+            isSendingTransaction,
         ],
     );
 

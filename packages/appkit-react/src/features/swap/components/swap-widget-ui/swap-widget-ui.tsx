@@ -38,6 +38,8 @@ export const SwapWidgetUI: FC<SwapWidgetRenderProps> = ({
     onFlip,
     onMaxClick,
     setFromAmount,
+    sendSwapTransaction,
+    isSendingTransaction,
 }) => {
     const connectors = useConnectors();
     const { mutate: connect, isPending: isConnecting } = useConnect();
@@ -86,7 +88,8 @@ export const SwapWidgetUI: FC<SwapWidgetRenderProps> = ({
                     size="l"
                     fullWidth
                     style={{ marginTop: '8px' }}
-                    disabled={!canSubmit || isQuoteLoading}
+                    disabled={!canSubmit || isQuoteLoading || isSendingTransaction}
+                    onClick={sendSwapTransaction}
                 >
                     {canSubmit ? t('swap.continue') : t('swap.enterAmount')}
                 </Button>
