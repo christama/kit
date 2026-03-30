@@ -30,8 +30,6 @@ export interface SwapWidgetToken {
     logo?: string;
     /** Optional exchange rate: 1 token = rate fiat units (used for fiat value display) */
     rate?: number;
-    /** Optional user balance */
-    balance?: string;
 }
 
 export interface SwapContextType {
