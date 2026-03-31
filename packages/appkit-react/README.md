@@ -41,7 +41,7 @@ Initialize `QueryClient` and `AppKit`, then wrap your application in `QueryClien
 
 ```tsx
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AppKit, Network, TonConnectConnector } from '@ton/appkit';
+import { AppKit, Network, createTonConnectConnector } from '@ton/appkit';
 import { AppKitProvider } from '@ton/appkit-react';
 import type { FC } from 'react';
 
@@ -75,7 +75,7 @@ const appKit = new AppKit({
         // },
     },
     connectors: [
-        new TonConnectConnector({
+        createTonConnectConnector({
             tonConnectOptions: {
                 manifestUrl: 'https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json',
             },

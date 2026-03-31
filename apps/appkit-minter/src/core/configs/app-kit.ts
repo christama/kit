@@ -9,7 +9,7 @@
 import { AppKit, Network, createTonConnectConnector, ApiClientTonApi, ApiClientToncenter } from '@ton/appkit';
 import { DeDustSwapProvider } from '@ton/appkit/swap/dedust';
 import { OmnistonSwapProvider } from '@ton/appkit/swap/omniston';
-import { TonStakersStakingProvider } from '@ton/appkit/staking/tonstakers';
+import { createTonstakersProvider } from '@ton/appkit/staking/tonstakers';
 
 import { ENV_TON_API_KEY_TESTNET, ENV_TON_API_KEY_MAINNET } from '@/core/configs/env';
 
@@ -44,9 +44,9 @@ export const appKit = new AppKit({
     providers: [
         new DeDustSwapProvider(),
         new OmnistonSwapProvider(),
-        new TonStakersStakingProvider({
-            [Network.mainnet().chainId]: { apiClient: mainnetApiClient },
-            [Network.testnet().chainId]: { apiClient: testnetApiClient },
+        createTonstakersProvider({
+            [Network.mainnet().chainId]: { tonApiToken: ENV_TON_API_KEY_MAINNET },
+            [Network.testnet().chainId]: { tonApiToken: ENV_TON_API_KEY_TESTNET },
         }),
     ],
 });

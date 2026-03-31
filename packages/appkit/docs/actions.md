@@ -51,7 +51,7 @@ Add a wallet connector to AppKit (e.g., TonConnect).
 ```ts
 const stopWatching = addConnector(
     appKit,
-    new TonConnectConnector({
+    createTonConnectConnector({
         tonConnectOptions: {
             manifestUrl: 'https://tonconnect-sdk-demo-dapp.vercel.app/tonconnect-manifest.json',
         },
@@ -364,7 +364,7 @@ Get information about a specific NFT by its address.
 
 ```ts
 const nft = await getNft(appKit, {
-    address: 'EQCA14o1-VWhS29szfbpmbu_m7A_9S4m_Ba6sAyALH_mU68j',
+    address: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
 });
 
 if (nft) {
@@ -379,7 +379,7 @@ Create a transaction for transferring a NFT without sending it.
 
 ```ts
 const tx = await createTransferNftTransaction(appKit, {
-    nftAddress: 'EQCA14o1-VWhS29szfbpmbu_m7A_9S4m_Ba6sAyALH_mU68j',
+    nftAddress: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
     recipientAddress: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
     comment: 'Gift NFT',
 });
@@ -393,7 +393,7 @@ Transfer a NFT to a recipient address.
 
 ```ts
 const result = await transferNft(appKit, {
-    nftAddress: 'EQCA14o1-VWhS29szfbpmbu_m7A_9S4m_Ba6sAyALH_mU68j',
+    nftAddress: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
     recipientAddress: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
 });
 

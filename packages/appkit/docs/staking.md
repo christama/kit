@@ -8,7 +8,7 @@ Source template: template/packages/appkit/docs/staking.md
 
 AppKit supports staking through various providers. Available providers:
 
-- **TonStakersStakingProvider** – [Tonstakers](https://tonstakers.com) liquid staking protocol
+- **createTonstakersProvider** – [Tonstakers](https://tonstakers.com) liquid staking (`TonStakersStakingProvider` instance type)
 
 ## Installation
 
@@ -28,13 +28,7 @@ const appKit = new AppKit({
             apiClient: toncenterApiClient,
         },
     },
-    providers: [
-        new TonStakersStakingProvider({
-            [network.chainId]: {
-                apiClient: toncenterApiClient,
-            },
-        }),
-    ],
+    providers: [createTonstakersProvider()],
 });
 ```
 
@@ -56,15 +50,7 @@ const appKit = new AppKit({
 });
 
 // 2. Register staking providers
-const apiClient = getApiClient(appKit, { network: Network.mainnet() });
-registerProvider(
-    appKit,
-    new TonStakersStakingProvider({
-        [Network.mainnet().chainId]: {
-            apiClient,
-        },
-    }),
-);
+registerProvider(appKit, createTonstakersProvider());
 ```
 
 ## Configuration

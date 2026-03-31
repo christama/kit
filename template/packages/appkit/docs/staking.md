@@ -6,7 +6,7 @@ target: packages/appkit/docs/staking.md
 
 AppKit supports staking through various providers. Available providers:
 
-- **TonStakersStakingProvider** – [Tonstakers](https://tonstakers.com) liquid staking protocol
+- **createTonstakersProvider** – [Tonstakers](https://tonstakers.com) liquid staking (`TonStakersStakingProvider` instance type)
 
 ## Installation
 

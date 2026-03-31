@@ -20,7 +20,9 @@ import type {
     UnstakeMode,
 } from '../../../api/models';
 import { StakingError, StakingErrorCode } from '../errors';
-import type { TonStakersProviderConfig } from './models/TonStakersProviderConfig';
+import type { TonStakersChainConfig, TonStakersProviderConfig } from './models/TonStakersProviderConfig';
+import type { ProviderFactoryContext } from '../../../types/factory';
+import type { NetworkManager } from '../../../core/NetworkManager';
 import { CONTRACT, STAKING_CONTRACT_ADDRESS } from './constants';
 import { PoolContract } from './PoolContract';
 import { StakingCache } from './StakingCache';
@@ -43,32 +45,54 @@ const log = globalLogger.createChild('TonStakersStakingProvider');
 export class TonStakersStakingProvider extends StakingProvider {
     readonly supportedUnstakeModes: UnstakeMode[] = ['delayed', 'instant', 'bestRate'];
 
-    protected config: TonStakersProviderConfig;
+    private readonly networkManager: NetworkManager;
+    private readonly chainConfig: Record<string, TonStakersChainConfig>;
     private cache: StakingCache;
 
     /**
-     * Create a new TonStakersStakingProvider instance.
-     *
-     * @param config - Optional configuration with custom contract addresses per network
+     * @internal Use {@link createTonstakersProvider} (AppKit) or {@link TonStakersStakingProvider.createFromContext}.
      */
-    constructor(config: TonStakersProviderConfig = {}) {
+    private constructor(networkManager: NetworkManager, chainConfig: Record<string, TonStakersChainConfig>) {
         super('tonstakers');
 
-        this.config = Object.entries(config).reduce((acc, [chainId, configByNetwork]) => {
-            if (!configByNetwork.contractAddress && !STAKING_CONTRACT_ADDRESS[chainId]) {
-                throw new Error(`Contract address not found for chain ${chainId}, provide it in config`);
-            }
-
-            acc[chainId] = {
-                ...configByNetwork,
-                contractAddress: configByNetwork.contractAddress || STAKING_CONTRACT_ADDRESS[chainId],
-            };
-
-            return acc;
-        }, {} as TonStakersProviderConfig);
-
+        this.networkManager = networkManager;
+        this.chainConfig = chainConfig;
         this.cache = new StakingCache();
         log.info('TonStakersStakingProvider initialized');
+    }
+
+    /**
+     * Resolves API clients from {@link ProviderFactoryContext.networkManager} on each call.
+     * Only networks with a known Tonstakers pool (or `contractAddress` in {@link TonStakersProviderConfig}) are registered.
+     */
+    static createFromContext(
+        ctx: ProviderFactoryContext,
+        config: TonStakersProviderConfig = {},
+    ): TonStakersStakingProvider {
+        const chainConfig: Record<string, TonStakersChainConfig> = {};
+
+        for (const network of ctx.networkManager.getConfiguredNetworks()) {
+            const chainId = network.chainId;
+            const perChain = config[chainId] ?? {};
+            const defaultContract = STAKING_CONTRACT_ADDRESS[chainId as keyof typeof STAKING_CONTRACT_ADDRESS];
+            if (!defaultContract && !perChain.contractAddress) {
+                continue;
+            }
+
+            const contractAddress = (perChain.contractAddress ?? defaultContract) as UserFriendlyAddress;
+            chainConfig[chainId] = {
+                contractAddress,
+                ...(perChain.tonApiToken !== undefined ? { tonApiToken: perChain.tonApiToken } : {}),
+            };
+        }
+
+        if (Object.keys(chainConfig).length === 0) {
+            throw new Error(
+                'createTonstakersProvider: no eligible networks (add mainnet/testnet or pass contractAddress in overrides)',
+            );
+        }
+
+        return new TonStakersStakingProvider(ctx.networkManager, chainConfig);
     }
 
     /**
@@ -303,9 +327,9 @@ export class TonStakersStakingProvider extends StakingProvider {
 
     private getStakingContractAddress(network?: Network): string {
         const targetNetwork = network ?? Network.mainnet();
-        const networkConfig = this.config[targetNetwork.chainId];
+        const entry = this.chainConfig[targetNetwork.chainId];
 
-        if (!networkConfig || !networkConfig.contractAddress) {
+        if (!entry?.contractAddress) {
             throw new StakingError(
                 'Staking contract address is not configured for the selected network',
                 StakingErrorCode.InvalidParams,
@@ -313,7 +337,7 @@ export class TonStakersStakingProvider extends StakingProvider {
             );
         }
 
-        return networkConfig.contractAddress;
+        return entry.contractAddress;
     }
 
     private getContract(network?: Network): PoolContract {
@@ -325,16 +349,16 @@ export class TonStakersStakingProvider extends StakingProvider {
 
     private getApiClient(network?: Network): ApiClient {
         const targetNetwork = network ?? Network.mainnet();
-        const apiClient = this.config[targetNetwork.chainId].apiClient;
-        if (!apiClient) {
-            throw new Error(`API client not found for chain ${targetNetwork.chainId}`);
+        if (!this.chainConfig[targetNetwork.chainId]) {
+            throw new StakingError('Tonstakers is not available on this network', StakingErrorCode.InvalidParams, {
+                network: targetNetwork,
+            });
         }
-        return apiClient;
+        return this.networkManager.getClient(targetNetwork);
     }
 
     private async getApyFromTonApi(network: Network): Promise<number> {
-        const networkConfig = this.config[network.chainId];
-        const token = networkConfig?.tonApiToken;
+        const token = this.chainConfig[network.chainId]?.tonApiToken;
         const address = this.getStakingContractAddress(network);
         const client = new ApiClientTonApi({ network, apiKey: token });
 
@@ -346,4 +370,14 @@ export class TonStakersStakingProvider extends StakingProvider {
 
         return Number(poolInfo.pool.apy);
     }
+}
+
+/**
+ * Returns an AppKit / `ProviderInput` factory: pass to `providers: [createTonstakersProvider(config)]`.
+ * At kit init, the factory receives context and builds the provider using `ctx.networkManager` for RPC.
+ */
+export function createTonstakersProvider(
+    config: TonStakersProviderConfig = {},
+): (ctx: ProviderFactoryContext) => TonStakersStakingProvider {
+    return (ctx: ProviderFactoryContext) => TonStakersStakingProvider.createFromContext(ctx, config);
 }

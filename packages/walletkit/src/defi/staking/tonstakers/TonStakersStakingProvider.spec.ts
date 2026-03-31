@@ -9,7 +9,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { MockInstance } from 'vitest';
 
-import { TonStakersStakingProvider } from './TonStakersStakingProvider';
+import type { NetworkManager } from '../../../core/NetworkManager';
+import type { TonStakersStakingProvider } from './TonStakersStakingProvider';
+import { createTonstakersProvider } from './TonStakersStakingProvider';
 import { PoolContract } from './PoolContract';
 import { CONTRACT } from './constants';
 import { Network } from '../../../api/models';
@@ -47,12 +49,19 @@ describe('TonStakersStakingProvider', () => {
             tsTONTONProjected: 1.1,
         });
 
-        provider = new TonStakersStakingProvider({
+        const mockNetworkManager: NetworkManager = {
+            getClient: () => mockApiClient as unknown as ApiClient,
+            hasNetwork: () => true,
+            getConfiguredNetworks: () => [Network.mainnet()],
+            setClient: vi.fn(),
+        };
+
+        const factory = createTonstakersProvider({
             [Network.mainnet().chainId]: {
-                apiClient: mockApiClient as unknown as ApiClient,
                 contractAddress: 'EQCkWxfyhAkim3g2DjKQQg8T5P4g-Q1-K_jErGcDJZ4i-vqR' as UserFriendlyAddress,
             },
         });
+        provider = factory({ networkManager: mockNetworkManager });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         getApyFromTonApiSpy = vi.spyOn(provider as any, 'getApyFromTonApi').mockResolvedValue(0.05);

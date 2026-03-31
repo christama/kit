@@ -6,8 +6,8 @@
  *
  */
 
-import { AppKit, Network, registerProvider, ApiClientToncenter, getApiClient } from '@ton/appkit';
-import { TonStakersStakingProvider } from '@ton/appkit/staking/tonstakers';
+import { AppKit, Network, registerProvider, ApiClientToncenter } from '@ton/appkit';
+import { createTonstakersProvider } from '@ton/appkit/staking/tonstakers';
 
 export const stakingProviderInitExample = async () => {
     // SAMPLE_START: STAKING_PROVIDER_INIT
@@ -20,13 +20,7 @@ export const stakingProviderInitExample = async () => {
                 apiClient: toncenterApiClient,
             },
         },
-        providers: [
-            new TonStakersStakingProvider({
-                [network.chainId]: {
-                    apiClient: toncenterApiClient,
-                },
-            }),
-        ],
+        providers: [createTonstakersProvider()],
     });
     // SAMPLE_END: STAKING_PROVIDER_INIT
 
@@ -48,15 +42,7 @@ export const stakingProviderRegisterExample = async () => {
     });
 
     // 2. Register staking providers
-    const apiClient = getApiClient(appKit, { network: Network.mainnet() });
-    registerProvider(
-        appKit,
-        new TonStakersStakingProvider({
-            [Network.mainnet().chainId]: {
-                apiClient,
-            },
-        }),
-    );
+    registerProvider(appKit, createTonstakersProvider());
     // SAMPLE_END: STAKING_PROVIDER_REGISTER
 
     return appKit;

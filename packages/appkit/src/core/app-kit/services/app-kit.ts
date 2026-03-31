@@ -47,8 +47,8 @@ export class AppKit {
 
         this.networkManager = new AppKitNetworkManager({ networks }, this.emitter);
         this.walletsManager = new WalletsManager(this.emitter);
-        this.swapManager = new SwapManager();
-        this.stakingManager = new StakingManager();
+        this.swapManager = new SwapManager(this.createFactoryContext);
+        this.stakingManager = new StakingManager(this.createFactoryContext);
 
         if (config.connectors) {
             config.connectors.forEach((input) => {
@@ -64,7 +64,7 @@ export class AppKit {
     }
 
     createFactoryContext(): ConnectorFactoryContext {
-        return { emitter: this.emitter, networkManager: this.networkManager, ssr: this.config.ssr };
+        return { emitter: this?.emitter, networkManager: this?.networkManager, ssr: this?.config?.ssr };
     }
     /**
      * Add a wallet connector

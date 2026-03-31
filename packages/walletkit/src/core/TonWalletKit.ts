@@ -66,6 +66,7 @@ import type {
     ConnectionApprovalResponse,
 } from '../api/models';
 import { asAddressFriendly } from '../utils';
+import type { ProviderFactoryContext } from '../types/factory';
 
 const log = globalLogger.createChild('TonWalletKit');
 
@@ -131,9 +132,9 @@ export class TonWalletKit implements ITonWalletKit {
         this.jettonsManager = new JettonsManager(10000, this.eventEmitter, this.networkManager);
 
         // Initialize SwapManager
-        this.swapManager = new SwapManager();
+        this.swapManager = new SwapManager(this.createFactoryContext);
         // Initialize StakingManager
-        this.stakingManager = new StakingManager();
+        this.stakingManager = new StakingManager(this.createFactoryContext);
 
         this.eventEmitter.on('restoreConnection', async (event: RawBridgeEventRestoreConnection) => {
             if (!event.domain) {
@@ -198,6 +199,13 @@ export class TonWalletKit implements ITonWalletKit {
                 tonConnectEvent,
             );
         });
+    }
+
+    createFactoryContext(): ProviderFactoryContext {
+        return {
+            networkManager: this.networkManager,
+            ssr: false,
+        };
     }
 
     private async sendErrorConnectResponse(event: RawBridgeEventRestoreConnection): Promise<void> {

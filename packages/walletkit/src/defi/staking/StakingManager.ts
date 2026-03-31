@@ -20,6 +20,7 @@ import type { StakingAPI, StakingProviderInterface } from '../../api/interfaces'
 import { StakingError, StakingErrorCode } from './errors';
 import { globalLogger } from '../../core/Logger';
 import { DefiManager } from '../DefiManager';
+import type { ProviderFactoryContext } from '../../types/factory';
 
 const log = globalLogger.createChild('StakingManager');
 
@@ -30,6 +31,10 @@ const log = globalLogger.createChild('StakingManager');
  * for staking operations. Providers can be switched dynamically.
  */
 export class StakingManager extends DefiManager<StakingProviderInterface> implements StakingAPI {
+    constructor(createFactoryContext: () => ProviderFactoryContext) {
+        super(createFactoryContext);
+    }
+
     /**
      * Get a quote for staking or unstaking
      * @param params - Quote parameters

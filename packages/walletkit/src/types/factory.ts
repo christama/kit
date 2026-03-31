@@ -18,17 +18,20 @@ export interface ProviderFactoryContext {
 }
 
 /** Factory function that creates a provider from context */
-export type ProviderFactory = (ctx: ProviderFactoryContext) => DefiProvider;
+export type ProviderFactory<T extends DefiProvider = DefiProvider> = (ctx: ProviderFactoryContext) => T;
 
 /** A provider instance or a factory that creates one */
-export type ProviderInput = DefiProvider | ProviderFactory;
+export type ProviderInput<T extends DefiProvider = DefiProvider> = T | ProviderFactory<T>;
 
 /** Helper for creating typed provider factories */
-export function createProvider(factory: ProviderFactory): ProviderFactory {
+export function createProvider<T extends DefiProvider = DefiProvider>(factory: ProviderFactory<T>): ProviderFactory<T> {
     return factory;
 }
 
 /** @internal Resolves a ProviderInput to a provider instance */
-export function resolveProvider(input: ProviderInput, ctx: ProviderFactoryContext): DefiProvider {
+export function resolveProvider<T extends DefiProvider = DefiProvider>(
+    input: ProviderInput<T>,
+    ctx: ProviderFactoryContext,
+): T {
     return typeof input === 'function' ? input(ctx) : input;
 }
