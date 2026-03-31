@@ -62,27 +62,6 @@
   border-color: var(--ta-color-error);
 }
 
-.loading .field::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
-  animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
 .input_s {
   composes: inputS from "../../styles/typography.module.css";
 }
@@ -93,6 +72,18 @@
 
 .input_l {
   composes: inputL from "../../styles/typography.module.css";
+}
+
+.inputSkeleton_s {
+  height: var(--ta-input-s-line-height);
+}
+
+.inputSkeleton_m {
+  height: var(--ta-input-m-line-height);
+}
+
+.inputSkeleton_l {
+  height: var(--ta-input-l-line-height);
 }
 
 .input {
@@ -109,6 +100,12 @@
 .input::placeholder {
   color: var(--ta-color-text-secondary);
   opacity: 0.6;
+}
+
+.inputSkeleton {
+  display: flex;
+  align-items: center;
+  pointer-events: none;
 }
 
 .slot {

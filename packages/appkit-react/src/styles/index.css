@@ -76,6 +76,13 @@
   --ta-color-background-bezeled: rgba(0, 122, 255, 0.10);
   --ta-color-block: var(--ta-color-background);
   --ta-color-block-foreground: var(--ta-color-text);
+  --ta-color-skeleton-shimmer: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.4) 20%,
+    rgba(255, 255, 255, 0.6) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
 
   /* Static Colors */
   --ta-color-white: #ffffff;
@@ -109,4 +116,11 @@
   --ta-color-background-bezeled: rgba(0, 122, 255, 0.10);
   --ta-color-block: var(--ta-color-background);
   --ta-color-block-foreground: var(--ta-color-text);
+  --ta-color-skeleton-shimmer: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(255, 255, 255, 0.1) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
 }

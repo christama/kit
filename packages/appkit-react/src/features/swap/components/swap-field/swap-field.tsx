@@ -10,6 +10,7 @@ import type { FC } from 'react';
 
 import { useI18n } from '../../../settings/hooks/use-i18n';
 import { Input } from '../../../../components/input/input';
+import { Skeleton } from '../../../../components/skeleton';
 import { TokenSelector } from '../token-selector/token-selector';
 import styles from './swap-field.module.css';
 
@@ -20,6 +21,7 @@ export interface SwapFieldProps {
     onAmountChange?: (value: string) => void;
     usdValue?: string;
     balance?: string;
+    loading?: boolean;
     onMaxClick?: () => void;
     onTokenSelectorClick?: () => void;
     tokenIcon?: string;
@@ -33,13 +35,14 @@ export const SwapField: FC<SwapFieldProps> = ({
     onAmountChange,
     usdValue,
     balance,
+    loading,
     onMaxClick,
     onTokenSelectorClick,
 }) => {
     const { t } = useI18n();
 
     return (
-        <Input.Container size="l" variant="unstyled" className={styles.container}>
+        <Input.Container size="l" variant="unstyled" className={styles.container} loading={loading}>
             <Input.Header className={styles.header}>
                 <Input.Title>{type === 'pay' ? t('swap.pay') : t('swap.receive')}</Input.Title>
             </Input.Header>
@@ -59,18 +62,24 @@ export const SwapField: FC<SwapFieldProps> = ({
             <Input.Caption className={styles.caption}>
                 <div className={styles.balanceLine}>
                     <span>{usdValue ? `$ ${usdValue}` : '$ 0.00'}</span>
-                    {type === 'pay' && balance && (
-                        <span>
-                            {t('swap.max')}{' '}
-                            <button className={styles.maxButton} onClick={onMaxClick} type="button">
-                                {balance} {tokenSymbol}
-                            </button>
+                    {type === 'pay' && (
+                        <span className={styles.balanceWrapper}>
+                            {balance ? (
+                                <>
+                                    {t('swap.max')}
+                                    <button className={styles.maxButton} onClick={onMaxClick} type="button">
+                                        {balance} {tokenSymbol}
+                                    </button>
+                                </>
+                            ) : (
+                                <Skeleton className={styles.skeletonText} />
+                            )}
                         </span>
                     )}
 
-                    {type === 'receive' && balance && (
-                        <span>
-                            {balance} {tokenSymbol}
+                    {type === 'receive' && (
+                        <span className={styles.balanceWrapper}>
+                            {balance ? `${balance} ${tokenSymbol}` : <Skeleton className={styles.skeletonText} />}
                         </span>
                     )}
                 </div>

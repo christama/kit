@@ -35,3 +35,16 @@
   color: var(--ta-color-primary);
   font-weight: 600;
 }
+
+.balanceWrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 1lh;
+}
+
+.skeletonText {
+  width: 5ch;
+  height: 1em;
+  height: 0.8lh;
+}

@@ -10,6 +10,7 @@ import { createContext, useContext, useMemo } from 'react';
 import type { FC, ReactNode, ComponentProps } from 'react';
 import clsx from 'clsx';
 
+import { Skeleton } from '../skeleton';
 import styles from './input.module.css';
 
 type InputSize = 's' | 'm' | 'l';
@@ -115,10 +116,20 @@ const Slot: FC<InputSlotProps> = ({ side, className, children, ...props }) => (
 export type InputControlProps = ComponentProps<'input'>;
 
 const InputControl: FC<InputControlProps> = ({ className, disabled: propsDisabled, ...props }) => {
-    const { size, disabled: contextDisabled } = useInputContext();
+    const { size, disabled: contextDisabled, loading } = useInputContext();
     const disabled = propsDisabled || contextDisabled;
 
     const typographyClass = styles[`input_${size}`];
+
+    if (loading) {
+        const skeletonClass = styles[`inputSkeleton_${size}`];
+
+        return (
+            <div className={clsx(styles.input, styles.inputSkeleton, skeletonClass, className)}>
+                <Skeleton width={75} height="70%" />
+            </div>
+        );
+    }
 
     return <input className={clsx(styles.input, typographyClass, className)} disabled={disabled} {...props} />;
 };

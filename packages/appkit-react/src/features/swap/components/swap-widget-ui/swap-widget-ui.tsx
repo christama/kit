@@ -84,10 +84,11 @@ export const SwapWidgetUI: FC<SwapWidgetRenderProps> = ({
                     type="receive"
                     tokenSymbol={toToken?.symbol ?? ''}
                     tokenIcon={toToken?.logo}
-                    amount={isQuoteLoading ? '...' : toAmount}
+                    amount={toAmount}
                     usdValue={toFiatValue ?? undefined}
                     balance={toBalance}
                     onTokenSelectorClick={() => setActiveField('to')}
+                    loading={isQuoteLoading}
                 />
             </div>
 
