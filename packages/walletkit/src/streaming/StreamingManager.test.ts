@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { StreamingManager } from './StreamingManager';
 import type { StreamingProvider, StreamingProviderFactory } from '../api/interfaces';
-import type { Network, StreamingWatchType, BalanceUpdate } from '../api/models';
+import type { Network, BalanceUpdate } from '../api/models';
 import type { WalletKitEventEmitter } from '../types/emitter';
 import type { KitEvent } from '../core/EventEmitter';
 
@@ -26,24 +26,27 @@ const makeMockNetwork = (chainId = 1): Network => {
 };
 
 interface MockProvider extends StreamingProvider {
-    watchBalance: Mock<(address: string) => void>;
-    unwatchBalance: Mock<(address: string) => void>;
-    watchTransactions: Mock<(address: string) => void>;
-    unwatchTransactions: Mock<(address: string) => void>;
-    watchJettons: Mock<(address: string) => void>;
-    unwatchJettons: Mock<(address: string) => void>;
+    watchBalance: Mock<(address: string) => () => void>;
+    watchTransactions: Mock<(address: string) => () => void>;
+    watchJettons: Mock<(address: string) => () => void>;
     close: Mock<() => void>;
+    _unsubBalance: Mock<() => void>;
+    _unsubTransactions: Mock<() => void>;
+    _unsubJettons: Mock<() => void>;
 }
 
 const makeMockProvider = (): MockProvider => {
+    const _unsubBalance = vi.fn<() => void>();
+    const _unsubTransactions = vi.fn<() => void>();
+    const _unsubJettons = vi.fn<() => void>();
     return {
-        watchBalance: vi.fn<(address: string) => void>(),
-        unwatchBalance: vi.fn<(address: string) => void>(),
-        watchTransactions: vi.fn<(address: string) => void>(),
-        unwatchTransactions: vi.fn<(address: string) => void>(),
-        watchJettons: vi.fn<(address: string) => void>(),
-        unwatchJettons: vi.fn<(address: string) => void>(),
+        watchBalance: vi.fn<(address: string) => () => void>(() => _unsubBalance),
+        watchTransactions: vi.fn<(address: string) => () => void>(() => _unsubTransactions),
+        watchJettons: vi.fn<(address: string) => () => void>(() => _unsubJettons),
         close: vi.fn<() => void>(),
+        _unsubBalance,
+        _unsubTransactions,
+        _unsubJettons,
     } as unknown as MockProvider;
 };
 
@@ -74,20 +77,20 @@ describe('StreamingManager subscriptions', () => {
     });
 
     describe('watchBalance', () => {
-        it('calls provider.watchBalance on first watch', () => {
+        it('calls provider.watchBalance', () => {
             const { manager } = makeManager(network, provider);
             manager.watchBalance(network, ADDR_A, vi.fn());
             expect(provider.watchBalance).toHaveBeenCalledTimes(1);
         });
 
-        it('does NOT call provider.watchBalance again for the same address', () => {
+        it('calls provider.watchBalance for each consumer', () => {
             const { manager } = makeManager(network, provider);
             manager.watchBalance(network, ADDR_A, vi.fn());
             manager.watchBalance(network, ADDR_A, vi.fn());
-            expect(provider.watchBalance).toHaveBeenCalledTimes(1);
+            expect(provider.watchBalance).toHaveBeenCalledTimes(2);
         });
 
-        it('calls provider.watchBalance again for a different address', () => {
+        it('calls provider.watchBalance for different addresses', () => {
             const { manager } = makeManager(network, provider);
             manager.watchBalance(network, ADDR_A, vi.fn());
             manager.watchBalance(network, ADDR_B, vi.fn());
@@ -95,62 +98,39 @@ describe('StreamingManager subscriptions', () => {
         });
     });
 
-    describe('unwatch ref counting', () => {
-        it('does NOT call unwatchBalance while there is still another watcher', () => {
+    describe('unwatch', () => {
+        it('calls the provider unsubscribe fn when manager unwatch is called', () => {
             const { manager } = makeManager(network, provider);
-            const unwatch1 = manager.watchBalance(network, ADDR_A, vi.fn());
-            manager.watchBalance(network, ADDR_A, vi.fn()); // second watcher, same address
-
-            unwatch1(); // first unwatch – count goes from 2 → 1, should NOT unwatch provider
-            expect(provider.unwatchBalance).not.toHaveBeenCalled();
+            const unwatch = manager.watchBalance(network, ADDR_A, vi.fn());
+            unwatch();
+            expect(provider._unsubBalance).toHaveBeenCalledTimes(1);
         });
 
-        it('calls provider.unwatchBalance when the last watcher unsubscribes', () => {
+        it('calls provider unsubscribe for each consumer independently', () => {
             const { manager } = makeManager(network, provider);
             const unwatch1 = manager.watchBalance(network, ADDR_A, vi.fn());
             const unwatch2 = manager.watchBalance(network, ADDR_A, vi.fn());
 
             unwatch1();
-            unwatch2(); // count goes from 1 → 0, should call provider
-            expect(provider.unwatchBalance).toHaveBeenCalledTimes(1);
+            expect(provider._unsubBalance).toHaveBeenCalledTimes(1);
+
+            unwatch2();
+            expect(provider._unsubBalance).toHaveBeenCalledTimes(2);
         });
 
-        it('can rewatch after full unwatch', () => {
-            const { manager } = makeManager(network, provider);
-            const unwatch = manager.watchBalance(network, ADDR_A, vi.fn());
-            unwatch();
-
-            manager.watchBalance(network, ADDR_A, vi.fn());
-            expect(provider.watchBalance).toHaveBeenCalledTimes(2);
-        });
-    });
-
-    describe('multiple types, same address', () => {
-        it('tracks types independently', () => {
+        it('unwatch for one type does not affect another', () => {
             const { manager } = makeManager(network, provider);
             const unwatchBal = manager.watchBalance(network, ADDR_A, vi.fn());
             manager.watchTransactions(network, ADDR_A, vi.fn());
 
-            unwatchBal(); // balance removed, transactions still active
-            expect(provider.unwatchBalance).toHaveBeenCalledTimes(1);
-            expect(provider.unwatchTransactions).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('multiple addresses, same type', () => {
-        it('unwatching one address does not affect another', () => {
-            const { manager } = makeManager(network, provider);
-            const unwatchA = manager.watchBalance(network, ADDR_A, vi.fn());
-            manager.watchBalance(network, ADDR_B, vi.fn());
-
-            unwatchA();
-            expect(provider.unwatchBalance).toHaveBeenCalledTimes(1);
-            expect(provider.watchBalance).toHaveBeenCalledTimes(2);
+            unwatchBal();
+            expect(provider._unsubBalance).toHaveBeenCalledTimes(1);
+            expect(provider._unsubTransactions).not.toHaveBeenCalled();
         });
     });
 
     describe('multiple subscribers for same resource', () => {
-        it('notifies all subscribers and handles partial unwatch', () => {
+        it('notifies all subscribers and unsubscribes EventEmitter listener on unwatch', () => {
             const { manager, emitter } = makeManager(network, provider);
             const cb1 = vi.fn();
             const cb2 = vi.fn();
@@ -158,7 +138,6 @@ describe('StreamingManager subscriptions', () => {
             const unwatch1 = manager.watchBalance(network, ADDR_A, cb1);
             manager.watchBalance(network, ADDR_A, cb2);
 
-            // Simulate update
             const update: BalanceUpdate = {
                 address: ADDR_A,
                 rawBalance: '100000000000',
@@ -166,7 +145,7 @@ describe('StreamingManager subscriptions', () => {
                 type: 'balance',
                 status: 'finalized',
             };
-            // The emitter.on mock returns a function, but we need to trigger the actual callback.
+
             expect(emitter.on).toHaveBeenCalledTimes(2);
 
             const calls = vi.mocked(emitter.on).mock.calls;
@@ -185,65 +164,10 @@ describe('StreamingManager subscriptions', () => {
             expect(cb1).toHaveBeenCalledWith(update);
             expect(cb2).toHaveBeenCalledWith(update);
 
-            // Unwatch first
             unwatch1();
-            expect(provider.unwatchBalance).not.toHaveBeenCalled();
 
-            cb1.mockClear();
-            cb2.mockClear();
-
-            handler1(event); // This one should be "off" in real life, but we called unwatch1() which calls off()
-            handler2(event);
-
-            // Since we mocked 'off' (returned by on), we should check if off was called.
             const off1 = vi.mocked(emitter.on).mock.results[0].value;
             expect(off1).toHaveBeenCalled();
-        });
-    });
-
-    describe('getWatchers (via getWatchers callback)', () => {
-        it('returns correct types and addresses after multiple watches', () => {
-            const emitter = makeMockEventEmitter();
-            let capturedGetSubs: (() => Map<StreamingWatchType, Set<string>>) | undefined;
-
-            const factory: StreamingProviderFactory = vi.fn(({ getWatchers }) => {
-                capturedGetSubs = getWatchers;
-                return provider;
-            });
-
-            const manager = new StreamingManager(emitter);
-            manager.registerProvider(network, factory);
-
-            manager.watchBalance(network, ADDR_A, vi.fn());
-            manager.watchJettons(network, ADDR_B, vi.fn());
-
-            expect(capturedGetSubs).toBeDefined();
-            const subs = capturedGetSubs!();
-
-            expect(subs.get('balance')).toEqual(new Set([expect.stringContaining('')]));
-            expect(subs.get('balance')?.size).toBe(1);
-            expect(subs.get('jettons')?.size).toBe(1);
-        });
-
-        it('does not include removed subscriptions', () => {
-            const emitter = makeMockEventEmitter();
-            let capturedGetSubs: (() => Map<StreamingWatchType, Set<string>>) | undefined;
-
-            const factory: StreamingProviderFactory = vi.fn(({ getWatchers }) => {
-                capturedGetSubs = getWatchers;
-                return provider;
-            });
-
-            const manager = new StreamingManager(emitter);
-            manager.registerProvider(network, factory);
-
-            const unwatch = manager.watchBalance(network, ADDR_A, vi.fn());
-            manager.watchJettons(network, ADDR_B, vi.fn());
-            unwatch(); // remove balance for A
-
-            const subs = capturedGetSubs!();
-            expect(subs.has('balance')).toBe(false);
-            expect(subs.get('jettons')?.size).toBe(1);
         });
     });
 
@@ -257,8 +181,8 @@ describe('StreamingManager subscriptions', () => {
 
             unwatch();
 
-            expect(provider.unwatchBalance).toHaveBeenCalledTimes(1);
-            expect(provider.unwatchTransactions).toHaveBeenCalledTimes(1);
+            expect(provider._unsubBalance).toHaveBeenCalledTimes(1);
+            expect(provider._unsubTransactions).toHaveBeenCalledTimes(1);
         });
     });
 

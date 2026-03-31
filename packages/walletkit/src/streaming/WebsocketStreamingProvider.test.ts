@@ -34,8 +34,9 @@ class MockWebSocket {
 global.WebSocket = MockWebSocket;
 
 import type { StreamingProviderListener, StreamingProviderContext } from '../api/interfaces/StreamingProvider';
-import type { StreamingWatchType } from '../api/models/streaming/StreamingWatchType';
 import { WebsocketStreamingProvider } from './WebsocketStreamingProvider';
+
+const ADDR = '0:83dfd552e63729b472fcbcc8c44e6cc6691702558b68ecb527e1ba403a0f31a8';
 
 class TestProvider extends WebsocketStreamingProvider {
     protected getUrl() {
@@ -57,24 +58,21 @@ class TestProvider extends WebsocketStreamingProvider {
     }
 }
 
-describe('WebsocketStreamingProvider', () => {
-    let listener: StreamingProviderListener;
-    let watchers: Map<StreamingWatchType, Set<string>>;
-    let context: StreamingProviderContext;
+const makeContext = (): StreamingProviderContext => {
+    const listener: StreamingProviderListener = {
+        onBalanceUpdate: vi.fn(),
+        onTransactions: vi.fn(),
+        onJettonsUpdate: vi.fn(),
+    };
+    return {
+        listener,
+        network: {} as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    };
+};
 
+describe('WebsocketStreamingProvider', () => {
     beforeEach(() => {
         vi.useFakeTimers();
-        listener = {
-            onBalanceUpdate: vi.fn(),
-            onTransactions: vi.fn(),
-            onJettonsUpdate: vi.fn(),
-        };
-        watchers = new Map();
-        context = {
-            listener,
-            getWatchers: () => watchers,
-            network: {} as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-        };
         MockWebSocket.lastInstance = null;
     });
 
@@ -83,49 +81,100 @@ describe('WebsocketStreamingProvider', () => {
     });
 
     it('should connect when watching a resource', () => {
-        const provider = new TestProvider(context);
-        provider.watchBalance('addr');
+        const provider = new TestProvider(makeContext());
+        provider.watchBalance(ADDR);
         expect(MockWebSocket.lastInstance).not.toBeNull();
     });
 
     it('should schedule reconnection on close if there are active subscriptions', async () => {
-        const provider = new TestProvider(context);
-        watchers.set('balance', new Set(['addr']));
-        provider.watchBalance('addr');
+        const provider = new TestProvider(makeContext());
+        provider.watchBalance(ADDR);
 
-        // Wait for connection
         await vi.runOnlyPendingTimersAsync();
 
-        // Simulate close
         provider.triggerClose();
 
-        // Should schedule reconnect (default 300ms)
         vi.runOnlyPendingTimers();
         expect(MockWebSocket.lastInstance).not.toBeNull();
     });
 
     it('should not reconnect if no active subscriptions', async () => {
-        const provider = new TestProvider(context);
-        provider.watchBalance('addr');
+        const provider = new TestProvider(makeContext());
+        const unsub = provider.watchBalance(ADDR);
 
         await vi.runOnlyPendingTimersAsync();
 
-        // Remove from watchers BEFORE close
-        watchers.delete('balance');
+        unsub();
         provider.triggerClose();
 
         vi.advanceTimersByTime(1000);
-        // If it doesn't reconnect, lastInstance will still be the old one (or null if we cleared it correctly)
+        // No reconnect scheduled since all subscriptions were removed
     });
 
     it('should start ping interval on open', async () => {
-        const provider = new TestProvider(context);
-        provider.watchBalance('addr');
+        const provider = new TestProvider(makeContext());
+        provider.watchBalance(ADDR);
 
         await vi.runOnlyPendingTimersAsync();
 
-        // Default ping interval is 30000ms
         vi.advanceTimersByTime(30000);
         expect(MockWebSocket.lastInstance?.send).toHaveBeenCalledWith(JSON.stringify({ type: 'ping' }));
+    });
+
+    describe('ref counting', () => {
+        it('does not close when one of two watchers unsubscribes', async () => {
+            const provider = new TestProvider(makeContext());
+            provider.watchBalance(ADDR);
+            const unsub2 = provider.watchBalance(ADDR);
+
+            await vi.runOnlyPendingTimersAsync();
+            const ws = MockWebSocket.lastInstance!;
+
+            unsub2();
+            expect(ws.close).not.toHaveBeenCalled();
+        });
+
+        it('closes when last watcher unsubscribes', async () => {
+            const provider = new TestProvider(makeContext());
+            const unsub1 = provider.watchBalance(ADDR);
+            const unsub2 = provider.watchBalance(ADDR);
+
+            await vi.runOnlyPendingTimersAsync();
+            const ws = MockWebSocket.lastInstance!;
+
+            unsub1();
+            unsub2();
+            expect(ws.close).toHaveBeenCalled();
+        });
+
+        it('tracks types independently', async () => {
+            const provider = new TestProvider(makeContext());
+            const unsubBal = provider.watchBalance(ADDR);
+            provider.watchTransactions(ADDR);
+
+            await vi.runOnlyPendingTimersAsync();
+            const ws = MockWebSocket.lastInstance!;
+
+            unsubBal();
+            expect(ws.close).not.toHaveBeenCalled();
+        });
+
+        it('getActiveWatchers reflects current subscriptions', () => {
+            const provider = new TestProvider(makeContext());
+            const unsub = provider.watchBalance(ADDR);
+            provider.watchTransactions(ADDR);
+
+            // @ts-expect-error accessing protected
+            let watchers = provider.getActiveWatchers();
+            expect(watchers.get('balance')?.size).toBe(1);
+            expect(watchers.get('transactions')?.size).toBe(1);
+
+            unsub();
+
+            // @ts-expect-error accessing protected
+            watchers = provider.getActiveWatchers();
+            expect(watchers.has('balance')).toBe(false);
+            expect(watchers.get('transactions')?.size).toBe(1);
+        });
     });
 });

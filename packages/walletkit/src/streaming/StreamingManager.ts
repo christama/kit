@@ -27,7 +27,6 @@ const log = globalLogger.createChild('StreamingManager');
  */
 export class StreamingManager<E extends StreamingEvents = StreamingEvents> implements StreamingAPI {
     private providers: Map<string, StreamingProvider> = new Map();
-    private watchCounts: Map<string, Map<string, number>> = new Map(); // network -> address -> count
     private providerFactories: Map<string, StreamingProviderFactory> = new Map();
 
     constructor(private eventEmitter: EventEmitter<E>) {}
@@ -56,8 +55,7 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
      * Watch account balance changes.
      */
     watchBalance(network: Network, address: string, onChange: (update: BalanceUpdate) => void): () => void {
-        const id = asAddressFriendly(address);
-        const unwatchProvider = this.addWatcher(network, 'balance', id);
+        const unwatchProvider = this.getProvider(network).watchBalance(asAddressFriendly(address));
         const off = this.eventEmitter.on('streaming:balance-update', ({ payload: update }) => {
             if (compareAddress(address, update.address)) onChange(update);
         });
@@ -72,8 +70,7 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
      * Watch transactions for an address.
      */
     watchTransactions(network: Network, address: string, onChange: (update: TransactionsUpdate) => void): () => void {
-        const id = asAddressFriendly(address);
-        const unwatchProvider = this.addWatcher(network, 'transactions', id);
+        const unwatchProvider = this.getProvider(network).watchTransactions(asAddressFriendly(address));
         const off = this.eventEmitter.on('streaming:transactions', ({ payload: update }) => {
             if (compareAddress(address, update.address)) onChange(update);
         });
@@ -88,8 +85,7 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
      * Watch jetton changes for an address.
      */
     watchJettons(network: Network, address: string, onChange: (jetton: JettonUpdate) => void): () => void {
-        const id = asAddressFriendly(address);
-        const unwatchProvider = this.addWatcher(network, 'jettons', id);
+        const unwatchProvider = this.getProvider(network).watchJettons(asAddressFriendly(address));
         const off = this.eventEmitter.on('streaming:jettons-update', ({ payload: jetton }) => {
             if (compareAddress(address, jetton.ownerAddress)) onChange(jetton);
         });
@@ -125,65 +121,6 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
         return () => unwatchers.forEach((unwatch) => unwatch());
     }
 
-    private addWatcher(network: Network, type: StreamingWatchType, id: string): () => void {
-        const networkId = String(network.chainId);
-        const resourceKey = `${type}:${id}`;
-
-        let networkWatch = this.watchCounts.get(networkId);
-        if (!networkWatch) {
-            networkWatch = new Map();
-            this.watchCounts.set(networkId, networkWatch);
-        }
-
-        const currentCount = networkWatch.get(resourceKey) || 0;
-
-        const provider = this.getProvider(network);
-        if (currentCount === 0) {
-            this.callProviderWatch(provider, type, id);
-        }
-
-        networkWatch.set(resourceKey, currentCount + 1);
-
-        const networkWatchSnapshot = networkWatch;
-        return () => {
-            const count = networkWatchSnapshot.get(resourceKey) || 0;
-            if (count <= 1) {
-                networkWatchSnapshot.delete(resourceKey);
-                this.callProviderUnwatch(provider, type, id);
-            } else {
-                networkWatchSnapshot.set(resourceKey, count - 1);
-            }
-        };
-    }
-
-    private callProviderWatch(provider: StreamingProvider, type: StreamingWatchType, id: string): void {
-        switch (type) {
-            case 'balance':
-                provider.watchBalance(id);
-                break;
-            case 'transactions':
-                provider.watchTransactions(id);
-                break;
-            case 'jettons':
-                provider.watchJettons(id);
-                break;
-        }
-    }
-
-    private callProviderUnwatch(provider: StreamingProvider, type: StreamingWatchType, id: string): void {
-        switch (type) {
-            case 'balance':
-                provider.unwatchBalance(id);
-                break;
-            case 'transactions':
-                provider.unwatchTransactions(id);
-                break;
-            case 'jettons':
-                provider.unwatchJettons(id);
-                break;
-        }
-    }
-
     private getProvider(network: Network): StreamingProvider {
         const networkId = String(network.chainId);
         let provider = this.providers.get(networkId);
@@ -198,7 +135,6 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
 
         provider = factory({
             network,
-            getWatchers: () => this.getWatchers(network),
             listener: {
                 onBalanceUpdate: (update) =>
                     this.eventEmitter.emit(
@@ -225,34 +161,11 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
         return provider;
     }
 
-    private getWatchers(network: Network): Map<StreamingWatchType, Set<string>> {
-        const networkId = String(network.chainId);
-        const networkWatch = this.watchCounts.get(networkId);
-        const result = new Map<StreamingWatchType, Set<string>>();
-
-        if (!networkWatch) return result;
-
-        networkWatch.forEach((count, key) => {
-            if (count > 0) {
-                const [type, id] = key.split(':') as [StreamingWatchType, string];
-                let set = result.get(type);
-                if (!set) {
-                    set = new Set();
-                    result.set(type, set);
-                }
-                set.add(id);
-            }
-        });
-
-        return result;
-    }
-
     /**
      * Close all active streaming connections.
      */
     shutdown(): void {
         this.providers.forEach((provider) => provider.close());
         this.providers.clear();
-        this.watchCounts.clear();
     }
 }

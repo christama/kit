@@ -7,7 +7,7 @@
  */
 
 import type { Network } from '../models/core/Network';
-import type { BalanceUpdate, TransactionsUpdate, JettonUpdate, StreamingWatchType } from '../models';
+import type { BalanceUpdate, TransactionsUpdate, JettonUpdate } from '../models';
 
 export interface StreamingProviderListener {
     onBalanceUpdate: (update: BalanceUpdate) => void;
@@ -17,22 +17,19 @@ export interface StreamingProviderListener {
 
 export interface StreamingProvider {
     /**
-     * Watch account balance changes.
+     * Watch account balance changes. Returns an unsubscribe function.
      */
-    watchBalance(address: string): void;
-    unwatchBalance(address: string): void;
+    watchBalance(address: string): () => void;
 
     /**
-     * Watch transactions for an address.
+     * Watch transactions for an address. Returns an unsubscribe function.
      */
-    watchTransactions(address: string): void;
-    unwatchTransactions(address: string): void;
+    watchTransactions(address: string): () => void;
 
     /**
-     * Watch jetton changes for an address.
+     * Watch jetton changes for an address. Returns an unsubscribe function.
      */
-    watchJettons(address: string): void;
-    unwatchJettons(address: string): void;
+    watchJettons(address: string): () => void;
 
     /**
      * Close the connection.
@@ -43,7 +40,6 @@ export interface StreamingProvider {
 export interface StreamingProviderContext {
     network: Network;
     listener: StreamingProviderListener;
-    getWatchers: () => Map<StreamingWatchType, Set<string>>;
 }
 
 export type StreamingProviderFactory = (context: StreamingProviderContext) => StreamingProvider;

@@ -83,7 +83,7 @@ export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
             return;
         }
 
-        const watched = this.getWatchers();
+        const watched = this.getActiveWatchers();
         const addresses = new Set<string>();
         const types = new Set<StreamingV2EventType>();
 
@@ -142,7 +142,7 @@ export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
 
             if (isAccountStateNotification(msg)) {
                 const update = mapBalance(msg);
-                const watchedBalance = this.getWatchers().get('balance') ?? new Set<string>();
+                const watchedBalance = this.getActiveWatchers().get('balance') ?? new Set<string>();
                 if (watchedBalance.has(update.address)) {
                     this.listener.onBalanceUpdate(update);
                 }
@@ -152,7 +152,7 @@ export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
                 log.debug('Trace invalidated', { hash: msg.trace_external_hash_norm });
                 const entry = this.traceCache.get(msg.trace_external_hash_norm);
                 if (entry) {
-                    const watchedTransactions = this.getWatchers().get('transactions') ?? new Set<string>();
+                    const watchedTransactions = this.getActiveWatchers().get('transactions') ?? new Set<string>();
                     entry.accounts.forEach((account) => {
                         const friendly = asAddressFriendly(account);
                         if (watchedTransactions.has(friendly)) {
@@ -189,7 +189,7 @@ export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
                     this.traceCache.set(msg.trace_external_hash_norm, traceEntry);
                 }
 
-                const watchedTransactions = this.getWatchers().get('transactions') ?? new Set<string>();
+                const watchedTransactions = this.getActiveWatchers().get('transactions') ?? new Set<string>();
                 const uniqueAccounts = new Set<string>();
 
                 msg.transactions.forEach((tx: { account: string }) => {
@@ -205,7 +205,7 @@ export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
             }
 
             if (isJettonsNotification(msg)) {
-                const watchedJettons = this.getWatchers().get('jettons') ?? new Set<string>();
+                const watchedJettons = this.getActiveWatchers().get('jettons') ?? new Set<string>();
                 const update = mapJettons(msg);
                 if (watchedJettons.has(update.ownerAddress)) {
                     this.listener.onJettonsUpdate(update);
