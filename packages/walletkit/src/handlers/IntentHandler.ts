@@ -474,7 +474,16 @@ export class IntentHandler {
         // For intents delivered via an existing bridge session, respond using the
         // existing session crypto (sendResponse) so the SDK's pendingRequests resolves.
         if (event.origin === 'connectedBridge') {
-            await this.bridgeManager.sendResponse(event as BridgeEvent, wireResponse);
+            try {
+                await this.bridgeManager.sendResponse(event as BridgeEvent, wireResponse);
+            } catch (error) {
+                if (error instanceof WalletKitError && error.code === ERROR_CODES.SESSION_NOT_FOUND) {
+                    // Session was deleted (e.g. wallet disconnected before reject) — nothing to notify.
+                    log.debug('Session gone before intent response could be sent, ignoring', { eventId: event.id });
+                } else {
+                    throw error;
+                }
+            }
         } else {
             await this.bridgeManager.sendIntentResponse(event.clientId, wireResponse, event.traceId);
         }
