@@ -31,12 +31,6 @@
   "keywords": [],
   "author": "",
   "license": "MIT",
-  "pnpm": {
-    "overrides": {
-      "react": "catalog:",
-      "react-dom": "catalog:"
-    }
-  },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
     "@ton/toolchain": "github:the-ton-tech/toolchain#v1.5.0",
