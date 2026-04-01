@@ -46,9 +46,6 @@ const meta: Meta<typeof TransactionProgressPreview> = {
     title: 'Public/Features/Transaction/TransactionProgress',
     component: TransactionProgressPreview,
     tags: ['autodocs'],
-    parameters: {
-        layout: 'centered',
-    },
 };
 
 export default meta;

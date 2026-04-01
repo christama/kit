@@ -1,6 +1,7 @@
 .container {
   composes: block from "../../../../components/block/block.module.css";
 
+  width: 100%;
   border: var(--ta-border-width-m) solid transparent;
   transition: border-color 0.2s;
   gap: 8px;

@@ -9,7 +9,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { FC, PropsWithChildren } from 'react';
 import type { Network } from '@ton/appkit';
-import { validateNumericString } from '@ton/appkit';
 import type { GetSwapQuoteData } from '@ton/appkit/queries';
 
 import { useSwapQuote } from '../../hooks/use-swap-quote';
@@ -17,15 +16,10 @@ import { useBuildSwapTransaction } from '../../hooks/use-build-swap-transaction'
 import { useSelectedWallet, useAddress } from '../../../wallets';
 import { useSendTransaction } from '../../../transaction/hooks/use-send-transaction';
 import { useDebounceValue } from '../../../../hooks/use-debounce-value';
-import { useBalance } from '../../../balances/hooks/use-balance';
-import { useJettonBalanceByAddress } from '../../../jettons/hooks/use-jetton-balance-by-address';
 import { mapSwapWidgetTokens } from '../../utils/map-swap-widget-tokens';
-
-function truncateDecimals(value: string, maxDecimals: number): string {
-    const dotIndex = value.indexOf('.');
-    if (dotIndex === -1) return value;
-    return value.slice(0, dotIndex + 1 + maxDecimals);
-}
+import { useSwapTokenState } from './use-swap-token-state';
+import { useSwapBalances } from './use-swap-balances';
+import { useSwapValidation } from './use-swap-validation';
 
 export interface SwapWidgetToken {
     /** Token symbol, e.g. "TON" */
@@ -57,16 +51,10 @@ export interface SwapContextType {
     toAmount: string;
     /** Fiat currency symbol, e.g. "$" */
     fiatSymbol: string;
-    /** Fiat value of fromAmount, null when rate is unavailable */
-    fromFiatValue: string | null;
-    /** Fiat value of toAmount, null when rate is unavailable */
-    toFiatValue: string | null;
     /** Balance of the "from" token for the connected wallet */
     fromBalance: string | undefined;
     /** Balance of the "to" token for the connected wallet */
     toBalance: string | undefined;
-    /** True while the flip animation should be active */
-    isFlipped: boolean;
     /** Whether the user can proceed with the swap */
     canSubmit: boolean;
     /** Whether a wallet is currently connected */
@@ -96,11 +84,8 @@ export const SwapContext = createContext<SwapContextType>({
     fromAmount: '',
     toAmount: '',
     fiatSymbol: '$',
-    fromFiatValue: null,
-    toFiatValue: null,
     fromBalance: undefined,
     toBalance: undefined,
-    isFlipped: false,
     canSubmit: false,
     isWalletConnected: false,
     quote: undefined,
@@ -147,22 +132,12 @@ export const SwapWidgetProvider: FC<SwapProviderProps> = ({
 }) => {
     const mappedTokens = useMemo(() => mapSwapWidgetTokens(tokens), [tokens]);
 
-    const [fromToken, setFromToken] = useState<SwapWidgetToken | null>(
-        mappedTokens.find((t) => t.symbol === defaultFromSymbol) ?? mappedTokens[0] ?? null,
-    );
-    const [toToken, setToToken] = useState<SwapWidgetToken | null>(
-        mappedTokens.find((t) => t.symbol === defaultToSymbol) ?? mappedTokens[1] ?? null,
-    );
-    const [fromAmount, setFromAmountRaw] = useState('');
-    const handleSetFromAmount = useCallback(
-        (value: string) => {
-            if (value === '' || validateNumericString(value, fromToken?.decimals)) {
-                setFromAmountRaw(value);
-            }
-        },
-        [fromToken?.decimals],
-    );
-    const [isFlipped, setIsFlipped] = useState(false);
+    const { fromToken, toToken, fromAmount, setFromToken, setToToken, setFromAmount, onFlip } = useSwapTokenState({
+        mappedTokens,
+        defaultFromSymbol,
+        defaultToSymbol,
+    });
+
     const [slippage, setSlippage] = useState(defaultSlippage);
 
     const fromTokenParam = useMemo(
@@ -202,83 +177,21 @@ export const SwapWidgetProvider: FC<SwapProviderProps> = ({
 
     const toAmount = quote?.toAmount ?? '';
 
-    const fromFiatValue = useMemo(() => {
-        const fromNum = parseFloat(fromAmount) || 0;
-
-        if (!fromToken?.rate || fromNum <= 0) return null;
-
-        return (fromNum * fromToken.rate).toFixed(2);
-    }, [fromAmount, fromToken]);
-
-    const toFiatValue = useMemo(() => {
-        const toNum = parseFloat(toAmount) || 0;
-
-        if (!toToken?.rate || toNum <= 0) return null;
-
-        return (toNum * toToken.rate).toFixed(2);
-    }, [toAmount, toToken]);
-
-    const handleSetFromToken = useCallback(
-        (token: SwapWidgetToken) => {
-            if (toToken && token.address === toToken.address) {
-                setToToken(fromToken);
-            }
-            setFromToken(token);
-            setFromAmountRaw((prev) => truncateDecimals(prev, token.decimals));
-        },
-        [fromToken, toToken],
-    );
-
-    const handleSetToToken = useCallback(
-        (token: SwapWidgetToken) => {
-            if (fromToken && token.address === fromToken.address) {
-                setFromToken(toToken);
-            }
-            setToToken(token);
-        },
-        [fromToken, toToken],
-    );
-
-    const handleFlip = useCallback(() => {
-        setIsFlipped((prev) => !prev);
-        setFromToken(toToken);
-        setToToken(fromToken);
-        if (toToken) {
-            setFromAmountRaw((prev) => truncateDecimals(prev, toToken.decimals));
-        }
-    }, [fromToken, toToken]);
-
     const [wallet] = useSelectedWallet();
     const isWalletConnected = wallet !== null;
     const address = useAddress();
 
-    const isFromNative = fromToken?.address === 'ton';
-    const isToNative = toToken?.address === 'ton';
-
-    const { data: tonBalance } = useBalance();
-
-    const { data: fromJettonBalance } = useJettonBalanceByAddress({
-        jettonAddress: fromToken?.address,
+    const { fromBalance, toBalance } = useSwapBalances({
+        fromToken,
+        toToken,
         ownerAddress: address ?? undefined,
-        jettonDecimals: fromToken?.decimals,
-        query: { enabled: !isFromNative && !!fromToken },
     });
-
-    const { data: toJettonBalance } = useJettonBalanceByAddress({
-        jettonAddress: toToken?.address,
-        ownerAddress: address ?? undefined,
-        jettonDecimals: toToken?.decimals,
-        query: { enabled: !isToNative && !!toToken },
-    });
-
-    const fromBalance = isFromNative ? tonBalance : fromJettonBalance;
-    const toBalance = isToNative ? tonBalance : toJettonBalance;
 
     const handleMaxClick = useCallback(() => {
         if (fromBalance) {
-            setFromAmountRaw(fromBalance.replace(/\s/g, ''));
+            setFromAmount(fromBalance.replace(/\s/g, ''));
         }
-    }, [fromBalance]);
+    }, [fromBalance, setFromAmount]);
 
     const { mutateAsync: buildTransaction } = useBuildSwapTransaction();
     const { mutateAsync: sendTransaction, isPending: isSendingTransaction } = useSendTransaction();
@@ -291,27 +204,14 @@ export const SwapWidgetProvider: FC<SwapProviderProps> = ({
         await sendTransaction(transactionParams);
     }, [quote, address, buildTransaction, sendTransaction]);
 
-    const error: SwapWidgetError = useMemo(() => {
-        const amount = parseFloat(fromAmount) || 0;
-        if (amount <= 0) return null;
-
-        const fraction = fromAmount.split('.')[1];
-        if (fraction && fromToken && fraction.length > fromToken.decimals) {
-            return 'tooManyDecimals';
-        }
-
-        if (fromBalance !== undefined && amount > parseFloat(fromBalance)) {
-            return 'insufficientBalance';
-        }
-
-        if (quoteError && fromAmountDebounced) {
-            return 'quoteError';
-        }
-
-        return null;
-    }, [fromAmount, fromToken, fromBalance, quoteError, fromAmountDebounced]);
-
-    const canSubmit = (parseFloat(fromAmount) || 0) > 0 && fromToken !== null && toToken !== null && error === null;
+    const { error, canSubmit } = useSwapValidation({
+        fromAmount,
+        fromAmountDebounced,
+        fromToken,
+        toToken,
+        fromBalance,
+        quoteError,
+    });
 
     const value = useMemo(
         () => ({
@@ -321,22 +221,19 @@ export const SwapWidgetProvider: FC<SwapProviderProps> = ({
             fromAmount,
             toAmount,
             fiatSymbol,
-            fromFiatValue,
-            toFiatValue,
             fromBalance,
             toBalance,
-            isFlipped,
             canSubmit,
             isWalletConnected,
             quote,
             isQuoteLoading,
             error,
             slippage,
-            setFromToken: handleSetFromToken,
-            setToToken: handleSetToToken,
-            setFromAmount: handleSetFromAmount,
+            setFromToken,
+            setToToken,
+            setFromAmount,
             setSlippage,
-            onFlip: handleFlip,
+            onFlip,
             onMaxClick: handleMaxClick,
             sendSwapTransaction,
             isSendingTransaction,
@@ -348,21 +245,19 @@ export const SwapWidgetProvider: FC<SwapProviderProps> = ({
             fromAmount,
             toAmount,
             fiatSymbol,
-            fromFiatValue,
-            toFiatValue,
             fromBalance,
             toBalance,
-            isFlipped,
             canSubmit,
             isWalletConnected,
             quote,
             isQuoteLoading,
             error,
             slippage,
-            handleSetFromToken,
-            handleSetToToken,
-            handleSetFromAmount,
-            handleFlip,
+            setFromToken,
+            setToToken,
+            setFromAmount,
+            setSlippage,
+            onFlip,
             handleMaxClick,
             sendSwapTransaction,
             isSendingTransaction,

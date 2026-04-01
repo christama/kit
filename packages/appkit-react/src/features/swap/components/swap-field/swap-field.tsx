@@ -7,47 +7,50 @@
  */
 
 import type { FC } from 'react';
+import { calcFiatValue, formatLargeValue } from '@ton/appkit';
 
 import { useI18n } from '../../../settings/hooks/use-i18n';
 import { Input } from '../../../../components/input/input';
 import { Skeleton } from '../../../../components/skeleton';
 import { TokenSelector } from '../token-selector/token-selector';
+import type { SwapWidgetToken } from '../swap-widget-provider/swap-widget-provider';
+import { useSwapContext } from '../swap-widget-provider/swap-widget-provider';
 import styles from './swap-field.module.css';
 
 export interface SwapFieldProps {
     type: 'pay' | 'receive';
-    tokenSymbol: string;
     amount: string;
+    token?: SwapWidgetToken;
     onAmountChange?: (value: string) => void;
-    usdValue?: string;
     balance?: string;
     loading?: boolean;
     onMaxClick?: () => void;
     onTokenSelectorClick?: () => void;
-    tokenIcon?: string;
 }
 
 export const SwapField: FC<SwapFieldProps> = ({
     type,
-    tokenSymbol,
-    tokenIcon,
+    token,
     amount,
     onAmountChange,
-    usdValue,
     balance,
     loading,
     onMaxClick,
     onTokenSelectorClick,
 }) => {
     const { t } = useI18n();
+    const { fiatSymbol } = useSwapContext();
+
+    const tokenSymbol = token?.symbol || '';
+    const displayDecimals = token ? Math.min(token.decimals, 5) : 5;
 
     return (
-        <Input.Container size="l" variant="unstyled" className={styles.container} loading={loading}>
+        <Input.Container size="l" variant="unstyled" className={styles.container} loading={loading} resizable>
             <Input.Header className={styles.header}>
                 <Input.Title>{type === 'pay' ? t('swap.pay') : t('swap.receive')}</Input.Title>
             </Input.Header>
 
-            <Input.Field>
+            <Input.Field style={{ minHeight: 'var(--ta-input-l-line-height)' }}>
                 <Input.Input
                     placeholder="0"
                     value={amount}
@@ -55,20 +58,23 @@ export const SwapField: FC<SwapFieldProps> = ({
                     disabled={type === 'receive'}
                 />
                 <Input.Slot side="right">
-                    <TokenSelector symbol={tokenSymbol} icon={tokenIcon} onClick={onTokenSelectorClick} />
+                    <TokenSelector symbol={tokenSymbol} icon={token?.logo} onClick={onTokenSelectorClick} />
                 </Input.Slot>
             </Input.Field>
 
             <Input.Caption className={styles.caption}>
                 <div className={styles.balanceLine}>
-                    <span>{usdValue ? `$ ${usdValue}` : '$ 0.00'}</span>
+                    <span>
+                        {token?.rate &&
+                            `${fiatSymbol} ${formatLargeValue(calcFiatValue(amount || '0', token.rate), 2)}`}
+                    </span>
                     {type === 'pay' && (
                         <span className={styles.balanceWrapper}>
                             {balance ? (
                                 <>
                                     {t('swap.max')}
                                     <button className={styles.maxButton} onClick={onMaxClick} type="button">
-                                        {balance} {tokenSymbol}
+                                        {formatLargeValue(balance, displayDecimals)} {tokenSymbol}
                                     </button>
                                 </>
                             ) : (
@@ -79,7 +85,11 @@ export const SwapField: FC<SwapFieldProps> = ({
 
                     {type === 'receive' && (
                         <span className={styles.balanceWrapper}>
-                            {balance ? `${balance} ${tokenSymbol}` : <Skeleton className={styles.skeletonText} />}
+                            {balance ? (
+                                `${formatLargeValue(balance, displayDecimals)} ${tokenSymbol}`
+                            ) : (
+                                <Skeleton className={styles.skeletonText} />
+                            )}
                         </span>
                     )}
                 </div>

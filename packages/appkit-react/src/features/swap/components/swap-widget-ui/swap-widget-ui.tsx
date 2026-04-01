@@ -6,7 +6,7 @@
  *
  */
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { FC } from 'react';
 
 import { Button } from '../../../../components/button';
@@ -31,12 +31,8 @@ export const SwapWidgetUI: FC<SwapWidgetRenderProps> = ({
     tokens,
     fromAmount,
     toAmount,
-    fromFiatValue,
-    toFiatValue,
     fromBalance,
     toBalance,
-    // fiatSymbol,
-    isFlipped,
     canSubmit,
     isWalletConnected,
     quote,
@@ -57,8 +53,15 @@ export const SwapWidgetUI: FC<SwapWidgetRenderProps> = ({
     const { t } = useI18n();
     const [activeField, setActiveField] = useState<'from' | 'to' | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isFlipped, setIsFlipped] = useState(false);
+
+    const handleFlip = useCallback(() => {
+        setIsFlipped((prev) => !prev);
+        onFlip();
+    }, [onFlip]);
+
     const provider = useSwapProvider({ id: quote?.providerId });
-    const infoRows = getInfoFromQuote({ quote, slippage, provider, toToken, fromToken });
+    const infoRows = getInfoFromQuote({ quote, slippage, provider, toToken });
 
     return (
         <div className={styles.widget}>
@@ -70,26 +73,22 @@ export const SwapWidgetUI: FC<SwapWidgetRenderProps> = ({
             <div className={styles.fieldsContainer}>
                 <SwapField
                     type="pay"
-                    tokenSymbol={fromToken?.symbol ?? ''}
-                    tokenIcon={fromToken?.logo}
+                    token={fromToken ?? undefined}
                     amount={fromAmount}
                     onAmountChange={setFromAmount}
-                    usdValue={fromFiatValue ?? undefined}
                     balance={fromBalance}
                     onMaxClick={onMaxClick}
                     onTokenSelectorClick={() => setActiveField('from')}
                 />
 
                 <div className={styles.flipButtonWrapper}>
-                    <SwapFlipButton onClick={onFlip} rotated={isFlipped} />
+                    <SwapFlipButton onClick={handleFlip} rotated={isFlipped} />
                 </div>
 
                 <SwapField
                     type="receive"
-                    tokenSymbol={toToken?.symbol ?? ''}
-                    tokenIcon={toToken?.logo}
+                    token={toToken ?? undefined}
                     amount={toAmount}
-                    usdValue={toFiatValue ?? undefined}
                     balance={toBalance}
                     onTokenSelectorClick={() => setActiveField('to')}
                     loading={isQuoteLoading}

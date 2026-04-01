@@ -6,14 +6,15 @@
  *
  */
 
-import { createContext, useContext, useMemo } from 'react';
-import type { FC, ReactNode, ComponentProps } from 'react';
+import { createContext, useContext, useMemo, useRef, useState, useLayoutEffect } from 'react';
+import type { FC, ReactNode, ComponentProps, ChangeEvent } from 'react';
 import clsx from 'clsx';
 
 import { Skeleton } from '../skeleton';
+import { SIZE_ORDER } from './input-resize';
+import type { InputSize } from './input-resize';
 import styles from './input.module.css';
 
-type InputSize = 's' | 'm' | 'l';
 type InputVariant = 'default' | 'unstyled';
 
 interface InputContextProps {
@@ -22,6 +23,7 @@ interface InputContextProps {
     disabled?: boolean;
     error?: boolean;
     loading?: boolean;
+    resizable?: boolean;
 }
 
 const InputContext = createContext<InputContextProps | undefined>(undefined);
@@ -40,6 +42,7 @@ export interface InputContainerProps extends ComponentProps<'div'> {
     disabled?: boolean;
     error?: boolean;
     loading?: boolean;
+    resizable?: boolean;
     children: ReactNode;
 }
 
@@ -49,13 +52,14 @@ const Container: FC<InputContainerProps> = ({
     disabled,
     error,
     loading,
+    resizable,
     className,
     children,
     ...props
 }) => {
     const contextValue = useMemo(
-        () => ({ size, variant, disabled, error, loading }),
-        [size, variant, disabled, error, loading],
+        () => ({ size, variant, disabled, error, loading, resizable }),
+        [size, variant, disabled, error, loading, resizable],
     );
 
     return (
@@ -115,14 +119,72 @@ const Slot: FC<InputSlotProps> = ({ side, className, children, ...props }) => (
 
 export type InputControlProps = ComponentProps<'input'>;
 
-const InputControl: FC<InputControlProps> = ({ className, disabled: propsDisabled, ...props }) => {
-    const { size, disabled: contextDisabled, loading } = useInputContext();
+const InputControl: FC<InputControlProps> = ({ className, disabled: propsDisabled, onChange, ...props }) => {
+    const { size: contextSize, disabled: contextDisabled, loading, resizable } = useInputContext();
     const disabled = propsDisabled || contextDisabled;
 
-    const typographyClass = styles[`input_${size}`];
+    const inputRef = useRef<HTMLInputElement>(null);
+    const measureRefs = {
+        l: useRef<HTMLSpanElement>(null),
+        m: useRef<HTMLSpanElement>(null),
+        s: useRef<HTMLSpanElement>(null),
+    };
+    const [effectiveSize, setEffectiveSize] = useState<InputSize>(contextSize);
+
+    const adjustSize = () => {
+        if (!resizable || !inputRef.current) return;
+        const availableWidth = inputRef.current.clientWidth;
+        if (availableWidth === 0) return;
+
+        const startIndex = SIZE_ORDER.indexOf(contextSize);
+        for (let i = startIndex; i < SIZE_ORDER.length; i++) {
+            const size = SIZE_ORDER[i] as InputSize;
+            const textWidth = measureRefs[size].current?.offsetWidth ?? Infinity;
+            if (textWidth <= availableWidth) {
+                setEffectiveSize(size);
+                return;
+            }
+        }
+        setEffectiveSize(SIZE_ORDER[SIZE_ORDER.length - 1] as InputSize);
+    };
+
+    // Re-measure when controlled value or context size changes
+    useLayoutEffect(adjustSize, [resizable, contextSize, props.value]);
+
+    // Re-measure on container resize (observe parent, not the input itself,
+    // to avoid feedback loop when font-size change triggers ResizeObserver)
+    useLayoutEffect(() => {
+        const parent = inputRef.current?.parentElement;
+        if (!resizable || !parent) return;
+        const observer = new ResizeObserver(adjustSize);
+        observer.observe(parent);
+        return () => observer.disconnect();
+    }, [resizable, contextSize]);
+
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        onChange?.(e);
+        if (!resizable || !inputRef.current) return;
+        const availableWidth = inputRef.current.clientWidth;
+        if (availableWidth === 0) return;
+
+        const startIndex = SIZE_ORDER.indexOf(contextSize);
+        for (let i = startIndex; i < SIZE_ORDER.length; i++) {
+            const size = SIZE_ORDER[i] as InputSize;
+            const textWidth = measureRefs[size].current?.offsetWidth ?? Infinity;
+            if (textWidth <= availableWidth) {
+                setEffectiveSize(size);
+                return;
+            }
+        }
+        setEffectiveSize(SIZE_ORDER[SIZE_ORDER.length - 1] as InputSize);
+    };
+
+    const activeSize = resizable ? effectiveSize : contextSize;
+    const typographyClass = styles[`input_${activeSize}`];
+    const text = String(props.value ?? props.defaultValue ?? '');
 
     if (loading) {
-        const skeletonClass = styles[`inputSkeleton_${size}`];
+        const skeletonClass = styles[`inputSkeleton_${contextSize}`];
 
         return (
             <div className={clsx(styles.input, styles.inputSkeleton, skeletonClass, className)}>
@@ -131,7 +193,30 @@ const InputControl: FC<InputControlProps> = ({ className, disabled: propsDisable
         );
     }
 
-    return <input className={clsx(styles.input, typographyClass, className)} disabled={disabled} {...props} />;
+    return (
+        <>
+            {resizable && (
+                <>
+                    <span ref={measureRefs.l} className={clsx(styles.inputMeasure, styles.input_l)} aria-hidden>
+                        {text}
+                    </span>
+                    <span ref={measureRefs.m} className={clsx(styles.inputMeasure, styles.input_m)} aria-hidden>
+                        {text}
+                    </span>
+                    <span ref={measureRefs.s} className={clsx(styles.inputMeasure, styles.input_s)} aria-hidden>
+                        {text}
+                    </span>
+                </>
+            )}
+            <input
+                className={clsx(styles.input, typographyClass, className)}
+                disabled={disabled}
+                {...props}
+                ref={inputRef}
+                onChange={handleChange}
+            />
+        </>
+    );
 };
 
 const Caption: FC<ComponentProps<'span'>> = ({ className, children, ...props }) => {

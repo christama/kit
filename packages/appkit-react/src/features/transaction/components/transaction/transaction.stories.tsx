@@ -27,9 +27,6 @@ const meta: Meta<typeof TransactionButtonPreview> = {
     title: 'Public/Features/Transaction/Transaction',
     component: TransactionButtonPreview,
     tags: ['autodocs'],
-    parameters: {
-        layout: 'centered',
-    },
 };
 
 export default meta;

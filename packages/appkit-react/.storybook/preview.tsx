@@ -44,10 +44,14 @@ const withTheme: Decorator = (Story, context) => {
     return (
         <div
             style={{
-                padding: '24px',
-                borderRadius: '16px',
-                backgroundColor: theme === 'dark' ? '#141416' : '#e2e2e2',
+                backgroundColor: 'var(--ta-color-background)',
                 color: 'var(--ta-color-text)',
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                padding: '24px 12px',
+                boxSizing: 'border-box',
             }}
         >
             <Story />
@@ -75,6 +79,7 @@ const preview: Preview = {
         docs: {
             theme,
         },
+        layout: 'fullscreen',
         actions: { argTypesRegex: '^on[A-Z].*' },
         controls: {
             matchers: {

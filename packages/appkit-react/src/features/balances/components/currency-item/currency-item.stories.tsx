@@ -15,9 +15,6 @@ const meta: Meta<typeof CurrencyItem> = {
     title: 'Public/Features/Balances/CurrencyItem',
     component: CurrencyItem,
     tags: ['autodocs'],
-    parameters: {
-        layout: 'centered',
-    },
     args: {
         onClick: fn(),
     },

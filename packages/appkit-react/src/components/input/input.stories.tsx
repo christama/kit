@@ -13,9 +13,6 @@ import { Input } from './input';
 const meta: Meta<typeof Input> = {
     title: 'Public/Components/Input',
     component: Input,
-    parameters: {
-        layout: 'centered',
-    },
     tags: ['autodocs'],
 };
 
@@ -128,6 +125,38 @@ export const Advanced: Story = {
                     </Input.Slot>
                 </Input.Field>
                 <Input.Caption>$ 144.74</Input.Caption>
+            </Input.Container>
+        </div>
+    ),
+};
+
+export const Resizable: Story = {
+    render: () => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '400px' }}>
+            <Input.Container size="l" resizable>
+                <Input.Header>
+                    <Input.Title>Resizable (starts at L)</Input.Title>
+                </Input.Header>
+                <Input.Field>
+                    <Input.Input placeholder="Type a long number..." />
+                    <Input.Slot side="right">
+                        <div
+                            style={{
+                                background: 'var(--ta-color-background)',
+                                padding: '4px 8px',
+                                borderRadius: '20px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '14px',
+                                fontWeight: 600,
+                            }}
+                        >
+                            TON ▾
+                        </div>
+                    </Input.Slot>
+                </Input.Field>
+                <Input.Caption>Font shrinks L → M → S as you type</Input.Caption>
             </Input.Container>
         </div>
     ),

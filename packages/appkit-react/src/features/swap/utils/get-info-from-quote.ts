@@ -7,13 +7,13 @@
  */
 
 import type { SwapQuote, SwapProvider } from '@ton/appkit';
+import { formatLargeValue } from '@ton/appkit';
 
 import type { SwapInfoRowProps } from '../components/swap-info';
 import type { SwapWidgetToken } from '../components/swap-widget-provider';
 
 interface GetInfoFromQuoteArgs {
     slippage: number;
-    fromToken: SwapWidgetToken | null;
     toToken: SwapWidgetToken | null;
     quote?: SwapQuote;
     provider?: SwapProvider;
@@ -32,7 +32,10 @@ export const getInfoFromQuote = ({ quote, slippage, provider, toToken }: GetInfo
     if (quote.priceImpact) rows.push({ label: 'Price impact', value: `${(quote.priceImpact / 100).toFixed(2)}%` });
 
     if (toToken) {
-        rows.push({ label: 'Min received', value: `${quote.minReceived} ${toToken.symbol}` });
+        rows.push({
+            label: 'Min received',
+            value: `${formatLargeValue(quote.minReceived, Math.min(toToken.decimals, 6))} ${toToken.symbol}`,
+        });
     }
 
     rows.push({ label: 'Slippage', value: `${(slippage / 100).toFixed(2)}%` });

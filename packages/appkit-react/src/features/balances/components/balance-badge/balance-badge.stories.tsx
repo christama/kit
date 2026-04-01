@@ -13,9 +13,6 @@ import { BalanceBadge } from './balance-badge';
 const meta: Meta = {
     title: 'Public/Features/Balances/BalanceBadge',
     tags: ['autodocs'],
-    parameters: {
-        layout: 'centered',
-    },
 };
 
 export default meta;

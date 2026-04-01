@@ -26,9 +26,6 @@ const meta: Meta<typeof SendJettonButtonPreview> = {
     title: 'Public/Features/Balances/SendJettonButton',
     component: SendJettonButtonPreview,
     tags: ['autodocs'],
-    parameters: {
-        layout: 'centered',
-    },
 };
 
 export default meta;

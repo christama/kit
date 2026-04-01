@@ -78,6 +78,16 @@
   height: var(--ta-input-s-line-height);
 }
 
+.input_resize_m {
+  font-size: var(--ta-input-m-size);
+  font-weight: var(--ta-input-m-weight);
+}
+
+.input_resize_s {
+  font-size: var(--ta-input-s-size);
+  font-weight: var(--ta-input-s-weight);
+}
+
 .inputSkeleton_m {
   height: var(--ta-input-m-line-height);
 }
@@ -86,8 +96,18 @@
   height: var(--ta-input-l-line-height);
 }
 
+/* Hidden spans used to measure text width at each size (same idea as Uniswap AmountInput) */
+.inputMeasure {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+  font-family: var(--ta-font-family);
+}
+
 .input {
   flex: 1;
+  min-width: 0;
   background: none;
   border: none;
   outline: none;
@@ -103,6 +123,7 @@
 }
 
 .inputSkeleton {
+  width: 100%;
   display: flex;
   align-items: center;
   pointer-events: none;
