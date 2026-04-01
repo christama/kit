@@ -144,7 +144,7 @@ export const WalletDashboard: React.FC = () => {
     return (
         <Layout title="TON Wallet" showLogout>
             <div className="space-y-4">
-                {/* Wallet Card: selector + balance + address + send/swap + jettons + history */}
+                {/* Wallet Card: selector + balance + address + send/swap/stake + jettons + history */}
                 <Card compact>
                     <div className="space-y-3">
                         {/* Row 1: Wallet selector */}
@@ -249,7 +249,7 @@ export const WalletDashboard: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Row 4: Send and Swap */}
+                        {/* Row 4: Send, Swap, Stake */}
                         <div className="flex gap-2">
                             <Button
                                 onClick={() => navigate('/send')}
@@ -264,6 +264,14 @@ export const WalletDashboard: React.FC = () => {
                                 className="flex-1 py-2 text-sm"
                             >
                                 Swap
+                            </Button>
+
+                            <Button
+                                variant="secondary"
+                                onClick={() => navigate('/staking')}
+                                className="flex-1 py-2 text-sm"
+                            >
+                                Stake
                             </Button>
                         </div>
 
