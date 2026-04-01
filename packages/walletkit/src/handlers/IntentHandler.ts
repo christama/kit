@@ -192,6 +192,8 @@ export class IntentHandler {
                 id: batch.id,
                 origin: batch.origin,
                 clientId: batch.clientId,
+                traceId: batch.traceId,
+                returnStrategy: batch.returnStrategy,
                 deliveryMode,
                 network: firstTx?.type === 'transaction' ? firstTx.network : undefined,
                 validUntil: firstTx?.type === 'transaction' ? firstTx.validUntil : undefined,
