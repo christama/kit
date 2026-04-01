@@ -7,9 +7,9 @@
  */
 
 import type { FC, ReactNode } from 'react';
-import { Dialog } from 'radix-ui';
 import clsx from 'clsx';
 
+import { Dialog } from '../dialog';
 import styles from './modal.module.css';
 
 export interface ModalProps {
@@ -51,8 +51,8 @@ export const Modal: FC<ModalProps> = ({ open, onOpenChange, title, children, cla
     return (
         <Dialog.Root open={open} onOpenChange={onOpenChange}>
             <Dialog.Portal>
-                <Dialog.Overlay className={styles.overlay}>
-                    <Dialog.Content className={clsx(styles.content, className)}>
+                <Dialog.Overlay className={styles.overlay} onClick={() => onOpenChange?.(false)}>
+                    <Dialog.Content className={clsx(styles.content, className)} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.header}>
                             {title && <Dialog.Title className={styles.title}>{title}</Dialog.Title>}
                             <Dialog.Close className={styles.close} aria-label="Close">

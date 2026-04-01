@@ -8,11 +8,11 @@
 
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { CircleIcon } from './circle-icon';
+import { Logo } from './logo';
 
-const meta: Meta<typeof CircleIcon> = {
-    title: 'Private/Components/CircleIcon',
-    component: CircleIcon,
+const meta: Meta<typeof Logo> = {
+    title: 'Private/Components/Logo',
+    component: Logo,
     tags: ['autodocs'],
     argTypes: {
         size: {
@@ -23,7 +23,7 @@ const meta: Meta<typeof CircleIcon> = {
 
 export default meta;
 
-type Story = StoryObj<typeof CircleIcon>;
+type Story = StoryObj<typeof Logo>;
 
 export const WithImage: Story = {
     args: {

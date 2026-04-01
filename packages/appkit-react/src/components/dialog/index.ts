@@ -6,4 +6,4 @@
  *
  */
 
-export * from './circle-icon';
+export * from './dialog';
