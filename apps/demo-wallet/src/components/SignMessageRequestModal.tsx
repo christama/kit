@@ -113,15 +113,24 @@ export const SignMessageRequestModal: React.FC<SignMessageRequestModalProps> = (
                         {currentWallet && <WalletPreview wallet={currentWallet} isCompact />}
 
                         {/* Messages */}
-                        <div className="border rounded-lg p-3 bg-gray-50">
-                            <p className="text-sm font-medium text-gray-700 mb-2">
-                                {request.request.messages.length} message
-                                {request.request.messages.length !== 1 ? 's' : ''} to sign
-                            </p>
+                        <div className="space-y-2">
                             {request.request.messages.map((msg, i) => (
-                                <div key={i} className="mt-2 text-xs text-gray-500 space-y-0.5">
-                                    <p className="font-mono break-all">{msg.address}</p>
-                                    <p>{(BigInt(msg.amount) / 1_000_000_000n).toString()} TON</p>
+                                <div key={i} className="border rounded-lg p-3 bg-blue-50">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-xs font-semibold bg-blue-200 text-blue-800 px-2 py-0.5 rounded">
+                                            #{i + 1} Send TON
+                                        </span>
+                                    </div>
+                                    <div className="space-y-1 text-sm">
+                                        <p>
+                                            <span className="font-medium">To:</span>{' '}
+                                            <span className="font-mono text-xs break-all">{msg.address}</span>
+                                        </p>
+                                        <p>
+                                            <span className="font-medium">Amount:</span>{' '}
+                                            {(Number(BigInt(msg.amount)) / 1_000_000_000).toString()} TON
+                                        </p>
+                                    </div>
                                 </div>
                             ))}
                         </div>
