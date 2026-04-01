@@ -13,7 +13,7 @@ import { WalletKitError, ERROR_CODES } from '../errors';
 import { CallForSuccess } from '../utils/retry';
 import { PrepareSignData } from '../utils/signData/sign';
 import { HexToBase64 } from '../utils/base64';
-import { IntentParser, INTENT_ERROR_CODES } from './IntentParser';
+import { IntentParser, INTENT_ERROR_CODES, isIntentUrl } from './IntentParser';
 import { IntentResolver } from './IntentResolver';
 import { ConnectHandler } from './ConnectHandler';
 import type { BridgeManager } from '../core/BridgeManager';
@@ -67,7 +67,7 @@ export class IntentHandler {
     // -- Public: Parsing ------------------------------------------------------
 
     isIntentUrl(url: string): boolean {
-        return this.parser.isIntentUrl(url);
+        return isIntentUrl(url);
     }
 
     /**
@@ -139,7 +139,9 @@ export class IntentHandler {
     // -- Public: Callbacks ----------------------------------------------------
 
     onIntentRequest(callback: IntentCallback): void {
-        this.callbacks.push(callback);
+        if (!this.callbacks.includes(callback)) {
+            this.callbacks.push(callback);
+        }
     }
 
     removeIntentRequestCallback(callback: IntentCallback): void {
@@ -190,6 +192,8 @@ export class IntentHandler {
                 id: batch.id,
                 origin: batch.origin,
                 clientId: batch.clientId,
+                traceId: batch.traceId,
+                returnStrategy: batch.returnStrategy,
                 deliveryMode,
                 network: firstTx?.type === 'transaction' ? firstTx.network : undefined,
                 validUntil: firstTx?.type === 'transaction' ? firstTx.validUntil : undefined,
@@ -327,34 +331,33 @@ export class IntentHandler {
     ): Promise<void> {
         const wallet = this.getWallet(walletId);
 
-        const perItemEvents: IntentRequestEvent[] = [];
+        const itemEvents: TransactionIntentRequestEvent[] = event.items.map((item, i) => ({
+            type: 'transaction',
+            id: `${event.id}_${i}`,
+            origin: event.origin,
+            clientId: event.clientId,
+            traceId: event.traceId,
+            returnStrategy: event.returnStrategy,
+            deliveryMode: event.deliveryMode,
+            network: event.network,
+            validUntil: event.validUntil,
+            items: [item],
+        }));
 
-        for (let i = 0; i < event.items.length; i++) {
-            const item = event.items[i];
-            const itemEvent: TransactionIntentRequestEvent = {
-                type: 'transaction',
-                id: `${event.id}_${i}`,
-                origin: event.origin,
-                clientId: event.clientId,
-                traceId: event.traceId,
-                returnStrategy: event.returnStrategy,
-                deliveryMode: event.deliveryMode,
-                network: event.network,
-                validUntil: event.validUntil,
-                items: [item],
-            };
+        await Promise.all(
+            itemEvents.map(async (itemEvent, i) => {
+                try {
+                    const resolved = await this.resolveTransaction(itemEvent, wallet);
+                    itemEvent.resolvedTransaction = resolved;
+                    const preview = await wallet.getTransactionPreview(resolved);
+                    itemEvent.preview = preview;
+                } catch (error) {
+                    log.warn('Failed to resolve/emulate batched item', { error, index: i });
+                }
+            }),
+        );
 
-            try {
-                const resolved = await this.resolveTransaction(itemEvent, wallet);
-                itemEvent.resolvedTransaction = resolved;
-                const preview = await wallet.getTransactionPreview(resolved);
-                itemEvent.preview = preview;
-            } catch (error) {
-                log.warn('Failed to resolve/emulate batched item', { error, index: i });
-            }
-
-            perItemEvents.push(itemEvent);
-        }
+        const perItemEvents: IntentRequestEvent[] = itemEvents;
 
         const intents: IntentRequestEvent[] = [];
         if (connectItem) intents.push(connectItem);
@@ -489,11 +492,7 @@ export class IntentHandler {
 
         const wireResponse = this.toWireResponse(batch.id, result, undefined, deliveryMode);
 
-        try {
-            await this.bridgeManager.sendIntentResponse(batch.clientId, wireResponse, batch.traceId);
-        } catch (error) {
-            log.error('Failed to send batched intent response', { error, batchId: batch.id });
-        }
+        await this.bridgeManager.sendIntentResponse(batch.clientId, wireResponse, batch.traceId);
     }
 
     /**
