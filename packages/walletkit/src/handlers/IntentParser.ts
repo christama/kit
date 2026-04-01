@@ -625,11 +625,11 @@ export class IntentParser {
             }
             case 'signData': {
                 const params = request.params as SignDataParams;
-                let raw: Record<string, unknown> = {};
+                let raw: Record<string, unknown>;
                 try {
                     raw = JSON.parse(params[0]) as Record<string, unknown>;
-                } catch {
-                    /* validated earlier */
+                } catch (error) {
+                    throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Invalid JSON in sign data payload', error as Error);
                 }
                 event = {
                     type: 'signData' as const,
@@ -669,20 +669,25 @@ export class IntentParser {
     private mapItem(item: WireIntentItem): IntentActionItem {
         switch (item.t) {
             case 'ton':
+                if (!item.a) throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'TON item missing address (a)');
+                if (!item.am) throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'TON item missing amount (am)');
                 return {
                     type: 'sendTon' as const,
-                    address: item.a!,
-                    amount: item.am!,
+                    address: item.a,
+                    amount: item.am,
                     payload: item.p as Base64String | undefined,
                     stateInit: item.si as Base64String | undefined,
                     extraCurrency: item.ec,
                 };
             case 'jetton':
+                if (!item.ma) throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Jetton item missing master address (ma)');
+                if (!item.ja) throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Jetton item missing amount (ja)');
+                if (!item.d) throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'Jetton item missing destination (d)');
                 return {
                     type: 'sendJetton' as const,
-                    jettonMasterAddress: item.ma!,
-                    jettonAmount: item.ja!,
-                    destination: item.d!,
+                    jettonMasterAddress: item.ma,
+                    jettonAmount: item.ja,
+                    destination: item.d,
                     responseDestination: item.rd,
                     customPayload: item.cp as Base64String | undefined,
                     forwardTonAmount: item.fta,
@@ -690,10 +695,12 @@ export class IntentParser {
                     queryId: item.qi,
                 };
             case 'nft':
+                if (!item.na) throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'NFT item missing address (na)');
+                if (!item.no) throw new WalletKitError(ERROR_CODES.VALIDATION_ERROR, 'NFT item missing new owner (no)');
                 return {
                     type: 'sendNft' as const,
-                    nftAddress: item.na!,
-                    newOwnerAddress: item.no!,
+                    nftAddress: item.na,
+                    newOwnerAddress: item.no,
                     responseDestination: item.rd,
                     customPayload: item.cp as Base64String | undefined,
                     forwardTonAmount: item.fta,
