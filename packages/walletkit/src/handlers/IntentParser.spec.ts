@@ -704,5 +704,22 @@ describe('IntentParser', () => {
                 parser.parseActionResponse({ action_type: 'signData', action: { text: 'hello' } }, baseActionEvent),
             ).toThrow('missing type');
         });
+
+        it('parses signMessage action response as signOnly transaction', () => {
+            const payload = {
+                action_type: 'signMessage',
+                action: {
+                    messages: [{ address: 'EQAddr', amount: '0' }],
+                },
+            };
+
+            const event = parser.parseActionResponse(payload, baseActionEvent);
+            expect(event.type).toBe('transaction');
+            if (event.type === 'transaction') {
+                expect(event.deliveryMode).toBe('signOnly');
+                expect(event.resolvedTransaction).toBeDefined();
+                expect(event.resolvedTransaction!.messages).toHaveLength(1);
+            }
+        });
     });
 });
