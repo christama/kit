@@ -14,8 +14,8 @@ import type { TonStakersStakingProvider } from './TonStakersStakingProvider';
 import { createTonstakersProvider } from './TonStakersStakingProvider';
 import { PoolContract } from './PoolContract';
 import { CONTRACT } from './constants';
-import { Network } from '../../../api/models';
-import type { Base64String, UnstakeMode, UserFriendlyAddress } from '../../../api/models';
+import { Network, UnstakeMode } from '../../../api/models';
+import type { Base64String, UserFriendlyAddress } from '../../../api/models';
 import type { ApiClient } from '../../../types/toncenter/ApiClient';
 
 const mockApiClient = {
@@ -86,32 +86,31 @@ describe('TonStakersStakingProvider', () => {
             expect(getApyFromTonApiSpy).toHaveBeenCalled();
         });
 
-        it('should return correct quote with unstakeMode for unstake direction', async () => {
+        it('should return correct quote with INSTANT unstake (spot rate)', async () => {
             const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount,
                 userAddress: testUserAddress,
                 network: Network.mainnet(),
-                unstakeMode: 'instant',
+                unstakeMode: UnstakeMode.INSTANT,
             });
 
             expect(quote.direction).toBe('unstake');
             expect(quote.amountIn).toBe(amount);
-            // amountOut = 1 * 1.05 = 1.05
             expect(quote.amountOut).toBe('1.050000000');
             expect(quote.providerId).toBe('tonstakers');
-            expect(quote.unstakeMode).toBe('instant');
+            expect(quote.unstakeMode).toBe(UnstakeMode.INSTANT);
         });
 
-        it('should default to Delayed unstakeMode when not specified', async () => {
+        it('should default unstakeMode to INSTANT when not specified', async () => {
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount: '1',
                 network: Network.mainnet(),
             });
 
-            expect(quote.unstakeMode).toBe('delayed');
+            expect(quote.unstakeMode).toBe(UnstakeMode.INSTANT);
         });
     });
 
@@ -146,17 +145,17 @@ describe('TonStakersStakingProvider', () => {
     });
 
     describe('unstake', () => {
-        it('should build correct transaction for Delayed mode', async () => {
+        it('should build correct transaction for WHEN_AVAILABLE mode', async () => {
             const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount,
                 userAddress: testUserAddress,
                 network: Network.mainnet(),
-                unstakeMode: 'delayed',
+                unstakeMode: UnstakeMode.WHEN_AVAILABLE,
             });
 
-            const tx = await provider.buildUnstakeTransaction({
+            const tx = await provider.buildStakeTransaction({
                 quote,
                 userAddress: testUserAddress,
             });
@@ -174,17 +173,17 @@ describe('TonStakersStakingProvider', () => {
             });
         });
 
-        it('should build correct transaction for Instant mode', async () => {
+        it('should build correct transaction for INSTANT mode', async () => {
             const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount,
                 userAddress: testUserAddress,
                 network: Network.mainnet(),
-                unstakeMode: 'instant',
+                unstakeMode: UnstakeMode.INSTANT,
             });
 
-            await provider.buildUnstakeTransaction({
+            await provider.buildStakeTransaction({
                 quote,
                 userAddress: testUserAddress,
             });
@@ -197,17 +196,17 @@ describe('TonStakersStakingProvider', () => {
             });
         });
 
-        it('should build correct transaction for BestRate mode', async () => {
+        it('should build correct transaction for ROUND_END mode', async () => {
             const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
                 amount,
                 userAddress: testUserAddress,
                 network: Network.mainnet(),
-                unstakeMode: 'bestRate',
+                unstakeMode: UnstakeMode.ROUND_END,
             });
 
-            await provider.buildUnstakeTransaction({
+            await provider.buildStakeTransaction({
                 quote,
                 userAddress: testUserAddress,
             });
@@ -220,7 +219,7 @@ describe('TonStakersStakingProvider', () => {
             });
         });
 
-        it('should default to Delayed mode when unstakeMode not specified in quote', async () => {
+        it('should default to INSTANT when unstakeMode not specified in quote', async () => {
             const amount = '1';
             const quote = await provider.getQuote({
                 direction: 'unstake',
@@ -229,7 +228,7 @@ describe('TonStakersStakingProvider', () => {
                 network: Network.mainnet(),
             });
 
-            await provider.buildUnstakeTransaction({
+            await provider.buildStakeTransaction({
                 quote,
                 userAddress: testUserAddress,
             });
@@ -238,16 +237,16 @@ describe('TonStakersStakingProvider', () => {
                 amount: 1000000000n,
                 userAddress: testUserAddress,
                 waitTillRoundEnd: false,
-                fillOrKill: false,
+                fillOrKill: true,
             });
         });
     });
 
     describe('unstake mode flags', () => {
         it.each([
-            { mode: 'delayed', waitTillRoundEnd: false, fillOrKill: false },
-            { mode: 'instant', waitTillRoundEnd: false, fillOrKill: true },
-            { mode: 'bestRate', waitTillRoundEnd: true, fillOrKill: false },
+            { mode: UnstakeMode.WHEN_AVAILABLE, waitTillRoundEnd: false, fillOrKill: false },
+            { mode: UnstakeMode.INSTANT, waitTillRoundEnd: false, fillOrKill: true },
+            { mode: UnstakeMode.ROUND_END, waitTillRoundEnd: true, fillOrKill: false },
         ])('should set correct flags for $mode mode', async ({ mode, waitTillRoundEnd, fillOrKill }) => {
             const amount = '1';
             const quote = await provider.getQuote({
@@ -255,10 +254,10 @@ describe('TonStakersStakingProvider', () => {
                 amount,
                 userAddress: testUserAddress,
                 network: Network.mainnet(),
-                unstakeMode: mode as UnstakeMode,
+                unstakeMode: mode,
             });
 
-            await provider.buildUnstakeTransaction({
+            await provider.buildStakeTransaction({
                 quote,
                 userAddress: testUserAddress,
             });
@@ -301,7 +300,7 @@ describe('TonStakersStakingProvider', () => {
     describe('getSupportedUnstakeModes', () => {
         it('should return supported unstake modes', () => {
             const modes = provider.getSupportedUnstakeModes();
-            expect(modes).toEqual(['delayed', 'instant', 'bestRate']);
+            expect(modes).toEqual([UnstakeMode.INSTANT, UnstakeMode.WHEN_AVAILABLE, UnstakeMode.ROUND_END]);
         });
     });
 });

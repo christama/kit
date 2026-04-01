@@ -37,18 +37,12 @@ const log = globalLogger.createChild('TonStakersStakingProvider');
  *
  * This provider implements all staking operations. It supports:
  * - Stake: Deposit TON to receive tsTON liquid staking tokens
- * - Unstake: Burn tsTON to withdraw TON with 3 modes:
- *   - Delayed: Standard withdrawal at end of round (~18 hours)
- *   - Instant: Immediate withdrawal if liquidity available
- *   - BestRate: Wait for best exchange rate at round end
+ * - Unstake: Burn tsTON to withdraw TON with {@link UnstakeMode} values:
+ *   - `INSTANT` – immediate withdrawal if the pool has liquidity (`fillOrKill`)
+ *   - `WHEN_AVAILABLE` – withdraw when liquidity is available (non–fill-or-kill)
+ *   - `ROUND_END` – wait until round end for the projected rate
  */
 export class TonStakersStakingProvider extends StakingProvider {
-    readonly supportedUnstakeModes: UnstakeModes[] = [
-        UnstakeMode.INSTANT,
-        UnstakeMode.WHEN_AVAILABLE,
-        UnstakeMode.ROUND_END,
-    ];
-
     private readonly networkManager: NetworkManager;
     private readonly chainConfig: Record<string, TonStakersChainConfig>;
     private cache: StakingCache;
@@ -146,7 +140,7 @@ export class TonStakersStakingProvider extends StakingProvider {
                 amountOut,
                 network: params.network || Network.mainnet(),
                 providerId: 'tonstakers',
-                unstakeMode: params.unstakeMode || UnstakeMode.INSTANT,
+                unstakeMode: params.unstakeMode ?? UnstakeMode.INSTANT,
             };
             return quote;
         }
@@ -202,10 +196,7 @@ export class TonStakersStakingProvider extends StakingProvider {
     /**
      * Build a transaction for unstaking tsTON.
      *
-     * Supports three unstake modes:
-     * - **Delayed** (default): Standard withdrawal, funds released at end of round (~18 hours)
-     * - **Instant**: Immediate withdrawal if pool has sufficient liquidity (fillOrKill)
-     * - **BestRate**: Wait until round end for best exchange rate
+     * Mode mapping matches {@link getQuote} / {@link StakingQuote.unstakeMode} using {@link UnstakeMode}.
      *
      * @param params - Unstake parameters including quote and user address
      * @returns Transaction request ready to be signed and sent
@@ -220,12 +211,11 @@ export class TonStakersStakingProvider extends StakingProvider {
 
         const network = params.quote.network;
         const amount = parseUnits(params.quote.amountIn, 9);
-        const unstakeMode = params.quote.unstakeMode || 'delayed';
+        const unstakeMode = params.quote.unstakeMode ?? UnstakeMode.INSTANT;
 
         let waitTillRoundEnd = false;
         let fillOrKill = false;
 
-        // Todo Tim verify modes
         switch (unstakeMode) {
             case UnstakeMode.INSTANT:
                 waitTillRoundEnd = false;
@@ -260,14 +250,11 @@ export class TonStakersStakingProvider extends StakingProvider {
     /**
      * Get staking balance information for a user.
      *
-     * Returns:
-     * - stakedBalance: Amount of tsTON tokens held
-     * - availableBalance: TON available for staking (minus fee reserve)
-     * - instantUnstakeAvailable: Pool liquidity for instant unstaking
+     * Returns {@link StakingBalance}: `stakedBalance` (tsTON), `instantUnstakeAvailable` (pool TON liquidity
+     * for instant unstake), and `providerId`.
      *
      * @param userAddress - User wallet address
      * @param network - Network to query (defaults to mainnet)
-     * @returns Balance information including staked and available amounts
      */
     async getStakedBalance(userAddress: UserFriendlyAddress, network?: Network): Promise<StakingBalance> {
         log.debug('TonStakers balance requested', { userAddress, network });
