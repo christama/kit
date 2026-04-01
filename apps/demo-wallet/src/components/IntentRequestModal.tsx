@@ -144,7 +144,7 @@ const ActionItemCard: React.FC<{ item: IntentActionItem; index: number }> = ({ i
     }
 };
 
-const IntentEventDetails: React.FC<{ event: IntentRequestEvent }> = ({ event }) => {
+export const IntentEventDetails: React.FC<{ event: IntentRequestEvent }> = ({ event }) => {
     switch (event.type) {
         case 'transaction': {
             const tx = event as TransactionIntentRequestEvent;

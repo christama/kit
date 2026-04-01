@@ -7,7 +7,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import type { SignMessageRequestEvent } from '@ton/walletkit';
+import type { SignMessageRequestEvent, TransactionIntentRequestEvent } from '@ton/walletkit';
 import { useAuth, useSignMessageRequests } from '@demo/wallet-core';
 import type { SavedWallet } from '@demo/wallet-core';
 
@@ -15,6 +15,7 @@ import { Button } from './Button';
 import { Card } from './Card';
 import { HoldToSignButton } from './HoldToSignButton';
 import { WalletPreview } from './WalletPreview';
+import { IntentEventDetails } from './IntentRequestModal';
 import { createComponentLogger } from '../utils/logger';
 
 const log = createComponentLogger('SignMessageRequestModal');
@@ -112,28 +113,25 @@ export const SignMessageRequestModal: React.FC<SignMessageRequestModalProps> = (
                         {/* Wallet Info */}
                         {currentWallet && <WalletPreview wallet={currentWallet} isCompact />}
 
-                        {/* Messages */}
-                        <div className="space-y-2">
-                            {request.request.messages.map((msg, i) => (
-                                <div key={i} className="border rounded-lg p-3 bg-blue-50">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-xs font-semibold bg-blue-200 text-blue-800 px-2 py-0.5 rounded">
-                                            #{i + 1} Send TON
-                                        </span>
-                                    </div>
-                                    <div className="space-y-1 text-sm">
-                                        <p>
-                                            <span className="font-medium">To:</span>{' '}
-                                            <span className="font-mono text-xs break-all">{msg.address}</span>
-                                        </p>
-                                        <p>
-                                            <span className="font-medium">Amount:</span>{' '}
-                                            {(Number(BigInt(msg.amount)) / 1_000_000_000).toString()} TON
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        {/* Messages — reuse intent transaction display */}
+                        <IntentEventDetails
+                            event={{
+                                type: 'transaction',
+                                id: request.id,
+                                origin: 'connectedBridge',
+                                clientId: request.from,
+                                deliveryMode: 'signOnly',
+                                network: request.request.network,
+                                validUntil: request.request.validUntil,
+                                items: request.request.messages.map((msg) => ({
+                                    type: 'sendTon' as const,
+                                    address: msg.address,
+                                    amount: msg.amount,
+                                    payload: msg.payload,
+                                    stateInit: msg.stateInit,
+                                })),
+                            } as TransactionIntentRequestEvent}
+                        />
 
                         {/* Actions */}
                         <div className="flex gap-3">
