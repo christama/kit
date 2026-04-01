@@ -191,6 +191,8 @@ export function toConnectTransactionParamContent(request: TransactionRequest): R
 export type RawBridgeEventTransaction = BridgeEvent & SendTransactionRpcRequest;
 export type RawBridgeEventSignData = BridgeEvent & SignDataRpcRequest;
 
+// TODO: Replace with BridgeEvent & SignMessageRpcRequest from @tonconnect/protocol once
+// signMessage is standardized and added to the protocol package (currently absent in v2.4.0).
 export interface RawBridgeEventSignMessage extends BridgeEvent {
     id: string;
     method: 'signMessage';
