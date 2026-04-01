@@ -114,20 +114,18 @@ export type IntentErrorCode = (typeof INTENT_ERROR_CODES)[keyof typeof INTENT_ER
  * Responsibility: URL parsing, payload decoding (inline + object storage),
  * NaCl decryption, wire→model mapping, validation.
  */
-export class IntentParser {
-    /**
-     * Check if a URL is a TonConnect intent deep link.
-     */
-    isIntentUrl(url: string): boolean {
-        try {
-            const parsedUrl = new URL(url);
-            const method = parsedUrl.searchParams.get('m') || parsedUrl.searchParams.get('M');
-            return method?.toLowerCase() === 'intent' || method?.toLowerCase() === 'intent_remote';
-        } catch {
-            return false;
-        }
-    }
 
+export function isIntentUrl(url: string): boolean {
+    try {
+        const parsedUrl = new URL(url);
+        const method = parsedUrl.searchParams.get('m') || parsedUrl.searchParams.get('M');
+        return method?.toLowerCase() === 'intent' || method?.toLowerCase() === 'intent_remote';
+    } catch {
+        return false;
+    }
+}
+
+export class IntentParser {
     /**
      * Parse an intent URL into a typed IntentRequestEvent.
      * Supports both `m=intent` (URL-embedded) and `m=intent_remote` (object storage).

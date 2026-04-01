@@ -52,7 +52,7 @@ import { KitNetworkManager } from './NetworkManager';
 import type { WalletId } from '../utils/walletId';
 import type { Wallet, WalletAdapter } from '../api/interfaces';
 import { IntentHandler } from '../handlers/IntentHandler';
-import { IntentParser } from '../handlers/IntentParser';
+import { isIntentUrl } from '../handlers/IntentParser';
 import type {
     Network,
     TransactionRequest,
@@ -573,10 +573,8 @@ export class TonWalletKit implements ITonWalletKit {
 
     // === Intent API ===
 
-    private static readonly intentParserInstance = new IntentParser();
-
     isIntentUrl(url: string): boolean {
-        return TonWalletKit.intentParserInstance.isIntentUrl(url);
+        return isIntentUrl(url);
     }
 
     async handleIntentUrl(url: string, walletId: string): Promise<void> {

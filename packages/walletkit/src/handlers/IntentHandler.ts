@@ -13,7 +13,7 @@ import { WalletKitError, ERROR_CODES } from '../errors';
 import { CallForSuccess } from '../utils/retry';
 import { PrepareSignData } from '../utils/signData/sign';
 import { HexToBase64 } from '../utils/base64';
-import { IntentParser, INTENT_ERROR_CODES } from './IntentParser';
+import { IntentParser, INTENT_ERROR_CODES, isIntentUrl } from './IntentParser';
 import { IntentResolver } from './IntentResolver';
 import { ConnectHandler } from './ConnectHandler';
 import type { BridgeManager } from '../core/BridgeManager';
@@ -67,7 +67,7 @@ export class IntentHandler {
     // -- Public: Parsing ------------------------------------------------------
 
     isIntentUrl(url: string): boolean {
-        return this.parser.isIntentUrl(url);
+        return isIntentUrl(url);
     }
 
     /**
