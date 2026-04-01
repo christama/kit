@@ -52,6 +52,7 @@ import type {
     ConnectionApprovalProof,
 } from '../api/models';
 import { PrepareSignData } from '../utils/signData/sign';
+import { validateBOC } from '../validation/transaction';
 import type { Wallet } from '../api/interfaces';
 import type { Analytics, AnalyticsManager } from '../analytics';
 
@@ -372,6 +373,13 @@ export class RequestProcessor {
     ): Promise<SignMessageApprovalResponse> {
         try {
             if (response) {
+                const bocValidation = validateBOC(response.internalBoc);
+                if (!bocValidation.isValid) {
+                    throw new WalletKitError(
+                        ERROR_CODES.VALIDATION_ERROR,
+                        `Invalid internalBoc: ${bocValidation.errors.join(', ')}`,
+                    );
+                }
                 const tonConnectResponse = {
                     result: { internal_boc: response.internalBoc },
                     id: event.id || '',
