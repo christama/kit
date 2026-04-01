@@ -29,20 +29,15 @@ export interface HumanReadableTx {
     type: 'ton' | 'jetton' | 'nft' | 'contract-call' | 'raw';
 
     /** Additional metadata */
-    extra?: Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    extra?: Record<string, any>;
 }
-
-type RawMessage = Record<string, unknown>;
-type RawRequest = Record<string, unknown>;
 
 /**
  * Validate transaction messages array
  */
-export function validateTransactionMessages(
-    messages: unknown[],
-    isTonConnect: boolean = true,
-    requireFriendlyAddress: boolean = true,
-): ValidationResult {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function validateTransactionMessages(messages: any[], isTonConnect: boolean = true, requireFriendlyAddress: boolean = true): ValidationResult {
     const errors: string[] = [];
 
     if (!Array.isArray(messages)) {
@@ -72,11 +67,8 @@ export function validateTransactionMessages(
 /**
  * Validate individual transaction message
  */
-export function validateTransactionMessage(
-    message: unknown,
-    isTonConnect: boolean = true,
-    requireFriendlyAddress: boolean = true,
-): ValidationResult {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function validateTransactionMessage(message: any, isTonConnect: boolean = true, requireFriendlyAddress: boolean = true): ValidationResult {
     const errors: string[] = [];
 
     if (typeof message !== 'object') {
@@ -87,14 +79,12 @@ export function validateTransactionMessage(
         return { isValid: false, errors: ['Invalid message'] };
     }
 
-    const msg = message as RawMessage;
-
-    if (isTonConnect && typeof msg.mode !== 'undefined') {
+    if (isTonConnect && typeof message.mode !== 'undefined') {
         errors.push('mode must be undefined for tonconnect!');
     }
 
     // Object format - validate required fields
-    const objErrors = validateMessageObject(msg, requireFriendlyAddress).errors;
+    const objErrors = validateMessageObject(message, requireFriendlyAddress).errors;
     errors.push(...objErrors);
 
     return {
@@ -106,7 +96,8 @@ export function validateTransactionMessage(
 /**
  * Validate message object structure
  */
-export function validateMessageObject(message: RawMessage, requireFriendlyAddress: boolean = true): ValidationResult {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function validateMessageObject(message: any, requireFriendlyAddress: boolean = true): ValidationResult {
     const errors: string[] = [];
 
     // Required fields
@@ -114,11 +105,7 @@ export function validateMessageObject(message: RawMessage, requireFriendlyAddres
         errors.push('to address is required and must be a string');
     } else {
         if (requireFriendlyAddress ? !isFriendlyTonAddress(message.address) : !isValidAddress(message.address)) {
-            errors.push(
-                requireFriendlyAddress
-                    ? 'to address must be a valid friendly TON address'
-                    : 'to address must be a valid TON address',
-            );
+            errors.push(requireFriendlyAddress ? 'to address must be a valid friendly TON address' : 'to address must be a valid TON address');
         }
     }
 
@@ -160,7 +147,8 @@ export function validateMessageObject(message: RawMessage, requireFriendlyAddres
 /**
  * Validate transaction request structure
  */
-export function validateTransactionRequest(request: unknown, isTonConnect: boolean = true): ValidationResult {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function validateTransactionRequest(request: any, isTonConnect: boolean = true): ValidationResult {
     const errors: string[] = [];
 
     if (!request || typeof request !== 'object') {
@@ -168,34 +156,29 @@ export function validateTransactionRequest(request: unknown, isTonConnect: boole
         return { isValid: false, errors };
     }
 
-    const req = request as RawRequest;
-
     // Validate required fields
-    const messagesValidation = validateTransactionMessages(
-        Array.isArray(req.messages) ? req.messages : [],
-        isTonConnect,
-    );
+    const messagesValidation = validateTransactionMessages(request.messages || [], isTonConnect);
     if (!messagesValidation.isValid) {
         errors.push(...messagesValidation.errors);
     }
 
     // Validate optional fields
-    if (req.from) {
-        const fromValidation = validateTonAddress(req.from as string);
+    if (request.from) {
+        const fromValidation = validateTonAddress(request.from);
         if (!fromValidation.isValid) {
             errors.push(`invalid from address: ${fromValidation.errors.join(', ')}`);
         }
     }
 
-    if (req.validUntil) {
-        if (typeof req.validUntil !== 'number') {
+    if (request.validUntil) {
+        if (typeof request.validUntil !== 'number') {
             errors.push('validUntil must be a number');
-        } else if (req.validUntil <= Math.floor(Date.now() / 1000)) {
+        } else if (request.validUntil <= Math.floor(Date.now() / 1000)) {
             errors.push('validUntil must be a future timestamp');
         }
     }
 
-    if (req.network && !['mainnet', 'testnet'].includes(req.network as string)) {
+    if (request.network && !['mainnet', 'testnet'].includes(request.network)) {
         errors.push('network must be "mainnet" or "testnet" if provided');
     }
 
@@ -232,7 +215,8 @@ export function validateBOC(bocString: string): ValidationResult {
 /**
  * Check if value is a valid nanonton amount
  */
-export function isValidNanotonAmount(amount: unknown): boolean {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isValidNanotonAmount(amount: any): boolean {
     if (typeof amount !== 'string') {
         return false;
     }
@@ -260,7 +244,8 @@ function isValidBOC(bocString: string): boolean {
 /**
  * Extract estimated fees from transaction (placeholder)
  */
-export function estimateTransactionFees(messages: unknown[]): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function estimateTransactionFees(messages: any[]): string {
     // TODO: Implement proper fee calculation
     // This would typically involve:
     // - Analyzing message complexity
