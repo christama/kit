@@ -6,7 +6,7 @@
  *
  */
 
-import type { StreamingEvents } from '../../streaming';
+import type { SharedKitEvents } from '../../emitter';
 import type { CONNECTOR_EVENTS, WALLETS_EVENTS, PLUGIN_EVENTS, NETWORKS_EVENTS } from '../constants/events';
 import type { Network } from '../../../types/network';
 import type { EventEmitter } from '../../emitter';
@@ -45,6 +45,6 @@ export type AppKitEvents = {
 
     // Plugin events
     [PLUGIN_EVENTS.REGISTERED]: PluginRegisteredPayload;
-} & StreamingEvents;
+} & SharedKitEvents;
 
 export type AppKitEmitter = EventEmitter<AppKitEvents>;

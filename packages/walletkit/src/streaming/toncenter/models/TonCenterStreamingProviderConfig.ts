@@ -6,10 +6,13 @@
  *
  */
 
+import type { Network } from '../../../api/models';
+
 /**
  * Configuration options for the TonCenter streaming provider.
  */
 export interface TonCenterStreamingProviderConfig {
+    network: Network;
     /**
      * Optional custom WebSocket endpoint URL for the TonCenter v2 streaming API.
      * If omitted, it defaults to the official mainnet or testnet URL based on the network context.

@@ -10,10 +10,10 @@ import type { StreamingProviderFactory } from '../../api/interfaces';
 import { TonCenterStreamingProvider } from './provider';
 import type { TonCenterStreamingProviderConfig } from './models';
 
-export type TonCenterStreamingFactoryConfig = TonCenterStreamingProviderConfig;
+export type TonCenterStreamingFactoryConfig = Omit<TonCenterStreamingProviderConfig, 'network'>;
 
 export const createTonCenterStreamingProvider =
     (config?: TonCenterStreamingFactoryConfig): StreamingProviderFactory =>
-    (context) => {
-        return new TonCenterStreamingProvider(context, config);
+    (ctx, network) => {
+        return new TonCenterStreamingProvider(ctx, { ...config, network });
     };

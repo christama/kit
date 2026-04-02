@@ -46,7 +46,7 @@ export interface ConnectorMetadata {
  */
 export interface ConnectorFactoryContext {
     networkManager: AppKitNetworkManager;
-    emitter: AppKitEmitter;
+    eventEmitter: AppKitEmitter;
     ssr?: boolean;
 }
 

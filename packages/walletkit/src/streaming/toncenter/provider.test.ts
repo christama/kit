@@ -6,10 +6,11 @@
  *
  */
 
+import type { Mock } from 'vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { TonCenterStreamingProvider } from './provider';
-import type { StreamingProviderListener, StreamingProviderContext } from '../../api/interfaces/';
+import type { ProviderFactoryContext } from '../../types/factory';
 import { Network } from '../../api/models';
 import { asAddressFriendly } from '../../utils';
 
@@ -47,25 +48,12 @@ class MockWebSocket {
 const ADDR_A = '0:83dfd552e63729b472fcbcc8c44e6cc6691702558b68ecb527e1ba403a0f31a8';
 const ADDR_B = '0:ef4458951c1468a43d5506def6543b009c1fd48392497b45453287efdfa40f05';
 
-const makeMockListener = (): StreamingProviderListener => {
-    return {
-        onBalanceUpdate: vi.fn(),
-        onTransactions: vi.fn(),
-        onJettonsUpdate: vi.fn(),
-    };
-};
-
-const makeContext = (listener: StreamingProviderListener): StreamingProviderContext => ({
-    network: Network.testnet(),
-    listener,
-});
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const makeContext = (): ProviderFactoryContext => ({ networkManager: {} as any, eventEmitter: {} as any });
 
 describe('TonCenterStreamingProvider', () => {
-    let listener: StreamingProviderListener;
-
     beforeEach(() => {
         vi.useFakeTimers();
-        listener = makeMockListener();
         MockWebSocket.lastInstance = null;
     });
 
@@ -75,30 +63,31 @@ describe('TonCenterStreamingProvider', () => {
     });
 
     it('connects to testnet URL by default', () => {
-        const provider = new TonCenterStreamingProvider(makeContext(listener));
-        provider.watchBalance(ADDR_A);
+        const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+        provider.watchBalance(ADDR_A, vi.fn());
         expect(MockWebSocket.lastInstance?.url).toContain('testnet.toncenter.com');
     });
 
     it('connects to mainnet URL when network is mainnet', () => {
-        const provider = new TonCenterStreamingProvider({ network: Network.mainnet(), listener });
-        provider.watchBalance(ADDR_A);
+        const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.mainnet() });
+        provider.watchBalance(ADDR_A, vi.fn());
         expect(MockWebSocket.lastInstance?.url).toContain('toncenter.com');
         expect(MockWebSocket.lastInstance?.url).not.toContain('testnet');
     });
 
     it('appends api_key to URL when provided', () => {
-        const provider = new TonCenterStreamingProvider(makeContext(listener), {
+        const provider = new TonCenterStreamingProvider(makeContext(), {
+            network: Network.testnet(),
             apiKey: 'test-api-key',
         });
-        provider.watchBalance(ADDR_A);
+        provider.watchBalance(ADDR_A, vi.fn());
         expect(MockWebSocket.lastInstance?.url).toContain('toncenter.com/api/streaming/v2/ws');
         expect(MockWebSocket.lastInstance?.url).toContain('api_key=test-api-key');
     });
 
     it('sends ping in TonCenter protocol format', async () => {
-        const provider = new TonCenterStreamingProvider(makeContext(listener));
-        provider.watchBalance(ADDR_A);
+        const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+        provider.watchBalance(ADDR_A, vi.fn());
         vi.advanceTimersByTime(20); // connect
 
         const ws = MockWebSocket.lastInstance!;
@@ -113,8 +102,9 @@ describe('TonCenterStreamingProvider', () => {
     });
 
     it('ignores pong and subscribed status messages without errors', () => {
-        const provider = new TonCenterStreamingProvider(makeContext(listener));
-        provider.watchBalance(ADDR_A);
+        const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+        const cb = vi.fn();
+        provider.watchBalance(ADDR_A, cb);
         vi.advanceTimersByTime(20);
 
         const ws = MockWebSocket.lastInstance!;
@@ -124,16 +114,14 @@ describe('TonCenterStreamingProvider', () => {
             ws.onmessage!({ data: JSON.stringify({ status: 'subscribed' }) } as MessageEvent);
         }).not.toThrow();
 
-        expect(listener.onBalanceUpdate).not.toHaveBeenCalled();
-        expect(listener.onTransactions).not.toHaveBeenCalled();
-        expect(listener.onJettonsUpdate).not.toHaveBeenCalled();
+        expect(cb).not.toHaveBeenCalled();
     });
 
     it('debounces multiple watch calls and sends monolithic subscriptions', async () => {
-        const provider = new TonCenterStreamingProvider(makeContext(listener));
+        const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
 
-        provider.watchBalance(ADDR_A);
-        provider.watchTransactions(ADDR_A);
+        provider.watchBalance(ADDR_A, vi.fn());
+        provider.watchTransactions(ADDR_A, vi.fn());
 
         // Advance for connection (10ms)
         vi.advanceTimersByTime(20);
@@ -153,10 +141,10 @@ describe('TonCenterStreamingProvider', () => {
     });
 
     it('sends new subscription without removed address when one watcher is removed', async () => {
-        const provider = new TonCenterStreamingProvider(makeContext(listener));
+        const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
 
-        const unwatchA = provider.watchBalance(ADDR_A);
-        provider.watchBalance(ADDR_B);
+        const unwatchA = provider.watchBalance(ADDR_A, vi.fn());
+        provider.watchBalance(ADDR_B, vi.fn());
         vi.advanceTimersByTime(200);
 
         unwatchA();
@@ -170,8 +158,8 @@ describe('TonCenterStreamingProvider', () => {
     });
 
     it('closes connection when last watcher is removed', async () => {
-        const provider = new TonCenterStreamingProvider(makeContext(listener));
-        const unsub = provider.watchBalance(ADDR_A);
+        const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+        const unsub = provider.watchBalance(ADDR_A, vi.fn());
         vi.advanceTimersByTime(200);
 
         const ws = MockWebSocket.lastInstance!;
@@ -183,11 +171,11 @@ describe('TonCenterStreamingProvider', () => {
     });
 
     it('handles rapid watch/unwatch for the same address gracefully via debouncing', async () => {
-        const provider = new TonCenterStreamingProvider(makeContext(listener));
+        const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
 
-        const unsub1 = provider.watchBalance(ADDR_A);
-        const unsub2 = provider.watchBalance(ADDR_A);
-        const unsub3 = provider.watchBalance(ADDR_A);
+        const unsub1 = provider.watchBalance(ADDR_A, vi.fn());
+        const unsub2 = provider.watchBalance(ADDR_A, vi.fn());
+        const unsub3 = provider.watchBalance(ADDR_A, vi.fn());
 
         // Advance for connection
         vi.advanceTimersByTime(20);
@@ -237,8 +225,8 @@ describe('TonCenterStreamingProvider', () => {
         };
 
         it('maps balance to account_state_change type', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            provider.watchBalance(ADDR_A);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            provider.watchBalance(ADDR_A, vi.fn());
             connect();
 
             const msg = getLastSubscribe(MockWebSocket.lastInstance!);
@@ -247,8 +235,8 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         it('maps transactions to transactions type', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            provider.watchTransactions(ADDR_A);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            provider.watchTransactions(ADDR_A, vi.fn());
             connect();
 
             const msg = getLastSubscribe(MockWebSocket.lastInstance!);
@@ -256,8 +244,8 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         it('maps jettons to jettons_change type', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            provider.watchJettons(ADDR_A);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            provider.watchJettons(ADDR_A, vi.fn());
             connect();
 
             const msg = getLastSubscribe(MockWebSocket.lastInstance!);
@@ -266,8 +254,8 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         it('includes min_finality and include_metadata in subscribe message', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            provider.watchBalance(ADDR_A);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            provider.watchBalance(ADDR_A, vi.fn());
             connect();
 
             const msg = getLastSubscribe(MockWebSocket.lastInstance!);
@@ -276,10 +264,10 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         it('sends a single subscribe message for multiple types on the same address', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            provider.watchBalance(ADDR_A);
-            provider.watchTransactions(ADDR_A);
-            provider.watchJettons(ADDR_A);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            provider.watchBalance(ADDR_A, vi.fn());
+            provider.watchTransactions(ADDR_A, vi.fn());
+            provider.watchJettons(ADDR_A, vi.fn());
             connect();
             flushDebounce();
 
@@ -291,9 +279,9 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         it('deduplicates addresses when same address is watched for multiple types', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            provider.watchBalance(ADDR_A);
-            provider.watchTransactions(ADDR_A);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            provider.watchBalance(ADDR_A, vi.fn());
+            provider.watchTransactions(ADDR_A, vi.fn());
             connect();
             flushDebounce();
 
@@ -302,9 +290,9 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         it('collects all addresses across types into a single list', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            provider.watchBalance(ADDR_A);
-            provider.watchTransactions(ADDR_B);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            provider.watchBalance(ADDR_A, vi.fn());
+            provider.watchTransactions(ADDR_B, vi.fn());
             connect();
             flushDebounce();
 
@@ -314,9 +302,9 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         it('removes address from subscribe message after unwatch', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            const unwatchA = provider.watchBalance(ADDR_A);
-            provider.watchBalance(ADDR_B);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            const unwatchA = provider.watchBalance(ADDR_A, vi.fn());
+            provider.watchBalance(ADDR_B, vi.fn());
             connect();
             flushDebounce();
 
@@ -329,9 +317,9 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         it('removes type from subscribe message when last address of that type is removed', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            const unwatchBal = provider.watchBalance(ADDR_A);
-            provider.watchTransactions(ADDR_B);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            const unwatchBal = provider.watchBalance(ADDR_A, vi.fn());
+            provider.watchTransactions(ADDR_B, vi.fn());
             connect();
             flushDebounce();
 
@@ -346,9 +334,9 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         it('keeps type in subscribe message when other addresses still watch it', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            const unwatchA = provider.watchBalance(ADDR_A);
-            provider.watchBalance(ADDR_B);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            const unwatchA = provider.watchBalance(ADDR_A, vi.fn());
+            provider.watchBalance(ADDR_B, vi.fn());
             connect();
             flushDebounce();
 
@@ -360,9 +348,9 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         it('restores subscriptions after reconnect', () => {
-            const provider = new TonCenterStreamingProvider(makeContext(listener));
-            provider.watchBalance(ADDR_A);
-            provider.watchTransactions(ADDR_B);
+            const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            provider.watchBalance(ADDR_A, vi.fn());
+            provider.watchTransactions(ADDR_B, vi.fn());
             connect();
 
             const firstWs = MockWebSocket.lastInstance!;
@@ -389,9 +377,10 @@ describe('TonCenterStreamingProvider', () => {
     });
 
     it('handles incoming account state notifications', async () => {
-        const provider = new TonCenterStreamingProvider(makeContext(listener));
+        const provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+        const cb = vi.fn();
 
-        provider.watchBalance(ADDR_A);
+        provider.watchBalance(ADDR_A, cb);
         vi.advanceTimersByTime(200);
 
         const ws = MockWebSocket.lastInstance!;
@@ -406,14 +395,16 @@ describe('TonCenterStreamingProvider', () => {
 
         ws.onmessage!({ data: JSON.stringify(notification) } as MessageEvent);
 
-        expect(listener.onBalanceUpdate).toHaveBeenCalled();
-        const update = vi.mocked(listener.onBalanceUpdate).mock.calls[0][0];
+        expect(cb).toHaveBeenCalled();
+        const update = vi.mocked(cb).mock.calls[0][0];
         expect(update.rawBalance).toBe('1000000000');
         expect(update.balance).toBe('1');
     });
 
     describe('Finality and Invalidation', () => {
         let provider: TonCenterStreamingProvider;
+        let txCbA: Mock;
+        let txCbB: Mock;
         const TRACE_ID = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
         const FRIENDLY_A = asAddressFriendly(ADDR_A);
         const FRIENDLY_B = asAddressFriendly(ADDR_B);
@@ -446,9 +437,11 @@ describe('TonCenterStreamingProvider', () => {
         });
 
         beforeEach(() => {
-            provider = new TonCenterStreamingProvider(makeContext(listener));
-            provider.watchTransactions(ADDR_A);
-            provider.watchTransactions(ADDR_B);
+            txCbA = vi.fn();
+            txCbB = vi.fn();
+            provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
+            provider.watchTransactions(ADDR_A, txCbA);
+            provider.watchTransactions(ADDR_B, txCbB);
         });
 
         it('ignores notifications with lower finality than cached', () => {
@@ -467,11 +460,11 @@ describe('TonCenterStreamingProvider', () => {
 
             // @ts-expect-error accessing protected
             provider.onMessage({ data: JSON.stringify(confirmedMsg) } as MessageEvent);
-            expect(listener.onTransactions).toHaveBeenCalledTimes(1);
+            expect(txCbA).toHaveBeenCalledTimes(1);
 
             // @ts-expect-error accessing protected
             provider.onMessage({ data: JSON.stringify(pendingMsg) } as MessageEvent);
-            expect(listener.onTransactions).toHaveBeenCalledTimes(1);
+            expect(txCbA).toHaveBeenCalledTimes(1);
         });
 
         it('processes notifications with higher finality than cached', () => {
@@ -490,11 +483,11 @@ describe('TonCenterStreamingProvider', () => {
 
             // @ts-expect-error accessing protected
             provider.onMessage({ data: JSON.stringify(pendingMsg) } as MessageEvent);
-            expect(listener.onTransactions).toHaveBeenCalledTimes(1);
+            expect(txCbA).toHaveBeenCalledTimes(1);
 
             // @ts-expect-error accessing protected
             provider.onMessage({ data: JSON.stringify(confirmedMsg) } as MessageEvent);
-            expect(listener.onTransactions).toHaveBeenCalledTimes(2);
+            expect(txCbA).toHaveBeenCalledTimes(2);
         });
 
         it('notifies all participating accounts on trace_invalidated', () => {
@@ -512,19 +505,20 @@ describe('TonCenterStreamingProvider', () => {
 
             // @ts-expect-error accessing protected
             provider.onMessage({ data: JSON.stringify(traceMsg) } as MessageEvent);
-            expect(listener.onTransactions).toHaveBeenCalledTimes(2);
+            expect(txCbA).toHaveBeenCalledTimes(1);
+            expect(txCbB).toHaveBeenCalledTimes(1);
 
             // @ts-expect-error accessing protected
             provider.onMessage({ data: JSON.stringify(invalidateMsg) } as MessageEvent);
-            expect(listener.onTransactions).toHaveBeenCalledTimes(4);
+            expect(txCbA).toHaveBeenCalledTimes(2);
+            expect(txCbB).toHaveBeenCalledTimes(2);
 
-            const lastCalls = vi.mocked(listener.onTransactions).mock.calls.slice(2);
-            expect(lastCalls[0][0]).toMatchObject({
+            expect(txCbA.mock.calls[1][0]).toMatchObject({
                 address: FRIENDLY_A,
                 status: 'invalidated',
                 traceHash: expect.any(String),
             });
-            expect(lastCalls[1][0]).toMatchObject({
+            expect(txCbB.mock.calls[1][0]).toMatchObject({
                 address: FRIENDLY_B,
                 status: 'invalidated',
                 traceHash: expect.any(String),
@@ -537,11 +531,12 @@ describe('TonCenterStreamingProvider', () => {
         const FRIENDLY_B = asAddressFriendly(ADDR_B);
 
         beforeEach(() => {
-            provider = new TonCenterStreamingProvider(makeContext(listener));
+            provider = new TonCenterStreamingProvider(makeContext(), { network: Network.testnet() });
         });
 
         it('ignores balance updates for non-watched addresses', () => {
-            provider.watchBalance(ADDR_A);
+            const cb = vi.fn();
+            provider.watchBalance(ADDR_A, cb);
             const msg = {
                 type: 'account_state_change',
                 account: ADDR_B,
@@ -549,11 +544,12 @@ describe('TonCenterStreamingProvider', () => {
             };
             // @ts-expect-error accessing protected
             provider.onMessage({ data: JSON.stringify(msg) } as MessageEvent);
-            expect(listener.onBalanceUpdate).not.toHaveBeenCalled();
+            expect(cb).not.toHaveBeenCalled();
         });
 
         it('ignores transaction updates for non-watched addresses', () => {
-            provider.watchTransactions(ADDR_A);
+            const cb = vi.fn();
+            provider.watchTransactions(ADDR_A, cb);
             const msg = {
                 type: 'transactions',
                 finality: 'pending',
@@ -583,11 +579,12 @@ describe('TonCenterStreamingProvider', () => {
             };
             // @ts-expect-error accessing protected
             provider.onMessage({ data: JSON.stringify(msg) } as MessageEvent);
-            expect(listener.onTransactions).not.toHaveBeenCalled();
+            expect(cb).not.toHaveBeenCalled();
         });
 
         it('ignores jetton updates for non-watched addresses', () => {
-            provider.watchJettons(ADDR_A);
+            const cb = vi.fn();
+            provider.watchJettons(ADDR_A, cb);
             const msg = {
                 type: 'jettons_change',
                 owner: FRIENDLY_B,
@@ -595,7 +592,7 @@ describe('TonCenterStreamingProvider', () => {
             };
             // @ts-expect-error accessing protected
             provider.onMessage({ data: JSON.stringify(msg) } as MessageEvent);
-            expect(listener.onJettonsUpdate).not.toHaveBeenCalled();
+            expect(cb).not.toHaveBeenCalled();
         });
     });
 });

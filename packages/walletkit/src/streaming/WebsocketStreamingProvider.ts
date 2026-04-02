@@ -7,31 +7,29 @@
  */
 
 import { globalLogger } from '../core/Logger';
-import type {
-    StreamingProvider,
-    StreamingProviderListener,
-    StreamingProviderContext,
-} from '../api/interfaces/StreamingProvider';
+import type { StreamingProvider } from '../api/interfaces/StreamingProvider';
+import type { BalanceUpdate, TransactionsUpdate, JettonUpdate } from '../api/models';
 import type { StreamingWatchType } from '../api/models/streaming/StreamingWatchType';
 import { asAddressFriendly } from '../utils/address';
 
 const log = globalLogger.createChild('WebsocketStreamingProvider');
 
 export abstract class WebsocketStreamingProvider implements StreamingProvider {
+    readonly type = 'streaming' as const;
+    abstract readonly providerId: string;
+
     protected ws: WebSocket | null = null;
     protected isConnected = false;
-    protected listener: StreamingProviderListener;
 
-    private watchCounts: Map<StreamingWatchType, Map<string, number>> = new Map();
+    private balanceCallbacks: Map<string, Set<(update: BalanceUpdate) => void>> = new Map();
+    private transactionCallbacks: Map<string, Set<(update: TransactionsUpdate) => void>> = new Map();
+    private jettonCallbacks: Map<string, Set<(update: JettonUpdate) => void>> = new Map();
+
     private reconnectAttempts = 0;
     private maxReconnectAttempts = 50;
     private reconnectDelay = 300;
     private pingInterval: ReturnType<typeof setInterval> | null = null;
     private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    constructor({ listener }: StreamingProviderContext) {
-        this.listener = listener;
-    }
 
     // Abstract methods to be implemented by children
     protected abstract getUrl(): string;
@@ -42,62 +40,65 @@ export abstract class WebsocketStreamingProvider implements StreamingProvider {
 
     protected getActiveWatchers(): Map<StreamingWatchType, Set<string>> {
         const result = new Map<StreamingWatchType, Set<string>>();
-        this.watchCounts.forEach((addresses, type) => {
-            const active = new Set<string>();
-            addresses.forEach((count, addr) => {
-                if (count > 0) active.add(addr);
-            });
-            if (active.size > 0) result.set(type, active);
-        });
+        if (this.balanceCallbacks.size > 0) result.set('balance', new Set(this.balanceCallbacks.keys()));
+        if (this.transactionCallbacks.size > 0) result.set('transactions', new Set(this.transactionCallbacks.keys()));
+        if (this.jettonCallbacks.size > 0) result.set('jettons', new Set(this.jettonCallbacks.keys()));
         return result;
     }
 
     protected hasActiveSubscriptions(): boolean {
-        for (const addresses of this.watchCounts.values()) {
-            for (const count of addresses.values()) {
-                if (count > 0) return true;
-            }
+        return this.balanceCallbacks.size > 0 || this.transactionCallbacks.size > 0 || this.jettonCallbacks.size > 0;
+    }
+
+    protected emitBalance(address: string, update: BalanceUpdate): void {
+        this.balanceCallbacks.get(address)?.forEach((cb) => cb(update));
+    }
+
+    protected emitTransactions(address: string, update: TransactionsUpdate): void {
+        this.transactionCallbacks.get(address)?.forEach((cb) => cb(update));
+    }
+
+    protected emitJettons(ownerAddress: string, update: JettonUpdate): void {
+        this.jettonCallbacks.get(ownerAddress)?.forEach((cb) => cb(update));
+    }
+
+    private addCallback<T>(
+        map: Map<string, Set<T>>,
+        address: string,
+        callback: T,
+        watchType: StreamingWatchType,
+    ): () => void {
+        let set = map.get(address);
+        const isFirst = !set || set.size === 0;
+        if (!set) {
+            set = new Set();
+            map.set(address, set);
         }
-        return false;
-    }
-
-    watchBalance(address: string): () => void {
-        const friendly = asAddressFriendly(address);
-        this.incrementCount('balance', friendly);
-        this.onWatch('balance', friendly);
-        this.ensureConnected();
-
+        set.add(callback);
+        if (isFirst) {
+            this.onWatch(watchType, address);
+            this.ensureConnected();
+        }
         return () => {
-            this.decrementCount('balance', friendly);
-            this.onUnwatch('balance', friendly);
-            this.checkClose();
+            set!.delete(callback);
+            if (set!.size === 0) {
+                map.delete(address);
+                this.onUnwatch(watchType, address);
+                this.checkClose();
+            }
         };
     }
 
-    watchTransactions(address: string): () => void {
-        const friendly = asAddressFriendly(address);
-        this.incrementCount('transactions', friendly);
-        this.onWatch('transactions', friendly);
-        this.ensureConnected();
-
-        return () => {
-            this.decrementCount('transactions', friendly);
-            this.onUnwatch('transactions', friendly);
-            this.checkClose();
-        };
+    watchBalance(address: string, onChange: (update: BalanceUpdate) => void): () => void {
+        return this.addCallback(this.balanceCallbacks, asAddressFriendly(address), onChange, 'balance');
     }
 
-    watchJettons(address: string): () => void {
-        const friendly = asAddressFriendly(address);
-        this.incrementCount('jettons', friendly);
-        this.onWatch('jettons', friendly);
-        this.ensureConnected();
+    watchTransactions(address: string, onChange: (update: TransactionsUpdate) => void): () => void {
+        return this.addCallback(this.transactionCallbacks, asAddressFriendly(address), onChange, 'transactions');
+    }
 
-        return () => {
-            this.decrementCount('jettons', friendly);
-            this.onUnwatch('jettons', friendly);
-            this.checkClose();
-        };
+    watchJettons(address: string, onChange: (update: JettonUpdate) => void): () => void {
+        return this.addCallback(this.jettonCallbacks, asAddressFriendly(address), onChange, 'jettons');
     }
 
     close(): void {
@@ -122,27 +123,6 @@ export abstract class WebsocketStreamingProvider implements StreamingProvider {
             return;
         }
         this.connect();
-    }
-
-    private incrementCount(type: StreamingWatchType, id: string): void {
-        let addresses = this.watchCounts.get(type);
-        if (!addresses) {
-            addresses = new Map();
-            this.watchCounts.set(type, addresses);
-        }
-        addresses.set(id, (addresses.get(id) ?? 0) + 1);
-    }
-
-    private decrementCount(type: StreamingWatchType, id: string): void {
-        const addresses = this.watchCounts.get(type);
-        if (!addresses) return;
-        const count = addresses.get(id) ?? 0;
-        if (count <= 1) {
-            addresses.delete(id);
-            if (addresses.size === 0) this.watchCounts.delete(type);
-        } else {
-            addresses.set(id, count - 1);
-        }
     }
 
     private connect(): void {

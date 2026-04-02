@@ -12,15 +12,18 @@ import { resolveProvider } from '../types';
 import type { ProviderInput } from '../types';
 import type { ProviderFactoryContext } from '../types/factory';
 import { DefiManagerError } from './errors';
+import type { SharedKitEvents } from '../types/emitter';
 
-export abstract class DefiManager<T extends DefiProvider> implements DefiManagerAPI<T> {
-    public createFactoryContext: () => ProviderFactoryContext;
+export abstract class DefiManager<T extends DefiProvider, E extends SharedKitEvents = SharedKitEvents>
+    implements DefiManagerAPI<T>
+{
+    public createFactoryContext: () => ProviderFactoryContext<E>;
 
     protected providers: Map<string, T> = new Map();
     protected defaultProviderId?: string;
     protected abstract createError(message: string, code: string, details?: unknown): DefiManagerError;
 
-    constructor(createFactoryContext: () => ProviderFactoryContext) {
+    constructor(createFactoryContext: () => ProviderFactoryContext<E>) {
         this.createFactoryContext = createFactoryContext;
     }
 

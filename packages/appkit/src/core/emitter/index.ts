@@ -12,4 +12,4 @@
  */
 export { EventEmitter } from '@ton/walletkit';
 
-export type { EventPayload, KitEvent, EventListener } from '@ton/walletkit';
+export type { EventPayload, KitEvent, EventListener, SharedKitEvents } from '@ton/walletkit';

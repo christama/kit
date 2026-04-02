@@ -12,8 +12,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { StreamingManager } from './StreamingManager';
 import type { StreamingProvider, StreamingProviderFactory } from '../api/interfaces';
 import type { Network, BalanceUpdate } from '../api/models';
-import type { WalletKitEventEmitter } from '../types/emitter';
-import type { KitEvent } from '../core/EventEmitter';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -26,9 +24,9 @@ const makeMockNetwork = (chainId = 1): Network => {
 };
 
 interface MockProvider extends StreamingProvider {
-    watchBalance: Mock<(address: string) => () => void>;
-    watchTransactions: Mock<(address: string) => () => void>;
-    watchJettons: Mock<(address: string) => () => void>;
+    watchBalance: Mock<(address: string, onChange: (update: BalanceUpdate) => void) => () => void>;
+    watchTransactions: Mock;
+    watchJettons: Mock;
     close: Mock<() => void>;
     _unsubBalance: Mock<() => void>;
     _unsubTransactions: Mock<() => void>;
@@ -40,9 +38,11 @@ const makeMockProvider = (): MockProvider => {
     const _unsubTransactions = vi.fn<() => void>();
     const _unsubJettons = vi.fn<() => void>();
     return {
-        watchBalance: vi.fn<(address: string) => () => void>(() => _unsubBalance),
-        watchTransactions: vi.fn<(address: string) => () => void>(() => _unsubTransactions),
-        watchJettons: vi.fn<(address: string) => () => void>(() => _unsubJettons),
+        type: 'streaming' as const,
+        providerId: 'mock',
+        watchBalance: vi.fn(() => _unsubBalance),
+        watchTransactions: vi.fn(() => _unsubTransactions),
+        watchJettons: vi.fn(() => _unsubJettons),
         close: vi.fn<() => void>(),
         _unsubBalance,
         _unsubTransactions,
@@ -50,20 +50,14 @@ const makeMockProvider = (): MockProvider => {
     } as unknown as MockProvider;
 };
 
-const makeMockEventEmitter = (): WalletKitEventEmitter => {
-    return {
-        on: vi.fn(() => vi.fn()),
-        emit: vi.fn(),
-        off: vi.fn(),
-    } as unknown as WalletKitEventEmitter;
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const makeFactoryCtx = () => vi.fn(() => ({ networkManager: {} as any, eventEmitter: {} as any }))();
 
 const makeManager = (network: Network, provider: MockProvider) => {
-    const emitter = makeMockEventEmitter();
     const factory: StreamingProviderFactory = vi.fn(() => provider);
-    const manager = new StreamingManager(emitter);
+    const manager = new StreamingManager(() => makeFactoryCtx());
     manager.registerProvider(network, factory);
-    return { manager, emitter, factory: factory as unknown as Mock<StreamingProviderFactory> };
+    return { manager, factory: factory as unknown as Mock<StreamingProviderFactory> };
 };
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -78,7 +72,7 @@ describe('StreamingManager subscriptions', () => {
 
     describe('hasProvider', () => {
         it('returns false before registration', () => {
-            const manager = new StreamingManager(makeMockEventEmitter());
+            const manager = new StreamingManager(() => makeFactoryCtx());
             expect(manager.hasProvider(network)).toBe(false);
         });
 
@@ -90,7 +84,7 @@ describe('StreamingManager subscriptions', () => {
 
     describe('error handling', () => {
         it('throws when watching without a registered provider', () => {
-            const manager = new StreamingManager(makeMockEventEmitter());
+            const manager = new StreamingManager(() => makeFactoryCtx());
             expect(() => manager.watchBalance(network, ADDR_A, vi.fn())).toThrow();
         });
     });
@@ -127,6 +121,14 @@ describe('StreamingManager subscriptions', () => {
             manager.watchJettons(network, ADDR_A, vi.fn());
             expect(provider.watchJettons).toHaveBeenCalledTimes(1);
         });
+
+        it('passes onChange callback directly to provider', () => {
+            const { manager } = makeManager(network, provider);
+            const cb = vi.fn();
+            manager.watchBalance(network, ADDR_A, cb);
+            const [, passedCb] = vi.mocked(provider.watchBalance).mock.calls[0];
+            expect(passedCb).toBe(cb);
+        });
     });
 
     describe('unwatch', () => {
@@ -160,83 +162,6 @@ describe('StreamingManager subscriptions', () => {
         });
     });
 
-    describe('address filtering', () => {
-        it('fires balance callback only for the matching address', () => {
-            const { manager, emitter } = makeManager(network, provider);
-            const cbA = vi.fn();
-            const cbB = vi.fn();
-
-            manager.watchBalance(network, ADDR_A, cbA);
-            manager.watchBalance(network, ADDR_B, cbB);
-
-            const calls = vi.mocked(emitter.on).mock.calls;
-            const handlerA = calls[0][1] as (event: KitEvent<BalanceUpdate>) => void;
-            const handlerB = calls[1][1] as (event: KitEvent<BalanceUpdate>) => void;
-
-            const updateForA: BalanceUpdate = {
-                address: ADDR_A,
-                rawBalance: '500',
-                balance: '0.5',
-                type: 'balance',
-                status: 'finalized',
-            };
-            const event: KitEvent<BalanceUpdate> = {
-                payload: updateForA,
-                type: 'streaming:balance-update',
-                timestamp: Date.now(),
-            };
-
-            // Both handlers receive the same event (as the real emitter would broadcast)
-            handlerA(event);
-            handlerB(event); // should NOT call cbB — event is for ADDR_A
-
-            expect(cbA).toHaveBeenCalledWith(updateForA);
-            expect(cbB).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('multiple subscribers for same resource', () => {
-        it('notifies all subscribers and unsubscribes EventEmitter listener on unwatch', () => {
-            const { manager, emitter } = makeManager(network, provider);
-            const cb1 = vi.fn();
-            const cb2 = vi.fn();
-
-            const unwatch1 = manager.watchBalance(network, ADDR_A, cb1);
-            manager.watchBalance(network, ADDR_A, cb2);
-
-            const update: BalanceUpdate = {
-                address: ADDR_A,
-                rawBalance: '100000000000',
-                balance: '100',
-                type: 'balance',
-                status: 'finalized',
-            };
-
-            expect(emitter.on).toHaveBeenCalledTimes(2);
-
-            const calls = vi.mocked(emitter.on).mock.calls;
-            const handler1 = calls[0][1] as (event: KitEvent<BalanceUpdate>) => void;
-            const handler2 = calls[1][1] as (event: KitEvent<BalanceUpdate>) => void;
-
-            const event: KitEvent<BalanceUpdate> = {
-                payload: update,
-                type: 'streaming:balance-update',
-                timestamp: Date.now(),
-            };
-
-            handler1(event);
-            handler2(event);
-
-            expect(cb1).toHaveBeenCalledWith(update);
-            expect(cb2).toHaveBeenCalledWith(update);
-
-            unwatch1();
-
-            const off1 = vi.mocked(emitter.on).mock.results[0].value;
-            expect(off1).toHaveBeenCalled();
-        });
-    });
-
     describe('bulk watch method', () => {
         it('subscribes to all specified types and unsubscribes when returned fn is called', () => {
             const { manager } = makeManager(network, provider);
@@ -267,8 +192,7 @@ describe('StreamingManager subscriptions', () => {
             const network2 = makeMockNetwork(2);
             const provider1 = makeMockProvider();
             const provider2 = makeMockProvider();
-            const emitter = makeMockEventEmitter();
-            const manager = new StreamingManager(emitter);
+            const manager = new StreamingManager(() => makeFactoryCtx());
 
             manager.registerProvider(network1, () => provider1);
             manager.registerProvider(network2, () => provider2);

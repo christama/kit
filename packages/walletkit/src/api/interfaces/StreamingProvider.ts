@@ -6,30 +6,26 @@
  *
  */
 
-import type { Network } from '../models/core/Network';
-import type { BalanceUpdate, TransactionsUpdate, JettonUpdate } from '../models';
+import type { BaseProvider, BalanceUpdate, TransactionsUpdate, JettonUpdate, Network } from '../models';
+import type { ProviderFactoryContext } from '../../types/factory';
 
-export interface StreamingProviderListener {
-    onBalanceUpdate: (update: BalanceUpdate) => void;
-    onTransactions: (update: TransactionsUpdate) => void;
-    onJettonsUpdate: (update: JettonUpdate) => void;
-}
+export interface StreamingProvider extends BaseProvider {
+    readonly type: 'streaming';
 
-export interface StreamingProvider {
     /**
      * Watch account balance changes. Returns an unsubscribe function.
      */
-    watchBalance(address: string): () => void;
+    watchBalance(address: string, onChange: (update: BalanceUpdate) => void): () => void;
 
     /**
      * Watch transactions for an address. Returns an unsubscribe function.
      */
-    watchTransactions(address: string): () => void;
+    watchTransactions(address: string, onChange: (update: TransactionsUpdate) => void): () => void;
 
     /**
      * Watch jetton changes for an address. Returns an unsubscribe function.
      */
-    watchJettons(address: string): () => void;
+    watchJettons(address: string, onChange: (update: JettonUpdate) => void): () => void;
 
     /**
      * Close the connection.
@@ -37,9 +33,4 @@ export interface StreamingProvider {
     close(): void;
 }
 
-export interface StreamingProviderContext {
-    network: Network;
-    listener: StreamingProviderListener;
-}
-
-export type StreamingProviderFactory = (context: StreamingProviderContext) => StreamingProvider;
+export type StreamingProviderFactory = (ctx: ProviderFactoryContext, network: Network) => StreamingProvider;

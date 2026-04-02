@@ -8,8 +8,8 @@
 
 import { SwapManager, StreamingManager } from '@ton/walletkit';
 import type { ProviderInput, SwapProviderInterface, StakingProviderInterface } from '@ton/walletkit';
-import { StakingManager } from 'src/staking';
 
+import { StakingManager } from '../../../staking';
 import type { Connector, ConnectorFactoryContext, ConnectorInput } from '../../../types/connector';
 import { EventEmitter } from '../../emitter';
 import { CONNECTOR_EVENTS, WALLETS_EVENTS } from '../constants/events';
@@ -68,8 +68,9 @@ export class AppKit {
     }
 
     createFactoryContext(): ConnectorFactoryContext {
-        return { emitter: this?.emitter, networkManager: this?.networkManager, ssr: this?.config?.ssr };
+        return { eventEmitter: this.emitter, networkManager: this.networkManager, ssr: this.config?.ssr };
     }
+
     /**
      * Add a wallet connector
      */

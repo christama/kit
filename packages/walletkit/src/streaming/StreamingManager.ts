@@ -17,19 +17,23 @@ import type {
     StreamingEvents,
 } from '../api/models';
 import { globalLogger } from '../core/Logger';
-import { asAddressFriendly, compareAddress } from '../utils';
-import type { EventEmitter } from '../core/EventEmitter';
+import { asAddressFriendly } from '../utils';
+import type { ProviderFactoryContext } from '../types/factory';
 
 const log = globalLogger.createChild('StreamingManager');
 
 /**
- * Orchestrates streaming providers and synchronizes them with the global EventEmitter.
+ * Orchestrates streaming providers and routes watch calls to the correct provider by network.
  */
 export class StreamingManager<E extends StreamingEvents = StreamingEvents> implements StreamingAPI {
+    public createFactoryContext: () => ProviderFactoryContext<E>;
+
     private providers: Map<string, StreamingProvider> = new Map();
     private providerFactories: Map<string, StreamingProviderFactory> = new Map();
 
-    constructor(private eventEmitter: EventEmitter<E>) {}
+    constructor(createFactoryContext: () => ProviderFactoryContext<E>) {
+        this.createFactoryContext = createFactoryContext;
+    }
 
     /**
      * Register a provider factory for a specific network.
@@ -38,7 +42,7 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
         const networkId = String(network.chainId);
 
         if (this.providerFactories.has(networkId)) {
-            log.warn(`Provider factory for network ${networkId} is already registered. Overriding with new factory.`);
+            log.warn(`Provider factory for network ${networkId} is already registered. Overriding.`);
         }
 
         this.providerFactories.set(networkId, factory);
@@ -55,45 +59,21 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
      * Watch account balance changes.
      */
     watchBalance(network: Network, address: string, onChange: (update: BalanceUpdate) => void): () => void {
-        const unwatchProvider = this.getProvider(network).watchBalance(asAddressFriendly(address));
-        const off = this.eventEmitter.on('streaming:balance-update', ({ payload: update }) => {
-            if (compareAddress(address, update.address)) onChange(update);
-        });
-
-        return () => {
-            unwatchProvider();
-            off();
-        };
+        return this.getProvider(network).watchBalance(asAddressFriendly(address), onChange);
     }
 
     /**
      * Watch transactions for an address.
      */
     watchTransactions(network: Network, address: string, onChange: (update: TransactionsUpdate) => void): () => void {
-        const unwatchProvider = this.getProvider(network).watchTransactions(asAddressFriendly(address));
-        const off = this.eventEmitter.on('streaming:transactions', ({ payload: update }) => {
-            if (compareAddress(address, update.address)) onChange(update);
-        });
-
-        return () => {
-            unwatchProvider();
-            off();
-        };
+        return this.getProvider(network).watchTransactions(asAddressFriendly(address), onChange);
     }
 
     /**
      * Watch jetton changes for an address.
      */
-    watchJettons(network: Network, address: string, onChange: (jetton: JettonUpdate) => void): () => void {
-        const unwatchProvider = this.getProvider(network).watchJettons(asAddressFriendly(address));
-        const off = this.eventEmitter.on('streaming:jettons-update', ({ payload: jetton }) => {
-            if (compareAddress(address, jetton.ownerAddress)) onChange(jetton);
-        });
-
-        return () => {
-            unwatchProvider();
-            off();
-        };
+    watchJettons(network: Network, address: string, onChange: (update: JettonUpdate) => void): () => void {
+        return this.getProvider(network).watchJettons(asAddressFriendly(address), onChange);
     }
 
     /**
@@ -128,35 +108,12 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
 
         const factory = this.providerFactories.get(networkId);
         if (!factory) {
-            throw new Error(`No streaming provider factory registered for network ${networkId}`);
+            throw new Error(`No streaming provider registered for network ${networkId}`);
         }
 
         log.info('Creating new streaming provider', { networkId });
 
-        provider = factory({
-            network,
-            listener: {
-                onBalanceUpdate: (update) =>
-                    this.eventEmitter.emit(
-                        'streaming:balance-update',
-                        update as E['streaming:balance-update'],
-                        'streaming-manager',
-                    ),
-                onTransactions: (update) =>
-                    this.eventEmitter.emit(
-                        'streaming:transactions',
-                        update as E['streaming:transactions'],
-                        'streaming-manager',
-                    ),
-                onJettonsUpdate: (update) =>
-                    this.eventEmitter.emit(
-                        'streaming:jettons-update',
-                        update as E['streaming:jettons-update'],
-                        'streaming-manager',
-                    ),
-            },
-        });
-
+        provider = factory(this.createFactoryContext(), network);
         this.providers.set(networkId, provider);
         return provider;
     }

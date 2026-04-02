@@ -10,7 +10,7 @@ import { LRUCache } from 'lru-cache';
 
 import { Network } from '../../api/models';
 import { globalLogger } from '../../core/Logger';
-import type { StreamingProviderContext } from '../../api/interfaces';
+import type { ProviderFactoryContext } from '../../types/factory';
 import type { StreamingV2SubscriptionRequest, StreamingV2EventType } from './types';
 import { isAccountStateNotification } from './guards/account';
 import { isJettonsNotification } from './guards/jetton';
@@ -31,6 +31,8 @@ const WS_PATH = '/api/streaming/v2/ws';
  * Manages a single WebSocket connection and reports account updates.
  */
 export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
+    readonly providerId: string;
+
     private baseUrl: string;
     private apiKey?: string;
     private network: Network;
@@ -40,14 +42,15 @@ export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
     private syncTimer: ReturnType<typeof setTimeout> | null = null;
     private traceCache = new LRUCache<string, { score: number; accounts: Set<string> }>({ max: 10000 });
 
-    constructor(context: StreamingProviderContext, config?: TonCenterStreamingProviderConfig) {
-        super(context);
-        this.network = context.network;
-        this.apiKey = config?.apiKey;
+    constructor(_ctx: ProviderFactoryContext, config: TonCenterStreamingProviderConfig) {
+        super();
+        this.network = config.network;
+        this.providerId = `toncenter-${config.network.chainId}`;
+        this.apiKey = config.apiKey;
 
         const base =
-            config?.endpoint ??
-            (this.network?.chainId === Network.mainnet().chainId
+            config.endpoint ??
+            (this.network.chainId === Network.mainnet().chainId
                 ? 'wss://toncenter.com'
                 : 'wss://testnet.toncenter.com');
 
@@ -144,7 +147,7 @@ export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
                 const update = mapBalance(msg);
                 const watchedBalance = this.getActiveWatchers().get('balance') ?? new Set<string>();
                 if (watchedBalance.has(update.address)) {
-                    this.listener.onBalanceUpdate(update);
+                    this.emitBalance(update.address, update);
                 }
             }
 
@@ -156,7 +159,7 @@ export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
                     entry.accounts.forEach((account) => {
                         const friendly = asAddressFriendly(account);
                         if (watchedTransactions.has(friendly)) {
-                            this.listener.onTransactions({
+                            this.emitTransactions(friendly, {
                                 type: 'transactions',
                                 address: friendly,
                                 transactions: [],
@@ -199,7 +202,7 @@ export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
 
                     const friendly = asAddressFriendly(tx.account);
                     if (watchedTransactions.has(friendly)) {
-                        this.listener.onTransactions(mapTransactions(tx.account, msg));
+                        this.emitTransactions(friendly, mapTransactions(tx.account, msg));
                     }
                 });
             }
@@ -208,7 +211,7 @@ export class TonCenterStreamingProvider extends WebsocketStreamingProvider {
                 const watchedJettons = this.getActiveWatchers().get('jettons') ?? new Set<string>();
                 const update = mapJettons(msg);
                 if (watchedJettons.has(update.ownerAddress)) {
-                    this.listener.onJettonsUpdate(update);
+                    this.emitJettons(update.ownerAddress, update);
                 }
             }
         } catch (err) {

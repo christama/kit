@@ -29,7 +29,7 @@ export type TonConnectConnector = Connector & {
 };
 
 export const createTonConnectConnector = (config: TonConnectConnectorConfig) => {
-    return createConnector(({ emitter, networkManager, ssr }): TonConnectConnector => {
+    return createConnector(({ eventEmitter, networkManager, ssr }): TonConnectConnector => {
         let originalTonConnectUI: TonConnectUI | null = null;
         let unsubscribeTonConnect: (() => void) | null = null;
 
@@ -88,15 +88,15 @@ export const createTonConnectConnector = (config: TonConnectConnectorConfig) => 
                 const wallets = getConnectedWallets();
 
                 if (wallet) {
-                    emitter.emit(CONNECTOR_EVENTS.CONNECTED, { wallets, connectorId: id }, id);
+                    eventEmitter.emit(CONNECTOR_EVENTS.CONNECTED, { wallets, connectorId: id }, id);
                 } else {
-                    emitter.emit(CONNECTOR_EVENTS.DISCONNECTED, { connectorId: id }, id);
+                    eventEmitter.emit(CONNECTOR_EVENTS.DISCONNECTED, { connectorId: id }, id);
                 }
             });
 
             // Set default network and subscribe to changes
             originalTonConnectUI.setConnectionNetwork(networkManager.getDefaultNetwork()?.chainId);
-            emitter.on(NETWORKS_EVENTS.DEFAULT_CHANGED, ({ payload }) => {
+            eventEmitter.on(NETWORKS_EVENTS.DEFAULT_CHANGED, ({ payload }) => {
                 if (originalTonConnectUI) {
                     originalTonConnectUI.setConnectionNetwork(payload.network?.chainId);
                 }

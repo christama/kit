@@ -33,12 +33,13 @@ class MockWebSocket {
 // @ts-expect-error WebSocket is global
 global.WebSocket = MockWebSocket;
 
-import type { StreamingProviderListener, StreamingProviderContext } from '../api/interfaces/StreamingProvider';
 import { WebsocketStreamingProvider } from './WebsocketStreamingProvider';
 
 const ADDR = '0:83dfd552e63729b472fcbcc8c44e6cc6691702558b68ecb527e1ba403a0f31a8';
 
 class TestProvider extends WebsocketStreamingProvider {
+    readonly providerId = 'test';
+
     protected getUrl() {
         return 'ws://test';
     }
@@ -58,18 +59,6 @@ class TestProvider extends WebsocketStreamingProvider {
     }
 }
 
-const makeContext = (): StreamingProviderContext => {
-    const listener: StreamingProviderListener = {
-        onBalanceUpdate: vi.fn(),
-        onTransactions: vi.fn(),
-        onJettonsUpdate: vi.fn(),
-    };
-    return {
-        listener,
-        network: {} as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-    };
-};
-
 describe('WebsocketStreamingProvider', () => {
     beforeEach(() => {
         vi.useFakeTimers();
@@ -81,14 +70,14 @@ describe('WebsocketStreamingProvider', () => {
     });
 
     it('should connect when watching a resource', () => {
-        const provider = new TestProvider(makeContext());
-        provider.watchBalance(ADDR);
+        const provider = new TestProvider();
+        provider.watchBalance(ADDR, vi.fn());
         expect(MockWebSocket.lastInstance).not.toBeNull();
     });
 
     it('should schedule reconnection on close if there are active subscriptions', async () => {
-        const provider = new TestProvider(makeContext());
-        provider.watchBalance(ADDR);
+        const provider = new TestProvider();
+        provider.watchBalance(ADDR, vi.fn());
 
         await vi.runOnlyPendingTimersAsync();
 
@@ -99,18 +88,18 @@ describe('WebsocketStreamingProvider', () => {
     });
 
     it('does not open a new connection while already connecting', () => {
-        const provider = new TestProvider(makeContext());
-        provider.watchBalance(ADDR);
+        const provider = new TestProvider();
+        provider.watchBalance(ADDR, vi.fn());
         const ws1 = MockWebSocket.lastInstance!;
         expect(ws1.readyState).toBe(MockWebSocket.CONNECTING);
 
-        provider.watchBalance(ADDR); // ensureConnected should return early
+        provider.watchBalance(ADDR, vi.fn()); // ensureConnected should return early
         expect(MockWebSocket.lastInstance).toBe(ws1);
     });
 
     it('should not reconnect if no active subscriptions', async () => {
-        const provider = new TestProvider(makeContext());
-        const unsub = provider.watchBalance(ADDR);
+        const provider = new TestProvider();
+        const unsub = provider.watchBalance(ADDR, vi.fn());
 
         await vi.runOnlyPendingTimersAsync();
 
@@ -122,8 +111,8 @@ describe('WebsocketStreamingProvider', () => {
     });
 
     it('should start ping interval on open', async () => {
-        const provider = new TestProvider(makeContext());
-        provider.watchBalance(ADDR);
+        const provider = new TestProvider();
+        provider.watchBalance(ADDR, vi.fn());
 
         await vi.runOnlyPendingTimersAsync();
 
@@ -132,8 +121,8 @@ describe('WebsocketStreamingProvider', () => {
     });
 
     it('close() cancels a pending reconnect', async () => {
-        const provider = new TestProvider(makeContext());
-        provider.watchBalance(ADDR);
+        const provider = new TestProvider();
+        provider.watchBalance(ADDR, vi.fn());
         await vi.runOnlyPendingTimersAsync();
         const ws = MockWebSocket.lastInstance!;
 
@@ -145,8 +134,8 @@ describe('WebsocketStreamingProvider', () => {
     });
 
     it('uses exponential backoff for reconnect delays', async () => {
-        const provider = new TestProvider(makeContext());
-        provider.watchBalance(ADDR);
+        const provider = new TestProvider();
+        provider.watchBalance(ADDR, vi.fn());
         await vi.runOnlyPendingTimersAsync();
         const ws1 = MockWebSocket.lastInstance!;
 
@@ -168,9 +157,9 @@ describe('WebsocketStreamingProvider', () => {
 
     describe('ref counting', () => {
         it('does not close when one of two watchers unsubscribes', async () => {
-            const provider = new TestProvider(makeContext());
-            provider.watchBalance(ADDR);
-            const unsub2 = provider.watchBalance(ADDR);
+            const provider = new TestProvider();
+            provider.watchBalance(ADDR, vi.fn());
+            const unsub2 = provider.watchBalance(ADDR, vi.fn());
 
             await vi.runOnlyPendingTimersAsync();
             const ws = MockWebSocket.lastInstance!;
@@ -180,9 +169,9 @@ describe('WebsocketStreamingProvider', () => {
         });
 
         it('closes when last watcher unsubscribes', async () => {
-            const provider = new TestProvider(makeContext());
-            const unsub1 = provider.watchBalance(ADDR);
-            const unsub2 = provider.watchBalance(ADDR);
+            const provider = new TestProvider();
+            const unsub1 = provider.watchBalance(ADDR, vi.fn());
+            const unsub2 = provider.watchBalance(ADDR, vi.fn());
 
             await vi.runOnlyPendingTimersAsync();
             const ws = MockWebSocket.lastInstance!;
@@ -193,9 +182,9 @@ describe('WebsocketStreamingProvider', () => {
         });
 
         it('tracks types independently', async () => {
-            const provider = new TestProvider(makeContext());
-            const unsubBal = provider.watchBalance(ADDR);
-            provider.watchTransactions(ADDR);
+            const provider = new TestProvider();
+            const unsubBal = provider.watchBalance(ADDR, vi.fn());
+            provider.watchTransactions(ADDR, vi.fn());
 
             await vi.runOnlyPendingTimersAsync();
             const ws = MockWebSocket.lastInstance!;
@@ -205,9 +194,9 @@ describe('WebsocketStreamingProvider', () => {
         });
 
         it('getActiveWatchers reflects current subscriptions', () => {
-            const provider = new TestProvider(makeContext());
-            const unsub = provider.watchBalance(ADDR);
-            provider.watchTransactions(ADDR);
+            const provider = new TestProvider();
+            const unsub = provider.watchBalance(ADDR, vi.fn());
+            provider.watchTransactions(ADDR, vi.fn());
 
             // @ts-expect-error accessing protected
             let watchers = provider.getActiveWatchers();

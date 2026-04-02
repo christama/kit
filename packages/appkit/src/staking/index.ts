@@ -6,16 +6,14 @@
  *
  */
 
-export { UnstakeMode, type UnstakeModes } from '@ton/walletkit';
+export { StakingProvider, UnstakeMode, StakingError, StakingManager } from '@ton/walletkit';
 
 export type {
+    UnstakeModes,
     StakeParams,
     StakingAPI,
     StakingQuote,
     StakingQuoteParams,
-    StakingProvider,
-    StakingError,
-    StakingManager,
     StakingBalance,
     StakingProviderInfo,
     StakingProviderInterface,

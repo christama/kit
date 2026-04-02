@@ -9,7 +9,7 @@
 import { useMemo } from 'react';
 import type { FC } from 'react';
 import {
-    Transaction,
+    TransactionAction,
     UnstakeMode,
     useStakingQuote,
     useNetwork,
@@ -80,7 +80,7 @@ export const StakeButton: FC<StakeButtonProps> = ({
     }, [isLoading, isError, quote, direction]);
 
     return (
-        <Transaction
+        <TransactionAction
             request={handleTransaction}
             disabled={!quoteEnabled || !quote || isLoading || isError}
             text={buttonText}

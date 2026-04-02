@@ -23,6 +23,7 @@ export { SwapManager, SwapProvider, SwapError } from './defi/swap';
 export { StakingManager, StakingProvider, StakingError } from './defi/staking';
 export { EventEmitter } from './core/EventEmitter';
 export type { EventListener, EventPayload, KitEvent } from './core/EventEmitter';
+export type { SharedKitEvents } from './types/emitter';
 export { ApiClientToncenter } from './clients/toncenter';
 export { ApiClientTonApi } from './clients/tonapi';
 export type { NetworkManager } from './core/NetworkManager';
@@ -167,9 +168,6 @@ export * from './api/models';
 export { TonCenterStreamingProvider, createTonCenterStreamingProvider } from './streaming/toncenter';
 export type { TonCenterStreamingProviderConfig } from './streaming/toncenter';
 export { StreamingManager } from './streaming';
-export type {
-    StreamingProvider,
-    StreamingProviderListener,
-    StreamingProviderFactory,
-} from './api/interfaces/StreamingProvider';
+export type { StreamingProvider, StreamingProviderFactory } from './api/interfaces/StreamingProvider';
 export type { StreamingAPI } from './api/interfaces/StreamingAPI';
+export type { ProviderFactoryContext } from './types/factory';

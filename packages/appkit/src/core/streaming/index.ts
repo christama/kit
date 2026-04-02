@@ -10,7 +10,6 @@ export { StreamingManager, TonCenterStreamingProvider, createTonCenterStreamingP
 
 export type {
     StreamingProvider,
-    StreamingProviderListener,
     StreamingProviderFactory,
     StreamingAPI,
     TonCenterStreamingProviderConfig,

@@ -12,6 +12,11 @@ import type { EventEmitter } from '../core/EventEmitter';
 import type { StreamingEvents } from '../api/models';
 
 /**
+ * Events shared between all walletkit and appkit.
+ */
+export type SharedKitEvents = StreamingEvents;
+
+/**
  * Definition of all events emitted by the TonWalletKit.
  */
 export type WalletKitEvents = {
@@ -19,6 +24,6 @@ export type WalletKitEvents = {
     eventError: RawBridgeEventTransaction;
     emulationResult: TransactionEmulatedTrace;
     bridgeStorageUpdated: object;
-} & StreamingEvents;
+} & SharedKitEvents;
 
 export type WalletKitEventEmitter = EventEmitter<WalletKitEvents>;

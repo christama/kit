@@ -93,7 +93,7 @@ export class TonWalletKit implements ITonWalletKit {
     private networkManager: NetworkManager;
     private jettonsManager!: JettonsManager;
     private swapManager: SwapManager;
-    private streamingManager: StreamingManager<WalletKitEvents>;
+    private streamingManager: StreamingManager;
     private stakingManager: StakingManager;
     private initializer: Initializer;
     private eventProcessor!: StorageEventProcessor;
@@ -127,7 +127,7 @@ export class TonWalletKit implements ITonWalletKit {
         this.networkManager = new KitNetworkManager(options);
 
         this.eventEmitter = new EventEmitter<WalletKitEvents>();
-        this.streamingManager = new StreamingManager(this.eventEmitter);
+        this.streamingManager = new StreamingManager(() => this.createFactoryContext());
         this.initializer = new Initializer(options, this.eventEmitter, this.analyticsManager);
 
         // Auto-initialize (lazy)
@@ -205,9 +205,10 @@ export class TonWalletKit implements ITonWalletKit {
         });
     }
 
-    createFactoryContext(): ProviderFactoryContext {
+    createFactoryContext(): ProviderFactoryContext<WalletKitEvents> {
         return {
             networkManager: this.networkManager,
+            eventEmitter: this.eventEmitter,
             ssr: false,
         };
     }
