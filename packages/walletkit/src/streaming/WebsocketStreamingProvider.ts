@@ -30,7 +30,7 @@ export abstract class WebsocketStreamingProvider implements StreamingProvider {
 
     private reconnectAttempts = 0;
     private static readonly RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000];
-    private pingInterval: ReturnType<typeof setInterval> | null = null;
+    private pingTimeout: ReturnType<typeof setTimeout> | null = null;
     private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
     // Abstract methods to be implemented by children
@@ -196,20 +196,24 @@ export abstract class WebsocketStreamingProvider implements StreamingProvider {
 
     protected startPing(): void {
         this.stopPing();
-        this.pingInterval = setInterval(() => {
+        const doPing = () => {
             if (this.ws?.readyState === WebSocket.OPEN) {
                 const message = this.getPingMessage();
                 if (message) {
                     this.send(message);
                 }
             }
-        }, 15000); // 15s interval
+        };
+        this.pingTimeout = setTimeout(() => {
+            doPing();
+            this.pingTimeout = setTimeout(doPing, 15000);
+        }, 15000);
     }
 
     protected stopPing(): void {
-        if (this.pingInterval) {
-            clearInterval(this.pingInterval);
-            this.pingInterval = null;
+        if (this.pingTimeout) {
+            clearTimeout(this.pingTimeout);
+            this.pingTimeout = null;
         }
     }
 
