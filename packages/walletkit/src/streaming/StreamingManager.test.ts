@@ -27,8 +27,9 @@ interface MockProvider extends StreamingProvider {
     watchBalance: Mock<(address: string, onChange: (update: BalanceUpdate) => void) => () => void>;
     watchTransactions: Mock;
     watchJettons: Mock;
-    close: Mock<() => void>;
+    disconnect: Mock<() => void>;
     connect: Mock<() => void>;
+    onConnectionChange: Mock<(callback: (connected: boolean) => void) => () => void>;
     _unsubBalance: Mock<() => void>;
     _unsubTransactions: Mock<() => void>;
     _unsubJettons: Mock<() => void>;
@@ -44,8 +45,9 @@ const makeMockProvider = (): MockProvider => {
         watchBalance: vi.fn(() => _unsubBalance),
         watchTransactions: vi.fn(() => _unsubTransactions),
         watchJettons: vi.fn(() => _unsubJettons),
-        close: vi.fn<() => void>(),
+        disconnect: vi.fn<() => void>(),
         connect: vi.fn<() => void>(),
+        onConnectionChange: vi.fn(() => vi.fn()),
         _unsubBalance,
         _unsubTransactions,
         _unsubJettons,
@@ -184,7 +186,7 @@ describe('StreamingManager subscriptions', () => {
             const { manager } = makeManager(network, provider);
             manager.watchBalance(network, ADDR_A, vi.fn());
             manager.disconnect();
-            expect(provider.close).toHaveBeenCalledTimes(1);
+            expect(provider.disconnect).toHaveBeenCalledTimes(1);
         });
 
         it('does not remove providers — same instance is reused after disconnect', () => {
@@ -198,7 +200,7 @@ describe('StreamingManager subscriptions', () => {
         it('does nothing when no providers have been instantiated', () => {
             const { manager } = makeManager(network, provider);
             expect(() => manager.disconnect()).not.toThrow();
-            expect(provider.close).not.toHaveBeenCalled();
+            expect(provider.disconnect).not.toHaveBeenCalled();
         });
     });
 
@@ -221,25 +223,8 @@ describe('StreamingManager subscriptions', () => {
             manager.watchBalance(network, ADDR_A, vi.fn());
             manager.disconnect();
             manager.connect();
-            expect(provider.close).toHaveBeenCalledTimes(1);
+            expect(provider.disconnect).toHaveBeenCalledTimes(1);
             expect(provider.connect).toHaveBeenCalledTimes(1);
-        });
-    });
-
-    describe('shutdown', () => {
-        it('closes the provider', () => {
-            const { manager } = makeManager(network, provider);
-            manager.watchBalance(network, ADDR_A, vi.fn());
-            manager.shutdown();
-            expect(provider.close).toHaveBeenCalledTimes(1);
-        });
-
-        it('removes providers — factory is called again after shutdown', () => {
-            const { manager, factory } = makeManager(network, provider);
-            manager.watchBalance(network, ADDR_A, vi.fn());
-            manager.shutdown();
-            manager.watchBalance(network, ADDR_A, vi.fn());
-            expect(factory).toHaveBeenCalledTimes(2);
         });
     });
 

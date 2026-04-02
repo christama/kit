@@ -30,12 +30,17 @@ export interface StreamingProvider extends BaseProvider {
     /**
      * Close the connection without dropping subscriptions.
      */
-    close(): void;
+    disconnect(): void;
 
     /**
      * Connect (or reconnect) and resume all active subscriptions.
      */
     connect(): void;
+
+    /**
+     * Subscribe to connection state changes. Returns an unsubscribe function.
+     */
+    onConnectionChange(callback: (connected: boolean) => void): () => void;
 }
 
 export type StreamingProviderFactory = (ctx: ProviderFactoryContext, network: Network) => StreamingProvider;

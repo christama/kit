@@ -133,7 +133,7 @@ describe('WebsocketStreamingProvider', () => {
         const ws = MockWebSocket.lastInstance!;
 
         provider.triggerClose(); // schedules reconnect at 300ms
-        provider.close(); // should cancel it
+        provider.disconnect(); // should cancel it
 
         vi.advanceTimersByTime(500);
         expect(MockWebSocket.lastInstance).toBe(ws); // no new connection
@@ -225,7 +225,7 @@ describe('WebsocketStreamingProvider', () => {
             await vi.runOnlyPendingTimersAsync();
             const ws1 = MockWebSocket.lastInstance!;
 
-            provider.close();
+            provider.disconnect();
             expect(ws1.close).toHaveBeenCalled();
 
             provider.connect();
@@ -240,7 +240,7 @@ describe('WebsocketStreamingProvider', () => {
             provider.watchBalance(ADDR, cb);
             await vi.runOnlyPendingTimersAsync();
 
-            provider.close();
+            provider.disconnect();
             provider.connect();
             await vi.runOnlyPendingTimersAsync();
 
@@ -258,7 +258,7 @@ describe('WebsocketStreamingProvider', () => {
             provider.watchBalance(ADDR, cb2);
             await vi.runOnlyPendingTimersAsync();
 
-            provider.close();
+            provider.disconnect();
             provider.connect();
             await vi.runOnlyPendingTimersAsync();
 
@@ -278,7 +278,7 @@ describe('WebsocketStreamingProvider', () => {
             await vi.runOnlyPendingTimersAsync();
 
             unsub2();
-            provider.close();
+            provider.disconnect();
             provider.connect();
             await vi.runOnlyPendingTimersAsync();
 

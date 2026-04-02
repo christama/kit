@@ -63,7 +63,7 @@ export interface StreamingAPI {
     disconnect(): void;
 
     /**
-     * Close all active streaming connections and remove all providers.
+     * Subscribe to connection state changes for a specific network's provider.
      */
-    shutdown(): void;
+    onConnectionChange(network: Network, callback: (connected: boolean) => void): () => void;
 }

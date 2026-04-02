@@ -620,14 +620,14 @@ export const createWalletManagementSlice =
                 get().handleStreamingTransactions(update);
             });
 
-            activeStreamingUnwatchers.push(unwatchBalance, unwatchJettons, unwatchTransactions);
-
-            set((s) => {
-                s.walletManagement.isStreamingConnected = true;
+            const unwatchConnection = streaming.onConnectionChange(network, (connected) => {
+                set((s) => {
+                    s.walletManagement.isStreamingConnected = connected;
+                });
             });
 
-            // Note: Since we are using shared StreamingManager, we don't naturally get onConnect/onDisconnect/onError
-            // for the single websocket. If we need to show connection status, we can assume it's true as long as we asked to watch.
+            activeStreamingUnwatchers.push(unwatchBalance, unwatchJettons, unwatchTransactions, unwatchConnection);
+
             log.info('WebSocket streaming started for address:', address);
         },
 
@@ -639,7 +639,7 @@ export const createWalletManagementSlice =
                 s.walletManagement.isStreamingConnected = false;
                 s.walletManagement.pendingTransactions = [];
                 s.walletManagement.confirmedTraceIds = [];
-                s.walletManagement.confirmedExternalHashes = [];
+                s.walletManagement.confirmedExternalHashes = [] 
             });
             log.info('WebSocket streaming stopped');
         },

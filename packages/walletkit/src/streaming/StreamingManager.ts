@@ -29,6 +29,8 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
     private createFactoryContext: () => ProviderFactoryContext<E>;
     private providers: Map<string, StreamingProvider> = new Map();
     private providerFactories: Map<string, StreamingProviderFactory> = new Map();
+    private connectionChangeCallbacks: Map<string, Set<(connected: boolean) => void>> = new Map();
+    private providerConnectionUnsubs: Map<string, () => void> = new Map();
 
     constructor(createFactoryContext: () => ProviderFactoryContext<E>) {
         this.createFactoryContext = createFactoryContext;
@@ -114,6 +116,12 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
 
         provider = factory(this.createFactoryContext(), network);
         this.providers.set(networkId, provider);
+
+        const unsub = provider.onConnectionChange((connected) => {
+            this.emitConnectionChange(networkId, connected);
+        });
+        this.providerConnectionUnsubs.set(networkId, unsub);
+
         return provider;
     }
 
@@ -129,14 +137,29 @@ export class StreamingManager<E extends StreamingEvents = StreamingEvents> imple
      * Call connect() to resume.
      */
     disconnect(): void {
-        this.providers.forEach((provider) => provider.close());
+        this.providers.forEach((provider) => provider.disconnect());
     }
 
     /**
-     * Close all active streaming connections and remove all providers.
+     * Subscribe to connection state changes for a specific network's provider.
      */
-    shutdown(): void {
-        this.providers.forEach((provider) => provider.close());
-        this.providers.clear();
+    onConnectionChange(network: Network, callback: (connected: boolean) => void): () => void {
+        const networkId = String(network.chainId);
+        let set = this.connectionChangeCallbacks.get(networkId);
+        if (!set) {
+            set = new Set();
+            this.connectionChangeCallbacks.set(networkId, set);
+        }
+        set.add(callback);
+        return () => {
+            set.delete(callback);
+            if (set.size === 0) {
+                this.connectionChangeCallbacks.delete(networkId);
+            }
+        };
+    }
+
+    private emitConnectionChange(networkId: string, connected: boolean): void {
+        this.connectionChangeCallbacks.get(networkId)?.forEach((cb) => cb(connected));
     }
 }

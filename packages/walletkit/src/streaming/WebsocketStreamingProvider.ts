@@ -25,6 +25,8 @@ export abstract class WebsocketStreamingProvider implements StreamingProvider {
     private transactionCallbacks: Map<string, Set<(update: TransactionsUpdate) => void>> = new Map();
     private jettonCallbacks: Map<string, Set<(update: JettonUpdate) => void>> = new Map();
 
+    private connectionChangeCallbacks: Set<(connected: boolean) => void> = new Set();
+
     private reconnectAttempts = 0;
     private maxReconnectAttempts = 50;
     private reconnectDelay = 300;
@@ -101,25 +103,41 @@ export abstract class WebsocketStreamingProvider implements StreamingProvider {
         return this.addCallback(this.jettonCallbacks, asAddressFriendly(address), onChange, 'jettons');
     }
 
-    close(): void {
+    disconnect(): void {
         this.stopReconnect();
         this.stopPing();
+        const wasConnected = this.isConnected;
         if (this.ws) {
+            this.ws.onclose = null;
             this.ws.close();
             this.ws = null;
         }
         this.isConnected = false;
+        if (wasConnected) {
+            this.emitConnectionChange(false);
+        }
         log.info('WebsocketStreamingProvider disconnected');
     }
 
     protected checkClose(): void {
         if (!this.hasActiveSubscriptions()) {
-            this.close();
+            this.disconnect();
         }
     }
 
     connect(): void {
         this.ensureConnected();
+    }
+
+    onConnectionChange(callback: (connected: boolean) => void): () => void {
+        this.connectionChangeCallbacks.add(callback);
+        return () => {
+            this.connectionChangeCallbacks.delete(callback);
+        };
+    }
+
+    private emitConnectionChange(connected: boolean): void {
+        this.connectionChangeCallbacks.forEach((cb) => cb(connected));
     }
 
     protected ensureConnected(): void {
@@ -148,6 +166,7 @@ export abstract class WebsocketStreamingProvider implements StreamingProvider {
             this.reconnectAttempts = 0;
             this.fullResync();
             this.startPing();
+            this.emitConnectionChange(true);
         };
 
         this.ws.onmessage = this.onMessage.bind(this);
@@ -161,6 +180,7 @@ export abstract class WebsocketStreamingProvider implements StreamingProvider {
             this.isConnected = false;
             this.stopPing();
             this.ws = null;
+            this.emitConnectionChange(false);
 
             if (this.hasActiveSubscriptions()) {
                 this.scheduleReconnect();
@@ -198,7 +218,7 @@ export abstract class WebsocketStreamingProvider implements StreamingProvider {
 
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             log.error('Max reconnect attempts reached, stopping reconnects');
-            this.close();
+            this.disconnect();
             return;
         }
 
