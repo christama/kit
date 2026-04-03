@@ -80,6 +80,16 @@ export type { SwapQuote } from './swaps/SwapQuote';
 export type { SwapQuoteParams } from './swaps/SwapQuoteParams';
 export type { SwapParams } from './swaps/SwapParams';
 
+// Staking models
+export type { StakeParams } from './staking/StakeParams';
+export type { StakingBalance } from './staking/StakingBalance';
+export type { StakingProviderInfo } from './staking/StakingProviderInfo';
+export type { StakingQuote } from './staking/StakingQuote';
+export type { StakingQuoteDirection } from './staking/StakingQuoteDirection';
+export type { StakingQuoteParams } from './staking/StakingQuoteParams';
+export type { UnstakeModes } from './staking/UnstakeMode';
+export { UnstakeMode } from './staking/UnstakeMode';
+
 // Transaction models
 export * from './transactions/Transaction';
 export type { TransactionAddressMetadata, TransactionAddressMetadataEntry } from './transactions/TransactionMetadata';
@@ -99,3 +109,13 @@ export type {
 
 // RPC models
 export type { GetMethodResult } from './rpc/GetMethodResult';
+
+// Streaming models
+export type { StreamingBaseUpdate } from './streaming/StreamingBaseUpdate';
+export type { StreamingUpdateStatus } from './streaming/StreamingUpdateStatus';
+export type { StreamingWatchType } from './streaming/StreamingWatchType';
+export type { BalanceUpdate } from './streaming/BalanceUpdate';
+export type { TransactionsUpdate } from './streaming/TransactionsUpdate';
+export type { JettonUpdate } from './streaming/JettonUpdate';
+export type { StreamingUpdate } from './streaming/StreamingUpdate';
+export type { StreamingEvents } from './streaming/StreamingEvents';
