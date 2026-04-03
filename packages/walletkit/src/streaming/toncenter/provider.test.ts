@@ -91,7 +91,7 @@ describe('TonCenterStreamingProvider', () => {
         vi.advanceTimersByTime(20); // connect
 
         const ws = MockWebSocket.lastInstance!;
-        vi.advanceTimersByTime(15000); // ping interval
+        vi.advanceTimersByTime(10000); // ping interval
 
         const pings = ws.send.mock.calls
             .map((call) => JSON.parse(call[0]) as Record<string, unknown>)
