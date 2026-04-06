@@ -6,7 +6,7 @@
  *
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     useWallet,
@@ -38,6 +38,7 @@ import {
 import { useTonWallet } from '../hooks';
 import { createComponentLogger } from '../utils/logger';
 import { usePasteHandler } from '../hooks/usePasteHandler';
+import { isExtension } from '@/utils/isExtension';
 
 // Create logger for wallet dashboard
 const log = createComponentLogger('WalletDashboard');
@@ -103,6 +104,37 @@ export const WalletDashboard: React.FC = () => {
         [isIntentUrl, handleIntentUrl, handleTonConnectUrl],
     );
     usePasteHandler(handlePastedUrl);
+
+    // In extension: check session storage for a pending connectWithIntent from the JS bridge.
+    // The background can't handle it (no wallets loaded there) so it saves it here for the popup.
+    useEffect(() => {
+        if (!isExtension() || !walletKit || !activeWallet?.kitWalletId) return;
+
+        const kitWalletId = activeWallet.kitWalletId;
+
+        const checkPending = async () => {
+            try {
+                const browser = (await import('webextension-polyfill')).default;
+                const result = (await browser.storage.session.get('pendingJsBridgeIntent')) as Record<string, unknown>;
+                const pending = result?.pendingJsBridgeIntent as
+                    | { intentUrl: string; messageId?: string; tabId?: string }
+                    | undefined;
+                if (!pending?.intentUrl) return;
+
+                await browser.storage.session.remove('pendingJsBridgeIntent');
+
+                await walletKit.handleIntentUrl(pending.intentUrl, kitWalletId, {
+                    isJsBridge: true,
+                    tabId: pending.tabId,
+                    messageId: pending.messageId,
+                });
+            } catch (err) {
+                log.error('Failed to process pending JS bridge intent:', err);
+            }
+        };
+
+        void checkPending();
+    }, [walletKit, activeWallet?.kitWalletId]);
 
     const handleRefreshBalance = useCallback(async () => {
         setIsRefreshing(true);
