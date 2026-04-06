@@ -117,7 +117,7 @@ export const WalletDashboard: React.FC = () => {
                 const browser = (await import('webextension-polyfill')).default;
                 const result = (await browser.storage.session.get('pendingJsBridgeIntent')) as Record<string, unknown>;
                 const pending = result?.pendingJsBridgeIntent as
-                    | { intentUrl: string; messageId?: string; tabId?: string }
+                    | { intentUrl: string; messageId?: string; tabId?: string; connectRequest?: unknown }
                     | undefined;
                 if (!pending?.intentUrl) return;
 
@@ -127,6 +127,7 @@ export const WalletDashboard: React.FC = () => {
                     isJsBridge: true,
                     tabId: pending.tabId,
                     messageId: pending.messageId,
+                    connectRequest: pending.connectRequest ?? undefined,
                 });
             } catch (err) {
                 log.error('Failed to process pending JS bridge intent:', err);

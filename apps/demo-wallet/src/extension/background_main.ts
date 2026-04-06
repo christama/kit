@@ -109,6 +109,7 @@ onMessage(JS_BRIDGE_MESSAGE_TO_BACKGROUND, async (e) => {
                             intentUrl,
                             messageId,
                             tabId: e.sender.tabId?.toString(),
+                            connectRequest: paramsObj?.connectRequest ?? null,
                         },
                     });
                 }
